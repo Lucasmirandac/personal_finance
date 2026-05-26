@@ -19,6 +19,12 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+const FONTE_LABEL: Record<string, string> = {
+  inter: "Inter",
+  nubank: "Nubank",
+  manual: "Manual",
+};
+
 export function exportTreatedCsv(
   data: TransactionNormalized[],
   fileName = "fatura_tratada.csv",
@@ -30,8 +36,11 @@ export function exportTreatedCsv(
     "Categoria",
     "Tipo",
     "Natureza",
+    "Fonte",
+    "TipoFluxo",
     "ValorOriginal",
     "ValorAnalise",
+    "ValorFluxo",
     "AnoMes",
     "DiaSemana",
     "Semana",
@@ -45,8 +54,11 @@ export function exportTreatedCsv(
     t.categoria,
     t.tipo,
     t.natureza,
+    FONTE_LABEL[t.fonte] ?? t.fonte,
+    t.tipoFluxo,
     formatNumber(t.valorOriginal),
     formatNumber(t.valorAnalise),
+    formatNumber(t.valorFluxo),
     t.anoMes,
     t.diaSemana,
     t.semana,
@@ -70,9 +82,7 @@ function escapeCsv(value: unknown): string {
 }
 
 function formatNumber(n: number): string {
-  return n
-    .toFixed(2)
-    .replace(".", ",");
+  return n.toFixed(2).replace(".", ",");
 }
 
 export function exportWorkbook(
@@ -91,20 +101,22 @@ export function exportWorkbook(
     ["Dashboard de Gastos"],
     [],
     ["Indicador", "Valor"],
-    ["Gasto analisado", kpis.totalGasto],
+    ["Receitas", kpis.totalReceitas],
+    ["Despesas", kpis.totalDespesas],
+    ["Saldo", kpis.saldo],
+    ["Gasto no cartão", kpis.totalGasto],
     ["Transações de consumo", kpis.countConsumo],
-    ["Ticket médio", kpis.ticketMedio],
+    ["Ticket médio (cartão)", kpis.ticketMedio],
     [
       "Maior compra",
       kpis.maiorCompra
         ? `R$ ${kpis.maiorCompra.valor.toFixed(2)} - ${kpis.maiorCompra.estabelecimento} (${kpis.maiorCompra.data})`
         : "—",
     ],
-    ["Pagamentos/ajustes excluídos", kpis.countExcluidos],
-    ["Total bruto do CSV", kpis.totalBruto],
+    ["Pagamentos/estornos excluídos", kpis.countExcluidos],
+    ["Total bruto (CSV)", kpis.totalBruto],
   ];
-  const wsDash = XLSX.utils.aoa_to_sheet(dashboard);
-  XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dashboard), "Dashboard");
 
   const dadosHeaders = [
     "Data",
@@ -113,8 +125,11 @@ export function exportWorkbook(
     "Categoria",
     "Tipo",
     "Natureza",
+    "Fonte",
+    "Tipo fluxo",
     "Valor original",
     "Valor análise",
+    "Valor fluxo",
     "Ano-Mês",
     "Dia semana",
     "Semana ISO",
@@ -128,20 +143,43 @@ export function exportWorkbook(
     t.categoria,
     t.tipo,
     t.natureza,
+    FONTE_LABEL[t.fonte] ?? t.fonte,
+    t.tipoFluxo,
     t.valorOriginal,
     t.valorAnalise,
+    t.valorFluxo,
     t.anoMes,
     t.diaSemana,
     t.semana,
     t.faixaValor,
     t.fimSemana ? "Sim" : "Não",
   ]);
-  const wsDados = XLSX.utils.aoa_to_sheet([dadosHeaders, ...dadosRows]);
-  XLSX.utils.book_append_sheet(wb, wsDados, "Dados");
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([dadosHeaders, ...dadosRows]),
+    "Dados",
+  );
+
+  const resumoFluxo = [
+    ["Ano-Mês", "Mês", "Receitas", "Despesas", "Saldo", "Lançamentos"],
+    ...months.map((m) => [
+      m.anoMes,
+      m.label,
+      m.receitas,
+      m.despesas,
+      m.saldo,
+      m.count,
+    ]),
+  ];
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet(resumoFluxo),
+    "Resumo_Fluxo",
+  );
 
   const resumoMes = [
-    ["Ano-Mês", "Mês", "Total Gasto", "Transações"],
-    ...months.map((m) => [m.anoMes, m.label, m.total, m.count]),
+    ["Ano-Mês", "Mês", "Despesas", "Receitas", "Saldo"],
+    ...months.map((m) => [m.anoMes, m.label, m.despesas, m.receitas, m.saldo]),
   ];
   XLSX.utils.book_append_sheet(
     wb,

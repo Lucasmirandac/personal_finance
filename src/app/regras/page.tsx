@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { DEFAULT_RULES, Rules } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
+import { NatureBadge } from "@/components/NatureBadge";
 import { formatBRL, formatInt } from "@/lib/format";
 import { normalizeTransactions } from "@/lib/normalize";
 
 export default function RegrasPage() {
-  const { loaded, dataset, hasData, rules, updateRules, resetRules } =
+  const { loaded, dataset, hasAnalysis, rules, updateRules, resetRules } =
     useAppStore();
   const [draft, setDraft] = useState<Rules>(rules);
   const [dirty, setDirty] = useState(false);
@@ -41,7 +42,7 @@ export default function RegrasPage() {
   }, [allRaw, draft]);
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
-  if (!hasData)
+  if (!hasAnalysis)
     return (
       <EmptyState description="Importe um CSV para começar a editar as regras de classificação." />
     );
@@ -56,18 +57,17 @@ export default function RegrasPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Regras</h1>
-          <p className="subtle text-sm">
-            Padrões editáveis para classificar lançamentos. Mudanças recalculam
-            todo o dataset.
+          <h1 className="text-lg font-semibold tracking-tight">Regras</h1>
+          <p className="subtle text-xs mt-0.5">
+            Padrões de classificação. Salvar recalcula todo o dataset.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
-            className="btn btn-danger"
+            className="btn btn-danger btn-sm"
             onClick={async () => {
               if (confirm("Restaurar padrões originais?")) {
                 await resetRules();
@@ -77,7 +77,7 @@ export default function RegrasPage() {
             Restaurar padrões
           </button>
           <button
-            className="btn"
+            className="btn btn-sm"
             onClick={() => {
               setDraft(rules);
               setDirty(false);
@@ -87,7 +87,7 @@ export default function RegrasPage() {
             Descartar
           </button>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary btn-sm"
             onClick={async () => {
               await updateRules({
                 pagamentoPatterns: draft.pagamentoPatterns.filter((p) => p.trim()),
@@ -121,72 +121,65 @@ export default function RegrasPage() {
       </div>
 
       {preview && (
-        <div className="card p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="font-semibold">Pré-visualização do impacto</div>
-            <div className="text-xs subtle">
-              Calculado a partir do dataset atual. Salve para aplicar.
+        <div className="panel p-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="section-title">Pré-visualização</span>
+            <span className="text-[11px] subtle">Salve para aplicar</span>
+          </div>
+          <div className="kpi-strip">
+            <div className="kpi-cell">
+              <div className="section-title">Gasto</div>
+              <div className="num text-base font-semibold mt-0.5">
+                {formatBRL(preview.total)}
+              </div>
+            </div>
+            <div className="kpi-cell">
+              <div className="section-title">Consumo</div>
+              <div className="num text-base font-semibold mt-0.5">
+                {formatInt(preview.countGasto)}
+              </div>
+            </div>
+            <div className="kpi-cell">
+              <div className="section-title">Pagamentos</div>
+              <div className="num text-base font-semibold mt-0.5">
+                {formatInt(preview.countPag)}
+              </div>
+            </div>
+            <div className="kpi-cell">
+              <div className="section-title">Estornos</div>
+              <div className="num text-base font-semibold mt-0.5">
+                {formatInt(preview.countEst)}
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Stat
-              label="Gasto analisado"
-              value={formatBRL(preview.total)}
-            />
-            <Stat label="Transações de consumo" value={formatInt(preview.countGasto)} />
-            <Stat label="Pagamentos detectados" value={formatInt(preview.countPag)} />
-            <Stat label="Estornos detectados" value={formatInt(preview.countEst)} />
-          </div>
           {preview.excludedSamples.length > 0 && (
-            <div>
-              <div className="text-sm subtle mb-2">
-                Exemplos de lançamentos excluídos com as regras atuais:
-              </div>
-              <div className="table-wrap">
-                <table className="dt">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Lançamento</th>
-                      <th>Natureza</th>
-                      <th>Valor original</th>
+            <div className="table-wrap border border-[var(--border)] rounded-lg">
+              <table className="dt">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Lançamento</th>
+                    <th>Natureza</th>
+                    <th className="num">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.excludedSamples.map((t) => (
+                    <tr key={t.id}>
+                      <td>{t.data}</td>
+                      <td className="max-w-[280px] truncate">{t.lancamento}</td>
+                      <td>
+                        <NatureBadge natureza={t.natureza} />
+                      </td>
+                      <td className="num">{formatBRL(t.valorOriginal)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {preview.excludedSamples.map((t) => (
-                      <tr key={t.id}>
-                        <td>{t.data}</td>
-                        <td className="max-w-[320px] truncate">{t.lancamento}</td>
-                        <td>
-                          <span
-                            className={
-                              t.natureza === "Pagamento de fatura"
-                                ? "badge badge-pay"
-                                : "badge badge-est"
-                            }
-                          >
-                            {t.natureza}
-                          </span>
-                        </td>
-                        <td>{formatBRL(t.valorOriginal)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-[var(--surface-2)] p-3 border border-[var(--border)]">
-      <div className="text-xs subtle">{label}</div>
-      <div className="text-lg font-semibold mt-1">{value}</div>
     </div>
   );
 }
@@ -232,33 +225,33 @@ function PatternEditor({
   }
 
   return (
-    <div className="card p-5 flex flex-col gap-3">
-      <div>
-        <div className="font-semibold">{title}</div>
-        <p className="subtle text-sm">{description}</p>
+    <div className="panel flex flex-col overflow-hidden">
+      <div className="px-3 py-2 border-b border-[var(--border)]">
+        <div className="section-title">{title}</div>
+        <p className="text-[11px] subtle mt-0.5">{description}</p>
       </div>
-      <ul className="space-y-2">
+      <ul className="divide-y divide-[var(--border)]">
         {values.map((v, i) => (
-          <li key={i} className="flex items-center gap-2">
+          <li key={i} className="flex items-center gap-2 px-3 py-2">
             <input
               className="input"
               value={v}
               onChange={(e) => setIdx(i, e.target.value)}
             />
             <button
-              className="btn btn-danger"
+              className="btn btn-danger btn-sm shrink-0"
               onClick={() => remove(i)}
               aria-label="Remover padrão"
             >
-              Remover
+              ×
             </button>
           </li>
         ))}
       </ul>
-      <div className="flex gap-2">
+      <div className="flex gap-2 p-3 border-t border-[var(--border)]">
         <input
           className="input"
-          placeholder={`Adicionar padrão (ex: ${placeholderItem})`}
+          placeholder={placeholderItem}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -268,17 +261,14 @@ function PatternEditor({
             }
           }}
         />
-        <button className="btn btn-primary" onClick={add}>
-          Adicionar
+        <button className="btn btn-primary btn-sm shrink-0" onClick={add}>
+          +
         </button>
       </div>
-      <div className="text-xs subtle">
+      <div className="text-[11px] subtle px-3 pb-3">
         Padrões originais:{" "}
         {defaults.map((d) => (
-          <code
-            key={d}
-            className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] mr-1"
-          >
+          <code key={d} className="chip mr-1">
             {d}
           </code>
         ))}

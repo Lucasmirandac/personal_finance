@@ -1,17 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7fb;
+  --background: #f4f5f7;
   --surface: #ffffff;
-  --surface-2: #f1f3f9;
-  --border: #e5e8f0;
+  --surface-2: #f8fafc;
+  --border: #d9dee8;
+  --border-strong: #cbd2e0;
   --foreground: #0f172a;
-  --muted: #5b6478;
+  --muted: #64748b;
   --accent: #4f46e5;
   --accent-strong: #4338ca;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
 @theme inline {
@@ -32,12 +36,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1020;
-    --surface: #11172a;
-    --surface-2: #161d35;
-    --border: #232b48;
-    --foreground: #e7ecf6;
-    --muted: #93a0bf;
+    --background: #090c14;
+    --surface: #0f1420;
+    --surface-2: #141b2b;
+    --border: #1e293b;
+    --border-strong: #334155;
+    --foreground: #e2e8f0;
+    --muted: #94a3b8;
     --accent: #818cf8;
     --accent-strong: #a5b4fc;
     --success: #4ade80;
@@ -50,6 +55,8 @@ html,
 body {
   background: var(--background);
   color: var(--foreground);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 body {
@@ -61,40 +68,65 @@ body {
   border-color: var(--border);
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+.num {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.section-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .subtle {
   color: var(--muted);
 }
 
+.divider {
+  border-top: 1px solid var(--border);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   font-weight: 500;
-  border-radius: 10px;
-  padding: 0.5rem 0.9rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.75rem;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--foreground);
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background 100ms ease, border-color 100ms ease;
+  white-space: nowrap;
 }
 .btn:hover {
   background: var(--surface-2);
+  border-color: var(--border-strong);
 }
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
+  background: var(--foreground);
+  border-color: var(--foreground);
+  color: var(--surface);
 }
 .btn-primary:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  opacity: 0.9;
 }
 .btn-ghost {
   background: transparent;
@@ -102,41 +134,59 @@ body {
 }
 .btn-ghost:hover {
   background: var(--surface-2);
+  border-color: var(--border);
 }
 .btn-danger {
-  border-color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 40%, var(--border));
   color: var(--danger);
   background: transparent;
 }
 .btn-danger:hover {
-  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  background: color-mix(in oklab, var(--danger) 8%, transparent);
+}
+.btn-sm {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
+  gap: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 500;
   background: var(--surface-2);
   color: var(--muted);
   border: 1px solid var(--border);
 }
+.badge-dot::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
 .badge-pay {
   color: var(--warning);
-  border-color: color-mix(in oklab, var(--warning) 30%, var(--border));
-  background: color-mix(in oklab, var(--warning) 12%, transparent);
+  border-color: color-mix(in oklab, var(--warning) 25%, var(--border));
 }
 .badge-est {
   color: var(--success);
-  border-color: color-mix(in oklab, var(--success) 30%, var(--border));
-  background: color-mix(in oklab, var(--success) 12%, transparent);
+  border-color: color-mix(in oklab, var(--success) 25%, var(--border));
 }
 .badge-gasto {
-  color: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 30%, var(--border));
-  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--muted);
+}
+.badge-fixa {
+  color: var(--warning);
+  border-color: color-mix(in oklab, var(--warning) 25%, var(--border));
+}
+.badge-receita {
+  color: var(--success);
+  border-color: color-mix(in oklab, var(--success) 25%, var(--border));
 }
 
 .input,
@@ -144,74 +194,188 @@ body {
 .textarea {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
   font: inherit;
+  font-size: 0.8125rem;
   color: var(--foreground);
   width: 100%;
 }
 .input:focus,
 .select:focus,
 .textarea:focus {
-  outline: 2px solid color-mix(in oklab, var(--accent) 50%, transparent);
-  outline-offset: 1px;
-  border-color: var(--accent);
+  outline: 1px solid var(--border-strong);
+  outline-offset: 0;
+  border-color: var(--border-strong);
 }
 
-.kbd {
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-family: var(--font-mono), monospace;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0 6px;
-  font-size: 0.75rem;
+  color: var(--muted);
 }
 
-/* Mobile-first scroll wrapper for tables */
 .table-wrap {
   overflow-x: auto;
 }
 
 table.dt {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 0.875rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
 }
 table.dt th,
 table.dt td {
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.45rem 0.65rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 table.dt th {
-  background: var(--surface-2);
+  font-size: 0.6875rem;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--muted);
+  background: transparent;
   cursor: pointer;
   user-select: none;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+table.dt tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--surface-2) 50%, transparent);
 }
 table.dt tbody tr:hover {
-  background: color-mix(in oklab, var(--surface-2) 60%, transparent);
+  background: var(--surface-2);
+}
+table.dt td.num,
+table.dt th.num {
+  text-align: right;
 }
 .row-pay {
-  background: color-mix(in oklab, var(--warning) 10%, transparent);
+  background: color-mix(in oklab, var(--warning) 6%, transparent) !important;
 }
 .row-est {
-  background: color-mix(in oklab, var(--success) 10%, transparent);
+  background: color-mix(in oklab, var(--success) 6%, transparent) !important;
+}
+.row-fixa {
+  background: color-mix(in oklab, var(--warning) 5%, transparent) !important;
+}
+.row-receita {
+  background: color-mix(in oklab, var(--success) 5%, transparent) !important;
+}
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .kpi-strip {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.kpi-cell {
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.kpi-cell:nth-child(2n) {
+  border-right: none;
+}
+@media (min-width: 768px) {
+  .kpi-cell {
+    border-bottom: none;
+  }
+  .kpi-cell:last-child {
+    border-right: none;
+  }
 }
 
 .dropzone {
-  border: 2px dashed var(--border);
-  border-radius: 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  padding: 2.5rem 1.25rem;
+  padding: 1.25rem 1rem;
   text-align: center;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition: border-color 100ms ease, background 100ms ease;
   cursor: pointer;
 }
 .dropzone:hover,
 .dropzone.drag-active {
-  border-color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 5%, var(--surface));
+  border-color: var(--foreground);
+  background: var(--surface-2);
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 40;
+}
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, 20rem);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tab-list {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.tab-trigger {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+}
+.tab-trigger:hover {
+  color: var(--foreground);
+}
+.tab-trigger[data-active="true"] {
+  color: var(--foreground);
+  border-bottom-color: var(--foreground);
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 48px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--foreground);
+  border-radius: 2px;
 }

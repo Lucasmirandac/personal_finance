@@ -30,7 +30,7 @@ export function Dropzone({ onFile, disabled }: Props) {
       className={clsx("dropzone", drag && "drag-active")}
       role="button"
       tabIndex={0}
-      onClick={() => inputRef.current?.click()}
+      onClick={() => !disabled && inputRef.current?.click()}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -56,22 +56,11 @@ export function Dropzone({ onFile, disabled }: Props) {
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-[var(--surface-2)] flex items-center justify-center text-xl">
-          📥
-        </div>
-        <div>
-          <div className="font-medium">
-            Arraste seu CSV aqui ou clique para selecionar
-          </div>
-          <div className="text-sm subtle mt-1">
-            <strong>Inter:</strong> <code>Data</code>, <code>Lançamento</code>,{" "}
-            <code>Categoria</code>, <code>Tipo</code>, <code>Valor</code>
-            <br />
-            <strong>Nubank:</strong> <code>date</code>, <code>title</code>,{" "}
-            <code>amount</code> — formato detectado automaticamente.
-          </div>
-        </div>
+      <div className="text-sm font-medium">
+        Arraste um CSV ou clique para selecionar
+      </div>
+      <div className="text-[11px] subtle mt-1">
+        Inter · Nubank — formato detectado automaticamente
       </div>
     </div>
   );

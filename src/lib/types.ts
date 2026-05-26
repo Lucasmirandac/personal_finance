@@ -1,6 +1,28 @@
-export type Natureza = "Gasto" | "Pagamento de fatura" | "Estorno / crédito";
+export type Natureza =
+  | "Gasto"
+  | "Pagamento de fatura"
+  | "Estorno / crédito"
+  | "Despesa fixa"
+  | "Receita";
 
-export type Fonte = "inter" | "nubank";
+export type Fonte = "inter" | "nubank" | "manual";
+
+export type TipoFluxo = "saida" | "entrada" | "neutro";
+
+export type RecurringKind = "despesa_fixa" | "receita";
+
+export type RecurringRule = {
+  id: string;
+  kind: RecurringKind;
+  descricao: string;
+  categoria: string;
+  valor: number;
+  diaMes: number;
+  inicio: string;
+  fim: string | null;
+  ativo: boolean;
+  criadoEm: string;
+};
 
 export type TransactionRaw = {
   data: string; // dd/mm/yyyy original
@@ -15,18 +37,20 @@ export type TransactionRaw = {
 export type TransactionNormalized = TransactionRaw & {
   id: string;
   estabelecimento: string;
-  valorAnalise: number; // 0 when payment/refund, else absolute
+  valorAnalise: number;
   natureza: Natureza;
-  ajuste: boolean; // true if natureza != "Gasto"
-  dataISO: string; // yyyy-mm-dd
-  mes: number; // 1-12
+  ajuste: boolean;
+  tipoFluxo: TipoFluxo;
+  valorFluxo: number;
+  dataISO: string;
+  mes: number;
   ano: number;
-  anoMes: string; // yyyy-mm
-  mesLabel: string; // e.g. "Mai/26"
-  diaSemana: string; // "Segunda", ...
-  diaSemanaIndex: number; // 0=Domingo
-  semana: string; // ISO week label "2026-W21"
-  faixaValor: string; // "Até R$ 25", "R$ 25-50", ...
+  anoMes: string;
+  mesLabel: string;
+  diaSemana: string;
+  diaSemanaIndex: number;
+  semana: string;
+  faixaValor: string;
   fimSemana: boolean;
 };
 
@@ -57,7 +81,7 @@ export type Source = {
   id: string;
   fileName: string;
   fonte: Fonte;
-  importedAt: string; // ISO
+  importedAt: string;
   rowsRaw: number;
   raw: TransactionRaw[];
 };
@@ -85,4 +109,5 @@ export type LegacyDataset = {
 export type AppState = {
   dataset: Dataset;
   rules: Rules;
+  recurringRules: RecurringRule[];
 };

@@ -2,8 +2,8 @@ import { Natureza, TransactionNormalized } from "./types";
 import { formatMonthLabel } from "./format";
 
 export type Filters = {
-  dateFrom: string | null; // yyyy-mm-dd
-  dateTo: string | null; // yyyy-mm-dd
+  dateFrom: string | null;
+  dateTo: string | null;
   categorias: string[];
   naturezas: Natureza[];
   faixas: string[];
@@ -49,6 +49,9 @@ export type Kpis = {
   maiorCompra: { valor: number; estabelecimento: string; data: string } | null;
   countExcluidos: number;
   totalBruto: number;
+  totalReceitas: number;
+  totalDespesas: number;
+  saldo: number;
 };
 
 export function computeKpis(
@@ -64,8 +67,19 @@ export function computeKpis(
       !best || t.valorAnalise > best.valorAnalise ? t : best,
     null,
   );
-  const excluidos = data.filter((t) => t.natureza !== "Gasto").length;
+  const excluidos = data.filter(
+    (t) =>
+      t.natureza === "Pagamento de fatura" ||
+      t.natureza === "Estorno / crédito",
+  ).length;
   const totalBruto = all.reduce((acc, t) => acc + t.valorOriginal, 0);
+  const totalReceitas = data
+    .filter((t) => t.tipoFluxo === "entrada")
+    .reduce((acc, t) => acc + t.valorFluxo, 0);
+  const totalDespesas = data
+    .filter((t) => t.tipoFluxo === "saida")
+    .reduce((acc, t) => acc + t.valorFluxo, 0);
+  const saldo = totalReceitas - totalDespesas;
   return {
     totalGasto,
     countConsumo,
@@ -79,35 +93,76 @@ export function computeKpis(
       : null,
     countExcluidos: excluidos,
     totalBruto,
+    totalReceitas,
+    totalDespesas,
+    saldo,
   };
 }
 
 export type MonthlySeriesPoint = {
   anoMes: string;
   label: string;
-  total: number;
+  despesas: number;
+  receitas: number;
+  saldo: number;
   count: number;
+  /** @deprecated use despesas */
+  total: number;
 };
 
 export function monthlySeries(
   data: TransactionNormalized[],
 ): MonthlySeriesPoint[] {
-  const map = new Map<string, { total: number; count: number }>();
+  const map = new Map<
+    string,
+    { despesas: number; receitas: number; count: number }
+  >();
   for (const t of data) {
-    if (t.natureza !== "Gasto" || !t.anoMes) continue;
-    const cur = map.get(t.anoMes) ?? { total: 0, count: 0 };
-    cur.total += t.valorAnalise;
+    if (!t.anoMes || t.tipoFluxo === "neutro") continue;
+    const cur = map.get(t.anoMes) ?? { despesas: 0, receitas: 0, count: 0 };
+    if (t.tipoFluxo === "saida") cur.despesas += t.valorFluxo;
+    if (t.tipoFluxo === "entrada") cur.receitas += t.valorFluxo;
     cur.count += 1;
     map.set(t.anoMes, cur);
   }
   const arr = [...map.entries()].map(([anoMes, v]) => ({
     anoMes,
     label: formatMonthLabel(anoMes),
-    total: round2(v.total),
+    despesas: round2(v.despesas),
+    receitas: round2(v.receitas),
+    saldo: round2(v.receitas - v.despesas),
     count: v.count,
+    total: round2(v.despesas),
   }));
   arr.sort((a, b) => (a.anoMes < b.anoMes ? -1 : 1));
   return arr;
+}
+
+export type ExpenseComposition = {
+  cartao: { total: number; count: number };
+  fixas: { total: number; count: number };
+};
+
+export function expenseComposition(
+  data: TransactionNormalized[],
+): ExpenseComposition {
+  let cartaoTotal = 0;
+  let cartaoCount = 0;
+  let fixasTotal = 0;
+  let fixasCount = 0;
+  for (const t of data) {
+    if (t.natureza === "Gasto") {
+      cartaoTotal += t.valorAnalise;
+      cartaoCount += 1;
+    } else if (t.natureza === "Despesa fixa") {
+      fixasTotal += t.valorAnalise;
+      fixasCount += 1;
+    }
+  }
+  return {
+    cartao: { total: round2(cartaoTotal), count: cartaoCount },
+    fixas: { total: round2(fixasTotal), count: fixasCount },
+  };
 }
 
 export type CategoryAgg = {
@@ -123,12 +178,12 @@ export function categoryAggregation(
   const map = new Map<string, { total: number; count: number }>();
   let totalAll = 0;
   for (const t of data) {
-    if (t.natureza !== "Gasto") continue;
+    if (t.tipoFluxo !== "saida") continue;
     const cur = map.get(t.categoria) ?? { total: 0, count: 0 };
-    cur.total += t.valorAnalise;
+    cur.total += t.valorFluxo;
     cur.count += 1;
     map.set(t.categoria, cur);
-    totalAll += t.valorAnalise;
+    totalAll += t.valorFluxo;
   }
   const arr: CategoryAgg[] = [...map.entries()].map(([categoria, v]) => ({
     categoria,
@@ -152,13 +207,13 @@ export function weekdayAggregation(
 ): WeekdayAgg[] {
   const map = new Map<number, { dia: string; total: number; count: number }>();
   for (const t of data) {
-    if (t.natureza !== "Gasto") continue;
+    if (t.tipoFluxo !== "saida") continue;
     const cur = map.get(t.diaSemanaIndex) ?? {
       dia: t.diaSemana,
       total: 0,
       count: 0,
     };
-    cur.total += t.valorAnalise;
+    cur.total += t.valorFluxo;
     cur.count += 1;
     map.set(t.diaSemanaIndex, cur);
   }
@@ -209,21 +264,31 @@ export function buildInsights(
   data: TransactionNormalized[],
 ): Insight[] {
   const insights: Insight[] = [];
-  const consumo = data.filter((t) => t.natureza === "Gasto");
-  if (consumo.length === 0) return insights;
+  const saidas = data.filter((t) => t.tipoFluxo === "saida");
+  if (saidas.length === 0 && data.filter((t) => t.tipoFluxo === "entrada").length === 0) {
+    return insights;
+  }
+
+  const kpis = computeKpis(data, data);
+  insights.push({
+    id: "saldo",
+    title: `Saldo do período: ${kpis.saldo >= 0 ? "positivo" : "negativo"}`,
+    detail: `Receitas R$ ${kpis.totalReceitas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Despesas R$ ${kpis.totalDespesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    tone: kpis.saldo >= 0 ? "success" : "warning",
+  });
 
   const cats = categoryAggregation(data);
-  const total = consumo.reduce((acc, t) => acc + t.valorAnalise, 0);
+  const consumo = data.filter((t) => t.natureza === "Gasto");
+  const totalCartao = consumo.reduce((acc, t) => acc + t.valorAnalise, 0);
 
   if (cats[0]) {
     insights.push({
       id: "top-cat",
       title: `Maior categoria: ${cats[0].categoria}`,
-      detail: `R$ ${cats[0].total
-        .toLocaleString("pt-BR", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} (${cats[0].share.toFixed(1)}% do gasto analisado)`,
+      detail: `R$ ${cats[0].total.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} (${cats[0].share.toFixed(1)}% das despesas)`,
       tone: "info",
     });
   }
@@ -232,9 +297,7 @@ export function buildInsights(
     insights.push({
       id: "top2-cat",
       title: `Top 2 categorias concentram ${share.toFixed(1)}%`,
-      detail: `${cats[0].categoria} + ${cats[1].categoria} representam ${share.toFixed(
-        1,
-      )}% do consumo.`,
+      detail: `${cats[0].categoria} + ${cats[1].categoria}`,
       tone: share > 50 ? "warning" : "info",
     });
   }
@@ -247,56 +310,67 @@ export function buildInsights(
       detail: `R$ ${ests[0].total.toLocaleString("pt-BR", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      })} em ${ests[0].count} transações.`,
+      })} em ${ests[0].count} transações (cartão).`,
       tone: "info",
     });
   }
 
-  // Average per day across observed days
   const days = new Set<string>();
   for (const t of consumo) {
     if (t.dataISO) days.add(t.dataISO);
   }
-  if (days.size > 0) {
-    const media = total / days.size;
+  if (days.size > 0 && totalCartao > 0) {
+    const media = totalCartao / days.size;
     insights.push({
       id: "media-dia",
-      title: "Média diária",
+      title: "Média diária (cartão)",
       detail: `R$ ${media.toLocaleString("pt-BR", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      })} em ${days.size} dias com gasto registrado.`,
+      })} em ${days.size} dias com gasto.`,
       tone: "info",
     });
   }
 
-  // Current month pace
   const months = monthlySeries(data);
-  if (months.length > 0) {
+  if (months.length >= 2) {
     const latest = months[months.length - 1];
-    if (months.length >= 2) {
-      const prev = months[months.length - 2];
-      const diff = ((latest.total - prev.total) / prev.total) * 100;
+    const prev = months[months.length - 2];
+    if (prev.despesas > 0) {
+      const diff = ((latest.despesas - prev.despesas) / prev.despesas) * 100;
       const sign = diff >= 0 ? "+" : "";
       insights.push({
         id: "ritmo-mes",
-        title: `Ritmo de ${latest.label}`,
-        detail: `${sign}${diff.toFixed(1)}% vs ${prev.label} (R$ ${latest.total.toLocaleString(
-          "pt-BR",
-          { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-        )} no mês mais recente).`,
+        title: `Ritmo de despesas em ${latest.label}`,
+        detail: `${sign}${diff.toFixed(1)}% vs ${prev.label}`,
         tone: diff > 20 ? "warning" : "info",
       });
     }
   }
 
-  const excluidos = data.filter((t) => t.natureza !== "Gasto").length;
+  const comp = expenseComposition(data);
+  if (comp.fixas.count > 0) {
+    insights.push({
+      id: "fixas",
+      title: `${comp.fixas.count} despesas fixas no período`,
+      detail: `R$ ${comp.fixas.total.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} em aluguel, boletos e similares.`,
+      tone: "info",
+    });
+  }
+
+  const excluidos = data.filter(
+    (t) =>
+      t.natureza === "Pagamento de fatura" ||
+      t.natureza === "Estorno / crédito",
+  ).length;
   if (excluidos > 0) {
     insights.push({
       id: "excluidos",
-      title: `${excluidos} itens excluídos do gasto`,
-      detail:
-        "Pagamentos de fatura e estornos/créditos não entram no total analisado. Confira a tabela detalhada se algo parecer fora.",
+      title: `${excluidos} pagamentos/estornos excluídos`,
+      detail: "Não entram nas despesas de cartão analisadas.",
       tone: "warning",
     });
   }

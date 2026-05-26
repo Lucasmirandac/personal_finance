@@ -9,82 +9,92 @@ const NAV = [
   { href: "/", label: "Importar" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/transacoes", label: "Transações" },
+  { href: "/recorrentes", label: "Recorrentes" },
   { href: "/regras", label: "Regras" },
 ];
 
+function NavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={clsx(
+        "px-3 py-1 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap",
+        active
+          ? "border-[var(--foreground)] text-[var(--foreground)] font-medium"
+          : "border-transparent subtle hover:text-[var(--foreground)]",
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { dataset, hasData, normalized } = useAppStore();
+  const { dataset, hasAnalysis, normalized } = useAppStore();
+
+  const isActive = (href: string) =>
+    href === "/"
+      ? path === "/"
+      : path === href || path.startsWith(href + "/");
 
   return (
     <div className="min-h-dvh flex flex-col">
-      <header className="border-b border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-[var(--accent)] text-white font-semibold">
+      <header className="border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur sticky top-0 z-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-[var(--foreground)] text-[var(--surface)] text-xs font-semibold">
               $
             </span>
-            <div className="flex flex-col leading-tight">
-              <span className="font-semibold">Dashboard de Gastos</span>
-              <span className="text-xs subtle">CSV local · privado</span>
-            </div>
+            <span className="font-semibold text-sm hidden sm:inline">
+              Finanças
+            </span>
           </Link>
-          <nav className="hidden sm:flex items-center gap-1">
-            {NAV.map((n) => {
-              const active =
-                n.href === "/"
-                  ? path === "/"
-                  : path === n.href || path.startsWith(n.href + "/");
-              return (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  className={clsx(
-                    "px-3 py-1.5 rounded-lg text-sm transition-colors",
-                    active
-                      ? "bg-[var(--surface-2)] text-[var(--foreground)] font-medium"
-                      : "subtle hover:bg-[var(--surface-2)]",
-                  )}
-                >
-                  {n.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="text-right text-xs subtle hidden md:block">
-            {hasData
-              ? `${dataset.sources.length} fonte(s) · ${normalized.length} linhas`
-              : "Nenhum dataset carregado"}
-          </div>
-        </div>
-        <nav className="sm:hidden flex items-center gap-1 px-4 pb-2 overflow-x-auto">
-          {NAV.map((n) => {
-            const active =
-              n.href === "/"
-                ? path === "/"
-                : path === n.href || path.startsWith(n.href + "/");
-            return (
-              <Link
+
+          <nav className="hidden sm:flex items-center gap-0 min-w-0 overflow-x-auto">
+            {NAV.map((n) => (
+              <NavLink
                 key={n.href}
                 href={n.href}
-                className={clsx(
-                  "px-3 py-1.5 rounded-lg text-sm whitespace-nowrap",
-                  active
-                    ? "bg-[var(--surface-2)] text-[var(--foreground)] font-medium"
-                    : "subtle hover:bg-[var(--surface-2)]",
-                )}
-              >
-                {n.label}
-              </Link>
-            );
-          })}
+                label={n.label}
+                active={isActive(n.href)}
+              />
+            ))}
+          </nav>
+
+          {hasAnalysis && (
+            <span className="chip hidden md:inline-flex shrink-0">
+              {dataset.sources.length}f · {normalized.length}L
+            </span>
+          )}
+        </div>
+
+        <nav className="sm:hidden flex items-center gap-0 px-4 pb-0 overflow-x-auto border-t border-[var(--border)]">
+          {NAV.map((n) => (
+            <NavLink
+              key={n.href}
+              href={n.href}
+              label={n.label}
+              active={isActive(n.href)}
+            />
+          ))}
         </nav>
       </header>
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-6">
+
+      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-4">
         {children}
       </main>
-      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 text-xs subtle">
-        Dados processados 100% no seu navegador. Nada é enviado para servidores.
+
+      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-[11px] subtle border-t border-[var(--border)]">
+        Dados processados no navegador. Nada é enviado para servidores.
       </footer>
     </div>
   );

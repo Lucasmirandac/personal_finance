@@ -1,28 +1,29 @@
 import clsx from "clsx";
 import { Insight } from "@/lib/aggregations";
 
-export function InsightsPanel({ insights }: { insights: Insight[] }) {
-  if (insights.length === 0) {
+export function InsightsPanel({ insights, max = 4 }: { insights: Insight[]; max?: number }) {
+  const items = insights.slice(0, max);
+  if (items.length === 0) {
     return (
-      <div className="card p-6 text-sm subtle">
-        Sem dados suficientes para gerar insights.
-      </div>
+      <p className="text-sm subtle py-2">Sem dados suficientes para insights.</p>
     );
   }
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {insights.map((i) => (
-        <div
-          key={i.id}
-          className={clsx(
-            "card p-4 border-l-4",
-            i.tone === "warning" && "border-l-[var(--warning)]",
-            i.tone === "success" && "border-l-[var(--success)]",
-            i.tone === "info" && "border-l-[var(--accent)]",
-          )}
-        >
-          <div className="font-medium">{i.title}</div>
-          <div className="text-sm subtle mt-1">{i.detail}</div>
+    <div className="panel divide-y">
+      {items.map((i) => (
+        <div key={i.id} className="px-3 py-2 flex gap-3 text-sm">
+          <span
+            className={clsx(
+              "mt-1.5 w-1.5 h-1.5 rounded-full shrink-0",
+              i.tone === "warning" && "bg-[var(--warning)]",
+              i.tone === "success" && "bg-[var(--success)]",
+              (!i.tone || i.tone === "info") && "bg-[var(--accent)]",
+            )}
+          />
+          <div className="min-w-0">
+            <span className="font-medium">{i.title}</span>
+            <span className="subtle"> — {i.detail}</span>
+          </div>
         </div>
       ))}
     </div>

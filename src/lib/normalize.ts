@@ -1,17 +1,18 @@
 import {
   Natureza,
   Rules,
+  TipoFluxo,
   TransactionNormalized,
   TransactionRaw,
 } from "./types";
 import { parseBrDate, parseIsoDate } from "./csv";
+import { formatMonthLabel } from "./format";
 
 export const SEM_CATEGORIA = "(sem categoria)";
 
 function resolveDataISO(data: string): string {
   return parseBrDate(data) ?? parseIsoDate(data) ?? "";
 }
-import { formatMonthLabel } from "./format";
 
 const WEEKDAYS_PT = [
   "Domingo",
@@ -54,7 +55,7 @@ function normalizePattern(p: string): string {
 function isoWeek(dataISO: string): string {
   const [y, m, d] = dataISO.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
-  const day = date.getUTCDay() || 7; // 1..7, Sun=7
+  const day = date.getUTCDay() || 7;
   date.setUTCDate(date.getUTCDate() + 4 - day);
   const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
   const weekNo =
@@ -62,14 +63,10 @@ function isoWeek(dataISO: string): string {
   return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
 }
 
-/** Best-effort merchant name normalization: removes location suffix, trims, title-cases brand-ish tokens. */
 export function extractEstabelecimento(lancamento: string): string {
   let s = lancamento.trim();
-  // Collapse internal whitespace
   s = s.replace(/\s{2,}/g, " ");
-  // Strip frequent country suffix "BRA"
   s = s.replace(/\s+BRA$/i, "").trim();
-  // Strip well-known city patterns at the end (SAO PAULO, BELO HORIZONTE, etc.)
   s = s.replace(
     /\s+(SAO PAULO|BELO HORIZONT(E)?|RIO DE JANEIRO|CURITIBA|BRASILIA|GUARAPARI|CONTAGEM|SANTO ANDR(E|É)?|FORTALEZA|RECIFE|MANAUS|PORTO ALEGRE|SALVADOR|GOIANIA|VITORIA)$/i,
     "",
@@ -78,10 +75,33 @@ export function extractEstabelecimento(lancamento: string): string {
   return s.length > 0 ? s : lancamento.trim();
 }
 
+function fluxFromNatureza(
+  natureza: Natureza,
+  valorAnalise: number,
+  valorOriginal: number,
+): { tipoFluxo: TipoFluxo; valorFluxo: number } {
+  if (natureza === "Gasto" || natureza === "Despesa fixa") {
+    return { tipoFluxo: "saida", valorFluxo: valorAnalise };
+  }
+  if (natureza === "Receita") {
+    return { tipoFluxo: "entrada", valorFluxo: Math.abs(valorOriginal) };
+  }
+  return { tipoFluxo: "neutro", valorFluxo: 0 };
+}
+
 export function classifyNatureza(
   raw: TransactionRaw,
   rules: Rules,
 ): { natureza: Natureza; valorAnalise: number } {
+  if (raw.fonte === "manual") {
+    if (raw.tipo === "Despesa fixa") {
+      return { natureza: "Despesa fixa", valorAnalise: Math.abs(raw.valorOriginal) };
+    }
+    if (raw.tipo === "Receita") {
+      return { natureza: "Receita", valorAnalise: 0 };
+    }
+  }
+
   const lancNorm = normalizePattern(raw.lancamento);
   const matchesPayment = rules.pagamentoPatterns
     .filter((p) => p.trim().length > 0)
@@ -121,6 +141,11 @@ export function normalizeTransactions(
       { ...raw, categoria },
       rules,
     );
+    const { tipoFluxo, valorFluxo } = fluxFromNatureza(
+      natureza,
+      valorAnalise,
+      raw.valorOriginal,
+    );
     return {
       ...raw,
       categoria,
@@ -129,6 +154,8 @@ export function normalizeTransactions(
       valorAnalise,
       natureza,
       ajuste: natureza !== "Gasto",
+      tipoFluxo,
+      valorFluxo,
       dataISO,
       mes: m ?? 0,
       ano: y ?? 0,

@@ -42,6 +42,10 @@ date,title,amount
 
 Cada upload **adiciona** à base consolidada. Na página de importação é possível ver e remover fontes individualmente, ou limpar tudo de uma vez.
 
+### Recorrentes (despesas fixas e receitas)
+
+Em `/recorrentes`, cadastre regras mensais (aluguel, salário, boletos). O sistema gera uma ocorrência por mês e integra ao dashboard com KPIs de **Receitas**, **Despesas** e **Saldo**.
+
 ## Classificação automática
 
 Cada lançamento recebe uma `natureza`:

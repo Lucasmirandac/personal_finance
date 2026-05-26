@@ -7,15 +7,15 @@ type Props = {
 
 export function ChartCard({ title, subtitle, children, right }: Props) {
   return (
-    <div className="card p-4 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
+    <div className="panel p-3 flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="font-semibold">{title}</div>
-          {subtitle && <div className="text-xs subtle">{subtitle}</div>}
+          <div className="section-title">{title}</div>
+          {subtitle && <div className="text-[11px] subtle mt-0.5">{subtitle}</div>}
         </div>
         {right}
       </div>
-      <div className="w-full h-72">{children}</div>
+      <div className="w-full h-56 sm:h-64">{children}</div>
     </div>
   );
 }

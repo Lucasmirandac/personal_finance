@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function EmptyState({
   title = "Nenhum dataset carregado",
-  description = "Importe um CSV na página inicial para começar a análise.",
+  description = "Importe um CSV ou cadastre recorrentes em /recorrentes para começar a análise.",
 }: {
   title?: string;
   description?: string;

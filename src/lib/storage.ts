@@ -3,6 +3,7 @@ import {
   Dataset,
   EMPTY_DATASET,
   LegacyDataset,
+  RecurringRule,
   Rules,
   DEFAULT_RULES,
   Source,
@@ -12,6 +13,7 @@ import {
 const KEY_DATASET = "pf:dataset:v2";
 const KEY_DATASET_LEGACY = "pf:dataset:v1";
 const KEY_RULES = "pf:rules:v1";
+const KEY_RECURRING = "pf:recurring:v1";
 
 function newSourceId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -92,6 +94,11 @@ export async function clearDataset(): Promise<void> {
   await del(KEY_DATASET_LEGACY);
 }
 
+export async function clearAllData(): Promise<void> {
+  await clearDataset();
+  await clearRecurring();
+}
+
 export async function loadRules(): Promise<Rules> {
   try {
     const v = (await get(KEY_RULES)) as Rules | undefined;
@@ -116,4 +123,21 @@ export async function saveRules(rules: Rules): Promise<void> {
 export async function resetRules(): Promise<Rules> {
   await set(KEY_RULES, { ...DEFAULT_RULES });
   return { ...DEFAULT_RULES };
+}
+
+export async function loadRecurring(): Promise<RecurringRule[]> {
+  try {
+    const v = (await get(KEY_RECURRING)) as RecurringRule[] | undefined;
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveRecurring(rules: RecurringRule[]): Promise<void> {
+  await set(KEY_RECURRING, rules);
+}
+
+export async function clearRecurring(): Promise<void> {
+  await del(KEY_RECURRING);
 }
