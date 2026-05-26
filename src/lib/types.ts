@@ -11,6 +11,22 @@ export type TipoFluxo = "saida" | "entrada" | "neutro";
 
 export type RecurringKind = "despesa_fixa" | "receita";
 
+export type AccountKind = "cc" | "poupanca" | "carteira" | "cartao";
+
+export type Account = {
+  id: string;
+  nome: string;
+  kind: AccountKind;
+  saldoInicial: number;
+  dataReferencia: string;
+  ativa: boolean;
+  criadaEm: string;
+  isDefault?: boolean;
+  fonteCsv?: "inter" | "nubank";
+  diaFechamento?: number;
+  diaPagamento?: number;
+};
+
 export type RecurringRule = {
   id: string;
   kind: RecurringKind;
@@ -22,6 +38,7 @@ export type RecurringRule = {
   fim: string | null;
   ativo: boolean;
   criadoEm: string;
+  accountId?: string;
 };
 
 export type TransactionRaw = {
@@ -33,7 +50,11 @@ export type TransactionRaw = {
   valorOriginal: number; // signed, in BRL
   fonte: Fonte;
   sourceId: string;
+  accountId?: string;
 };
+
+/** Avulsa manual (Quick Add) — persisted separately from CSV. */
+export type ManualTransaction = TransactionRaw;
 
 export type TransactionEdit = {
   rawId: string;
@@ -142,9 +163,13 @@ export const DEFAULT_SETTINGS: Settings = {
   projectionHorizonDays: 90,
 };
 
+export const EMPTY_ACCOUNTS: Account[] = [];
+
 export type AppState = {
   dataset: Dataset;
   rules: Rules;
   recurringRules: RecurringRule[];
   settings: Settings;
+  accounts: Account[];
+  manualTransactions: ManualTransaction[];
 };

@@ -3,20 +3,21 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ImportPanel } from "@/components/ImportPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
+import { AccountsPanel } from "@/components/AccountsPanel";
+import { QuickAddModal } from "@/components/QuickAddModal";
 import { useAppStore } from "@/lib/store";
 import { getSetupSteps } from "@/lib/setupStatus";
-import { Fonte } from "@/lib/types";
 import { ArrowRight, Check } from "lucide-react";
 import clsx from "clsx";
 
 export function Onboarding() {
-  const { dataset, settings, recurringRules, updateSettings } = useAppStore();
+  const { dataset, settings, recurringRules, accounts, updateSettings } =
+    useAppStore();
   const [showImport, setShowImport] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
-  const steps = getSetupSteps(dataset, settings, recurringRules);
-  const cardSources = [...new Set(dataset.sources.map((s) => s.fonte))] as Fonte[];
+  const steps = getSetupSteps(dataset, settings, recurringRules, accounts);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -55,9 +56,9 @@ export function Onboarding() {
                   Importe a fatura Inter ou Nubank em CSV.
                 </p>
               )}
-              {step.id === "cartoes" && (
+              {step.id === "contas" && (
                 <p className="text-xs subtle mt-0.5">
-                  Informe saldo inicial e dias de fechamento/pagamento.
+                  Crie suas contas e informe os saldos atuais.
                 </p>
               )}
               {step.id === "recorrentes" && (
@@ -72,22 +73,31 @@ export function Onboarding() {
                     className="btn btn-primary btn-sm"
                     onClick={() => {
                       setShowImport(true);
-                      setShowSettings(false);
+                      setShowAccounts(false);
                     }}
                   >
                     Importar CSV
                   </button>
                 )}
-                {step.id === "cartoes" && !step.done && (
+                {step.id === "contas" && !step.done && (
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={() => {
-                      setShowSettings(true);
+                      setShowAccounts(true);
                       setShowImport(false);
                     }}
                   >
-                    Configurar cartões
+                    Configurar contas
+                  </button>
+                )}
+                {step.id === "contas" && step.done && accounts.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => setShowQuickAdd(true)}
+                  >
+                    Adicionar primeiro gasto
                   </button>
                 )}
                 {step.id === "recorrentes" && (
@@ -111,17 +121,17 @@ export function Onboarding() {
         </div>
       )}
 
-      {showSettings && (
-        <SettingsPanel
+      {showAccounts && (
+        <AccountsPanel
           settings={settings}
-          cardSources={cardSources}
-          onSave={async (next) => {
+          onSaveSettings={async (next) => {
             await updateSettings(next);
-            setShowSettings(false);
+            setShowAccounts(false);
           }}
-          onCancel={() => setShowSettings(false)}
         />
       )}
+
+      <QuickAddModal open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
     </div>
   );
 }

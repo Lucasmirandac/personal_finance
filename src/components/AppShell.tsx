@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { SetupIndicator, Saldo30Widget } from "@/components/HeaderWidgets";
+import { QuickAddFab } from "@/components/QuickAddFab";
 import clsx from "clsx";
 import { ChevronDown, Database, Wallet } from "lucide-react";
 
@@ -17,7 +18,7 @@ const MAIN_NAV = [
 const CONFIG_LINKS = [
   { href: "/config?tab=importar", label: "Importar" },
   { href: "/config?tab=classificacao", label: "Classificação" },
-  { href: "/config?tab=cartoes", label: "Cartões & Saldo" },
+  { href: "/config?tab=contas", label: "Contas" },
 ] as const;
 
 function NavLink({
@@ -169,6 +170,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-[11px] subtle border-t border-[var(--border)]">
         Dados processados no navegador. Nada é enviado para servidores.
       </footer>
+      <QuickAddFab />
     </div>
   );
 }

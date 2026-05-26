@@ -3,7 +3,11 @@ import { EditsState, TransactionEdit, TransactionRaw } from "./types";
 export const EMPTY_EDITS: EditsState = {};
 
 export function isRecurringRaw(raw: TransactionRaw): boolean {
-  return raw.sourceId.startsWith("manual:");
+  return (
+    raw.sourceId.startsWith("manual:") &&
+    raw.sourceId !== "manual:quick" &&
+    !raw.sourceId.startsWith("manual:quick")
+  );
 }
 
 export function isDeleted(rawId: string, edits: EditsState): boolean {

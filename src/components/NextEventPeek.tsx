@@ -9,14 +9,15 @@ import { formatBRL, formatDateBR } from "@/lib/format";
 import { ArrowRight } from "lucide-react";
 
 export function NextEventPeek() {
-  const { dataset, normalized, recurringRules, settings } = useAppStore();
+  const { dataset, normalized, recurringRules, settings, accounts } =
+    useAppStore();
 
   const cardSources = useMemo(
     () => dataset.sources.map((s) => s.fonte),
     [dataset.sources],
   );
 
-  const ready = isProjectionReady(dataset, settings);
+  const ready = isProjectionReady(dataset, settings, accounts);
 
   const next = useMemo(() => {
     if (!ready) return null;
@@ -24,6 +25,7 @@ export function NextEventPeek() {
       normalized,
       recurringRules,
       settings,
+      accounts,
     });
     const today = new Date().toISOString().slice(0, 10);
     for (const p of series) {
@@ -34,7 +36,7 @@ export function NextEventPeek() {
       }
     }
     return null;
-  }, [ready, normalized, recurringRules, settings]);
+  }, [accounts, ready, normalized, recurringRules, settings]);
 
   if (!next) return null;
 

@@ -39,6 +39,7 @@ export function ImportPanel({
     hasData,
     normalized,
     settings,
+    accounts,
     addSource,
     removeSource,
     clearAllSources,
@@ -55,7 +56,7 @@ export function ImportPanel({
     setRowErrors([]);
     setLastDetected(null);
     try {
-      const result = await parseCsvFile(file);
+      const result = await parseCsvFile(file, accounts);
       if (result.missingColumns.length > 0) {
         setErrorMsg(result.missingColumns.join(" "));
         setBusy(false);
@@ -77,6 +78,7 @@ export function ImportPanel({
         (isProjectionReady(
           { sources: [...dataset.sources, result.source] },
           settings,
+          accounts,
         )
           ? "/saldo"
           : "/dashboard");
@@ -184,7 +186,9 @@ export function ImportPanel({
                 className="btn btn-primary btn-sm"
                 onClick={() =>
                   router.push(
-                    isProjectionReady(dataset, settings) ? "/saldo" : "/dashboard",
+                    isProjectionReady(dataset, settings, accounts)
+                      ? "/saldo"
+                      : "/dashboard",
                   )
                 }
               >

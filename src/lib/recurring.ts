@@ -104,6 +104,7 @@ export function expandRecurringRules(
         valorOriginal,
         fonte: "manual",
         sourceId: `manual:${rule.id}`,
+        ...(rule.accountId ? { accountId: rule.accountId } : {}),
       });
     }
   }

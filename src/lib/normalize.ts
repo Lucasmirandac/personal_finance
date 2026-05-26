@@ -100,6 +100,12 @@ export function classifyNatureza(
     if (raw.tipo === "Receita") {
       return { natureza: "Receita", valorAnalise: 0 };
     }
+    if (raw.tipo === "Ajuste") {
+      return { natureza: "Gasto", valorAnalise: Math.abs(raw.valorOriginal) };
+    }
+    if (raw.tipo === "Avulso" || raw.tipo === "") {
+      return { natureza: "Gasto", valorAnalise: Math.abs(raw.valorOriginal) };
+    }
   }
 
   const lancNorm = normalizePattern(raw.lancamento);

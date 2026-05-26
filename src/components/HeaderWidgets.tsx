@@ -6,11 +6,10 @@ import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
 import { getSetupSteps, isProjectionReady } from "@/lib/setupStatus";
 import { projectDailyBalance } from "@/lib/projection";
-import { formatBRL, formatDateBR } from "@/lib/format";
 
 export function SetupIndicator() {
-  const { dataset, settings, recurringRules } = useAppStore();
-  const steps = getSetupSteps(dataset, settings, recurringRules);
+  const { dataset, settings, recurringRules, accounts } = useAppStore();
+  const steps = getSetupSteps(dataset, settings, recurringRules, accounts);
   const allDone = steps.every((s) => s.done);
 
   if (allDone) return null;
@@ -37,14 +36,10 @@ export function SetupIndicator() {
 }
 
 export function Saldo30Widget() {
-  const { dataset, normalized, recurringRules, settings } = useAppStore();
+  const { dataset, normalized, recurringRules, settings, accounts } =
+    useAppStore();
 
-  const cardSources = useMemo(
-    () => dataset.sources.map((s) => s.fonte),
-    [dataset.sources],
-  );
-
-  const ready = isProjectionReady(dataset, settings);
+  const ready = isProjectionReady(dataset, settings, accounts);
 
   const saldo30 = useMemo(() => {
     if (!ready) return null;
@@ -52,6 +47,7 @@ export function Saldo30Widget() {
       normalized,
       recurringRules,
       settings,
+      accounts,
     });
     if (series.length === 0) return null;
     const today = new Date().toISOString().slice(0, 10);
@@ -61,7 +57,7 @@ export function Saldo30Widget() {
       if (p.date <= target) best = p;
     }
     return { balance: best.balance, date: best.date };
-  }, [ready, normalized, recurringRules, settings]);
+  }, [ready, normalized, recurringRules, settings, accounts]);
 
   if (!saldo30) return null;
 
@@ -69,7 +65,7 @@ export function Saldo30Widget() {
     <Link
       href="/saldo"
       className="hidden md:inline-flex items-center gap-2 chip hover:border-[var(--border-strong)] num text-xs"
-      title={`Saldo em ${formatDateBR(saldo30.date)}`}
+      title={`Saldo em ${saldo30.date}`}
     >
       <span className="subtle text-[10px]">30d</span>
       <span
@@ -80,7 +76,10 @@ export function Saldo30Widget() {
             : "text-[var(--danger)]",
         )}
       >
-        {formatBRL(saldo30.balance)}
+        {saldo30.balance.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}
       </span>
     </Link>
   );

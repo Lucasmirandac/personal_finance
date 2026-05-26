@@ -7,18 +7,18 @@ import { useAppStore } from "@/lib/store";
 import { isProjectionReady } from "@/lib/setupStatus";
 
 export default function Home() {
-  const { loaded, hasAnalysis, dataset, settings } = useAppStore();
+  const { loaded, hasAnalysis, dataset, settings, accounts } = useAppStore();
   const router = useRouter();
 
   useEffect(() => {
     if (!loaded) return;
     if (!hasAnalysis) return;
-    if (isProjectionReady(dataset, settings)) {
+    if (isProjectionReady(dataset, settings, accounts)) {
       router.replace("/saldo");
     } else {
       router.replace("/dashboard");
     }
-  }, [loaded, hasAnalysis, dataset, settings, router]);
+  }, [loaded, hasAnalysis, dataset, settings, accounts, router]);
 
   if (!loaded) {
     return <div className="subtle">Carregando…</div>;

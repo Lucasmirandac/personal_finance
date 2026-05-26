@@ -9,34 +9,50 @@ import {
   useState,
 } from "react";
 import {
+  accountsToBalanceAnchor,
+  accountsToCardConfigs,
+  countTransactionsForAccount,
+  defaultAccount,
+  ensureCardAccount,
+} from "./accounts";
+import {
   applyEdits,
   buildEditEntry,
   countDeleted,
   EMPTY_EDITS,
   getDeletedRaws,
+  isRecurringRaw,
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
+import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
 import {
+  bootstrapAccounts,
   clearAllData,
   loadDataset,
   loadEdits,
+  loadManualTransactions,
   loadRecurring,
   loadRules,
   loadSettings,
   resetRules as resetRulesStorage,
+  saveAccounts,
   saveDataset,
   saveEdits,
+  saveManualTransactions,
   saveRecurring,
   saveRules,
   saveSettings,
 } from "./storage";
 import {
+  Account,
   Dataset,
   EditsState,
+  EMPTY_ACCOUNTS,
   EMPTY_DATASET,
+  ManualTransaction,
   RecurringRule,
   Rules,
   DEFAULT_RULES,
@@ -47,6 +63,13 @@ import {
   TransactionRaw,
 } from "./types";
 
+export type QuickAddDraft = Partial<
+  Pick<
+    ManualTransaction,
+    "valorOriginal" | "lancamento" | "categoria" | "tipo" | "accountId"
+  >
+> & { data?: string };
+
 type Ctx = {
   loaded: boolean;
   dataset: Dataset;
@@ -55,6 +78,8 @@ type Ctx = {
   recurringRules: RecurringRule[];
   rules: Rules;
   settings: Settings;
+  accounts: Account[];
+  manualTransactions: ManualTransaction[];
   edits: EditsState;
   deletedCount: number;
   normalized: TransactionNormalized[];
@@ -70,6 +95,29 @@ type Ctx = {
   updateRules: (rules: Rules) => Promise<void>;
   resetRules: () => Promise<void>;
   updateSettings: (settings: Settings) => Promise<void>;
+  addAccount: (account: Account) => Promise<void>;
+  updateAccount: (account: Account) => Promise<void>;
+  removeAccount: (id: string) => Promise<void>;
+  setDefaultAccount: (id: string) => Promise<void>;
+  addManualTransaction: (
+    partial: Omit<ManualTransaction, "id" | "fonte" | "sourceId"> &
+      Partial<Pick<ManualTransaction, "id">>,
+  ) => Promise<ManualTransaction>;
+  updateManualTransaction: (
+    id: string,
+    patch: Partial<
+      Pick<
+        ManualTransaction,
+        | "data"
+        | "lancamento"
+        | "categoria"
+        | "tipo"
+        | "valorOriginal"
+        | "accountId"
+      >
+    >,
+  ) => Promise<void>;
+  removeManualTransaction: (id: string) => Promise<void>;
   editTransaction: (rawId: string, patch: TransactionEditPatch) => Promise<void>;
   revertTransaction: (rawId: string) => Promise<void>;
   deleteTransaction: (rawId: string) => Promise<void>;
@@ -78,29 +126,56 @@ type Ctx = {
 
 const AppContext = createContext<Ctx | null>(null);
 
+function syncSettingsFromAccounts(
+  accounts: Account[],
+  prev: Settings,
+): Settings {
+  return {
+    ...prev,
+    balanceAnchor: accountsToBalanceAnchor(accounts),
+    cards: accountsToCardConfigs(accounts),
+  };
+}
+
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [dataset, setDatasetState] = useState<Dataset>(EMPTY_DATASET);
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [accounts, setAccounts] = useState<Account[]>(EMPTY_ACCOUNTS);
+  const [manualTransactions, setManualTransactions] = useState<
+    ManualTransaction[]
+  >([]);
   const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e] = await Promise.all([
+      const [d, r, rec, s, e, manual] = await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
         loadSettings(),
         loadEdits(),
+        loadManualTransactions(),
       ]);
+      const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
+      const syncedSettings = syncSettingsFromAccounts(accs, s);
+      if (
+        JSON.stringify(syncedSettings.balanceAnchor) !==
+          JSON.stringify(s.balanceAnchor) ||
+        JSON.stringify(syncedSettings.cards) !== JSON.stringify(s.cards)
+      ) {
+        await saveSettings(syncedSettings);
+      }
       if (!alive) return;
-      setDatasetState(d);
+      setDatasetState(ds);
       setRules(r);
       setRecurringRules(rec);
-      setSettings(s);
+      setSettings(syncedSettings);
+      setAccounts(accs);
+      setManualTransactions(manual);
       setEdits(e);
       setLoaded(true);
     })();
@@ -112,6 +187,22 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistDataset = useCallback(async (next: Dataset) => {
     await saveDataset(next);
     setDatasetState(next);
+  }, []);
+
+  const persistAccounts = useCallback(
+    async (next: Account[], prevSettings: Settings) => {
+      await saveAccounts(next);
+      setAccounts(next);
+      const synced = syncSettingsFromAccounts(next, prevSettings);
+      await saveSettings(synced);
+      setSettings(synced);
+    },
+    [],
+  );
+
+  const persistManual = useCallback(async (next: ManualTransaction[]) => {
+    await saveManualTransactions(next);
+    setManualTransactions(next);
   }, []);
 
   const persistEdits = useCallback(async (next: EditsState) => {
@@ -131,18 +222,19 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const findOriginalRaw = useCallback(
     (rawId: string): TransactionRaw | undefined =>
-      importedRaw.find((r) => r.id === rawId),
-    [importedRaw],
+      importedRaw.find((r) => r.id === rawId) ??
+      manualTransactions.find((r) => r.id === rawId),
+    [importedRaw, manualTransactions],
   );
 
-  const manualRaw = useMemo(
+  const recurringRaw = useMemo(
     () => expandRecurringRules(recurringRules.filter((r) => r.ativo)),
     [recurringRules],
   );
 
   const allRaw = useMemo(
-    () => [...importedRaw, ...manualRaw],
-    [importedRaw, manualRaw],
+    () => [...importedRaw, ...manualTransactions, ...recurringRaw],
+    [importedRaw, manualTransactions, recurringRaw],
   );
 
   const { effective } = useMemo(
@@ -165,10 +257,24 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const addSource = useCallback(
     async (source: Source) => {
-      const next: Dataset = { sources: [...dataset.sources, source] };
+      let nextAccounts = accounts;
+      let nextSource = source;
+      if (source.fonte === "inter" || source.fonte === "nubank") {
+        const ensured = ensureCardAccount(nextAccounts, source.fonte);
+        nextAccounts = ensured.accounts;
+        const accountId = ensured.account.id;
+        nextSource = {
+          ...source,
+          raw: source.raw.map((r) => ({ ...r, accountId })),
+        };
+        if (nextAccounts !== accounts) {
+          await persistAccounts(nextAccounts, settings);
+        }
+      }
+      const next: Dataset = { sources: [...dataset.sources, nextSource] };
       await persistDataset(next);
     },
-    [dataset.sources, persistDataset],
+    [accounts, dataset.sources, persistAccounts, persistDataset, settings],
   );
 
   const removeSource = useCallback(
@@ -194,6 +300,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setDatasetState({ ...EMPTY_DATASET });
     setRecurringRules([]);
     setSettings({ ...DEFAULT_SETTINGS });
+    setAccounts([]);
+    setManualTransactions([]);
     setEdits({ ...EMPTY_EDITS });
   }, []);
 
@@ -201,6 +309,116 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     await saveSettings(next);
     setSettings(next);
   }, []);
+
+  const addAccount = useCallback(
+    async (account: Account) => {
+      const hasDefault = accounts.some((a) => a.isDefault);
+      const withDefault =
+        account.isDefault || !hasDefault
+          ? { ...account, isDefault: account.isDefault ?? !hasDefault }
+          : account;
+      const next = [...accounts, withDefault].map((a) =>
+        withDefault.isDefault && a.id !== withDefault.id
+          ? { ...a, isDefault: false }
+          : a,
+      );
+      await persistAccounts(next, settings);
+    },
+    [accounts, persistAccounts, settings],
+  );
+
+  const updateAccount = useCallback(
+    async (account: Account) => {
+      const next = accounts.map((a) => {
+        if (a.id !== account.id) {
+          return account.isDefault ? { ...a, isDefault: false } : a;
+        }
+        return account;
+      });
+      await persistAccounts(next, settings);
+    },
+    [accounts, persistAccounts, settings],
+  );
+
+  const removeAccount = useCallback(
+    async (id: string) => {
+      const count = countTransactionsForAccount(
+        dataset,
+        manualTransactions,
+        id,
+      );
+      if (count > 0) {
+        throw new Error(
+          `Não é possível excluir: ${count} transação(ões) vinculada(s).`,
+        );
+      }
+      const next = accounts.filter((a) => a.id !== id);
+      await persistAccounts(next, settings);
+    },
+    [accounts, dataset, manualTransactions, persistAccounts, settings],
+  );
+
+  const setDefaultAccount = useCallback(
+    async (id: string) => {
+      const next = accounts.map((a) => ({
+        ...a,
+        isDefault: a.id === id,
+      }));
+      await persistAccounts(next, settings);
+    },
+    [accounts, persistAccounts, settings],
+  );
+
+  const addManualTransaction = useCallback(
+    async (
+      partial: Omit<ManualTransaction, "id" | "fonte" | "sourceId"> &
+        Partial<Pick<ManualTransaction, "id">>,
+    ) => {
+      const def = defaultAccount(accounts);
+      const tx = newManualTransaction({
+        ...partial,
+        accountId: partial.accountId ?? def?.id,
+      });
+      await persistManual([...manualTransactions, tx]);
+      return tx;
+    },
+    [accounts, manualTransactions, persistManual],
+  );
+
+  const updateManualTransaction = useCallback(
+    async (
+      id: string,
+      patch: Partial<
+        Pick<
+          ManualTransaction,
+          | "data"
+          | "lancamento"
+          | "categoria"
+          | "tipo"
+          | "valorOriginal"
+          | "accountId"
+        >
+      >,
+    ) => {
+      await persistManual(
+        manualTransactions.map((t) =>
+          t.id === id ? { ...t, ...patch } : t,
+        ),
+      );
+    },
+    [manualTransactions, persistManual],
+  );
+
+  const removeManualTransaction = useCallback(
+    async (id: string) => {
+      await persistManual(manualTransactions.filter((t) => t.id !== id));
+      const nextEdits = pruneEditsForRawIds(edits, [id]);
+      if (nextEdits !== edits) {
+        await persistEdits(nextEdits);
+      }
+    },
+    [edits, manualTransactions, persistEdits, persistManual],
+  );
 
   const addRecurring = useCallback(
     async (rule: RecurringRule) => {
@@ -248,27 +466,44 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const editTransaction = useCallback(
     async (rawId: string, patch: TransactionEditPatch) => {
+      const manual = manualTransactions.find((t) => t.id === rawId);
+      if (manual && isManualQuickRaw(manual)) {
+        await updateManualTransaction(rawId, patch);
+        return;
+      }
+      const raw = findOriginalRaw(rawId);
+      if (raw && isRecurringRaw(raw)) {
+        return;
+      }
       const next = {
         ...edits,
         [rawId]: buildEditEntry(rawId, edits[rawId], patch),
       };
       await persistEdits(next);
     },
-    [edits, persistEdits],
+    [edits, findOriginalRaw, manualTransactions, persistEdits, updateManualTransaction],
   );
 
   const revertTransaction = useCallback(
     async (rawId: string) => {
+      if (manualTransactions.some((t) => t.id === rawId && isManualQuickRaw(t))) {
+        return;
+      }
       if (!edits[rawId]) return;
       const next = { ...edits };
       delete next[rawId];
       await persistEdits(next);
     },
-    [edits, persistEdits],
+    [edits, manualTransactions, persistEdits],
   );
 
   const deleteTransaction = useCallback(
     async (rawId: string) => {
+      const manual = manualTransactions.find((t) => t.id === rawId);
+      if (manual && isManualQuickRaw(manual)) {
+        await removeManualTransaction(rawId);
+        return;
+      }
       const next = {
         ...edits,
         [rawId]: {
@@ -288,7 +523,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       };
       await persistEdits(next);
     },
-    [edits, persistEdits],
+    [edits, manualTransactions, persistEdits, removeManualTransaction],
   );
 
   const restoreTransaction = useCallback(
@@ -314,7 +549,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [edits, persistEdits],
   );
 
-  const hasData = dataset.sources.length > 0;
+  const hasData =
+    dataset.sources.length > 0 || manualTransactions.length > 0;
   const hasActiveRecurring = recurringRules.some((r) => r.ativo);
   const hasAnalysis = hasData || hasActiveRecurring;
 
@@ -326,6 +562,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     recurringRules,
     rules,
     settings,
+    accounts,
+    manualTransactions,
     edits,
     deletedCount,
     normalized,
@@ -341,6 +579,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     updateRules,
     resetRules: resetRulesFn,
     updateSettings,
+    addAccount,
+    updateAccount,
+    removeAccount,
+    setDefaultAccount,
+    addManualTransaction,
+    updateManualTransaction,
+    removeManualTransaction,
     editTransaction,
     revertTransaction,
     deleteTransaction,
@@ -357,3 +602,5 @@ export function useAppStore(): Ctx {
   }
   return ctx;
 }
+
+export { MANUAL_SOURCE_ID };

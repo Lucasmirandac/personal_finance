@@ -51,7 +51,7 @@ function eventBadgeClass(type: CashEvent["type"]): string {
 }
 
 export function ProjectionTab() {
-  const { dataset, normalized, recurringRules, settings, updateSettings } =
+  const { dataset, normalized, recurringRules, settings, accounts, updateSettings } =
     useAppStore();
   const [editing, setEditing] = useState(false);
 
@@ -61,7 +61,7 @@ export function ProjectionTab() {
     return [...set];
   }, [dataset.sources]);
 
-  const complete = isSettingsComplete(settings, cardSources);
+  const complete = isSettingsComplete(settings, cardSources, accounts);
 
   const { series, summary } = useMemo(
     () =>
@@ -69,8 +69,9 @@ export function ProjectionTab() {
         normalized,
         recurringRules,
         settings,
+        accounts,
       }),
-    [normalized, recurringRules, settings],
+    [normalized, recurringRules, settings, accounts],
   );
 
   const upcoming = useMemo(() => {

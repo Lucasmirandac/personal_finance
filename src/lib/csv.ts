@@ -1,7 +1,8 @@
 import Papa from "papaparse";
 import { z } from "zod";
+import { ensureCardAccount } from "./accounts";
 import { newSourceId, newTransactionId } from "./ids";
-import { Fonte, Source, TransactionRaw } from "./types";
+import { Account, Fonte, Source, TransactionRaw } from "./types";
 
 const INTER_HEADERS = [
   "Data",
@@ -143,12 +144,19 @@ function nubankKey(row: Record<string, string>, key: string): string {
   return found ? row[found] : "";
 }
 
-export async function parseCsvFile(file: File): Promise<ParseCsvResult> {
+export async function parseCsvFile(
+  file: File,
+  accounts: Account[] = [],
+): Promise<ParseCsvResult> {
   const text = await file.text();
-  return parseCsvText(text, file.name);
+  return parseCsvText(text, file.name, accounts);
 }
 
-export function parseCsvText(text: string, fileName = "import.csv"): ParseCsvResult {
+export function parseCsvText(
+  text: string,
+  fileName = "import.csv",
+  accounts: Account[] = [],
+): ParseCsvResult {
   const cleaned = stripBom(text);
   const result = Papa.parse<Record<string, string>>(cleaned, {
     header: true,
@@ -261,6 +269,15 @@ export function parseCsvText(text: string, fileName = "import.csv"): ParseCsvRes
         sourceId,
       });
     });
+  }
+
+  let accountId: string | undefined;
+  if (format === "inter" || format === "nubank") {
+    const ensured = ensureCardAccount(accounts, format);
+    accountId = ensured.account.id;
+    for (let i = 0; i < raw.length; i++) {
+      raw[i] = { ...raw[i], accountId };
+    }
   }
 
   const source: Source = {

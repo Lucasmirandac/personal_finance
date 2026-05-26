@@ -47,7 +47,8 @@ const DASH_TABS = [
 type DashTab = (typeof DASH_TABS)[number]["id"];
 
 export default function DashboardPage() {
-  const { loaded, dataset, hasAnalysis, normalized, settings } = useAppStore();
+  const { loaded, dataset, hasAnalysis, normalized, settings, accounts } =
+    useAppStore();
   const { filters, setFilters, clearFilters } = useFilters();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [tab, setTab] = useState<DashTab>("geral");
@@ -90,7 +91,7 @@ export default function DashboardPage() {
   );
 
   const maxCatTotal = cats[0]?.total ?? 1;
-  const projectionReady = isProjectionReady(dataset, settings);
+  const projectionReady = isProjectionReady(dataset, settings, accounts);
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;

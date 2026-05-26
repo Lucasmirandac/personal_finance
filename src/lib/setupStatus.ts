@@ -1,8 +1,8 @@
-import { isSettingsComplete } from "./projection";
-import { Dataset, RecurringRule, Settings } from "./types";
+import { hasProjectionSetup } from "./accounts";
+import { Account, Dataset, RecurringRule, Settings } from "./types";
 
 export type SetupStep = {
-  id: "csv" | "cartoes" | "recorrentes";
+  id: "csv" | "contas" | "recorrentes";
   label: string;
   done: boolean;
   href: string;
@@ -12,10 +12,14 @@ export function getSetupSteps(
   dataset: Dataset,
   settings: Settings,
   recurringRules: RecurringRule[],
+  accounts: Account[] = [],
 ): SetupStep[] {
   const cardSources = dataset.sources.map((s) => s.fonte);
   const hasCsv = dataset.sources.length > 0;
-  const hasCartoes = isSettingsComplete(settings, cardSources);
+  const hasContas =
+    accounts.length > 0
+      ? hasProjectionSetup(accounts, cardSources)
+      : false;
   const hasRecorrentes = recurringRules.some((r) => r.ativo);
 
   return [
@@ -26,10 +30,10 @@ export function getSetupSteps(
       href: "/config?tab=importar",
     },
     {
-      id: "cartoes",
-      label: "Cartões e saldo",
-      done: hasCartoes,
-      href: "/config?tab=cartoes",
+      id: "contas",
+      label: "Contas e saldos",
+      done: hasContas,
+      href: "/config?tab=contas",
     },
     {
       id: "recorrentes",
@@ -43,7 +47,17 @@ export function getSetupSteps(
 export function isProjectionReady(
   dataset: Dataset,
   settings: Settings,
+  accounts: Account[] = [],
 ): boolean {
   const cardSources = dataset.sources.map((s) => s.fonte);
-  return isSettingsComplete(settings, cardSources);
+  if (accounts.length > 0) {
+    return hasProjectionSetup(accounts, cardSources);
+  }
+  if (!settings.balanceAnchor) return false;
+  const cardOnly = cardSources.filter(
+    (f) => f === "inter" || f === "nubank",
+  );
+  if (cardOnly.length === 0) return true;
+  const configured = new Set(settings.cards.map((c) => c.fonte));
+  return cardOnly.every((f) => configured.has(f));
 }

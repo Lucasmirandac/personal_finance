@@ -5,27 +5,26 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Tabs } from "@/components/Tabs";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ClassificacaoPanel } from "@/components/ClassificacaoPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
+import { AccountsPanel } from "@/components/AccountsPanel";
 import { EmptyState } from "@/components/EmptyState";
 import { useAppStore } from "@/lib/store";
-import { Fonte } from "@/lib/types";
 
 const CONFIG_TABS = [
   { id: "importar", label: "Importar" },
   { id: "classificacao", label: "Classificação" },
-  { id: "cartoes", label: "Cartões & Saldo" },
+  { id: "contas", label: "Contas" },
 ] as const;
 
 type ConfigTab = (typeof CONFIG_TABS)[number]["id"];
 
 function parseTab(v: string | null): ConfigTab {
-  if (v === "classificacao" || v === "cartoes" || v === "importar") return v;
+  if (v === "classificacao" || v === "contas" || v === "importar") return v;
+  if (v === "cartoes") return "contas";
   return "importar";
 }
 
 export default function ConfigPageInner() {
-  const { loaded, hasAnalysis, dataset, settings, updateSettings } =
-    useAppStore();
+  const { loaded, hasAnalysis, settings, updateSettings } = useAppStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
@@ -34,8 +33,6 @@ export default function ConfigPageInner() {
   useEffect(() => {
     setTab(parseTab(tabParam));
   }, [tabParam]);
-
-  const cardSources = [...new Set(dataset.sources.map((s) => s.fonte))] as Fonte[];
 
   function onTabChange(id: string) {
     const next = id as ConfigTab;
@@ -50,7 +47,7 @@ export default function ConfigPageInner() {
       <div>
         <h1 className="text-lg font-semibold tracking-tight">Configurações</h1>
         <p className="subtle text-xs mt-0.5">
-          Importação, classificação de lançamentos e projeção de saldo.
+          Importação, classificação de lançamentos e contas.
         </p>
       </div>
 
@@ -67,11 +64,10 @@ export default function ConfigPageInner() {
             />
           ))}
 
-        {tab === "cartoes" && (
-          <SettingsPanel
+        {tab === "contas" && (
+          <AccountsPanel
             settings={settings}
-            cardSources={cardSources}
-            onSave={(next) => updateSettings(next)}
+            onSaveSettings={(next) => updateSettings(next)}
           />
         )}
       </Tabs>

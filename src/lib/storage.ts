@@ -1,11 +1,17 @@
 import { get, set, del } from "idb-keyval";
+import {
+  attachAccountIdsToDataset,
+  migrateAccountsFromLegacy,
+} from "./accounts";
 import { EMPTY_EDITS } from "./edits";
 import { newSourceId, newTransactionId } from "./ids";
 import {
+  Account,
   Dataset,
   EditsState,
   EMPTY_DATASET,
   LegacyDataset,
+  ManualTransaction,
   RecurringRule,
   Rules,
   DEFAULT_RULES,
@@ -22,6 +28,8 @@ const KEY_RULES = "pf:rules:v1";
 const KEY_RECURRING = "pf:recurring:v1";
 const KEY_SETTINGS = "pf:settings:v1";
 const KEY_EDITS = "pf:edits:v1";
+const KEY_ACCOUNTS = "pf:accounts:v1";
+const KEY_MANUAL = "pf:manual:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -127,6 +135,158 @@ export async function clearAllData(): Promise<void> {
   await clearRecurring();
   await clearSettings();
   await clearEdits();
+  await clearAccounts();
+  await clearManualTransactions();
+}
+
+function mergeAccount(v: unknown): Account | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<Account>;
+  if (typeof o.id !== "string" || typeof o.nome !== "string") return null;
+  const kind = o.kind;
+  if (
+    kind !== "cc" &&
+    kind !== "poupanca" &&
+    kind !== "carteira" &&
+    kind !== "cartao"
+  ) {
+    return null;
+  }
+  return {
+    id: o.id,
+    nome: o.nome,
+    kind,
+    saldoInicial: typeof o.saldoInicial === "number" ? o.saldoInicial : 0,
+    dataReferencia:
+      typeof o.dataReferencia === "string"
+        ? o.dataReferencia
+        : new Date().toISOString().slice(0, 10),
+    ativa: o.ativa !== false,
+    criadaEm:
+      typeof o.criadaEm === "string"
+        ? o.criadaEm
+        : new Date().toISOString(),
+    ...(o.isDefault ? { isDefault: true } : {}),
+    ...(o.fonteCsv === "inter" || o.fonteCsv === "nubank"
+      ? { fonteCsv: o.fonteCsv }
+      : {}),
+    ...(typeof o.diaFechamento === "number"
+      ? { diaFechamento: o.diaFechamento }
+      : {}),
+    ...(typeof o.diaPagamento === "number"
+      ? { diaPagamento: o.diaPagamento }
+      : {}),
+  };
+}
+
+function mergeAccounts(v: unknown): Account[] {
+  if (!Array.isArray(v)) return [];
+  const out: Account[] = [];
+  for (const item of v) {
+    const a = mergeAccount(item);
+    if (a) out.push(a);
+  }
+  return out;
+}
+
+export async function loadAccounts(): Promise<Account[]> {
+  try {
+    const v = await get(KEY_ACCOUNTS);
+    return mergeAccounts(v);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveAccounts(accounts: Account[]): Promise<void> {
+  await set(KEY_ACCOUNTS, accounts);
+}
+
+export async function clearAccounts(): Promise<void> {
+  await del(KEY_ACCOUNTS);
+}
+
+/** Migrate legacy settings into accounts if none exist; attach accountIds to dataset. */
+export async function bootstrapAccounts(
+  dataset: Dataset,
+  settings: Settings,
+): Promise<{ accounts: Account[]; dataset: Dataset }> {
+  let accounts = await loadAccounts();
+  let nextDataset = dataset;
+
+  if (accounts.length === 0) {
+    accounts = migrateAccountsFromLegacy(settings, dataset);
+    if (accounts.length > 0) {
+      await saveAccounts(accounts);
+    }
+  }
+
+  const { dataset: attached, accounts: withCards } = attachAccountIdsToDataset(
+    nextDataset,
+    accounts,
+  );
+  accounts = withCards;
+
+  if (JSON.stringify(attached) !== JSON.stringify(nextDataset)) {
+    nextDataset = attached;
+    await saveDataset(nextDataset);
+  }
+
+  if (withCards.length > (await loadAccounts()).length) {
+    await saveAccounts(withCards);
+  }
+
+  return { accounts: withCards, dataset: nextDataset };
+}
+
+function mergeManualTransaction(v: unknown): ManualTransaction | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<ManualTransaction>;
+  if (
+    typeof o.id !== "string" ||
+    typeof o.data !== "string" ||
+    typeof o.lancamento !== "string" ||
+    typeof o.valorOriginal !== "number" ||
+    typeof o.sourceId !== "string"
+  ) {
+    return null;
+  }
+  return {
+    id: o.id,
+    data: o.data,
+    lancamento: o.lancamento,
+    categoria: typeof o.categoria === "string" ? o.categoria : "",
+    tipo: typeof o.tipo === "string" ? o.tipo : "Avulso",
+    valorOriginal: o.valorOriginal,
+    fonte: "manual",
+    sourceId: o.sourceId,
+    ...(typeof o.accountId === "string" ? { accountId: o.accountId } : {}),
+  };
+}
+
+export async function loadManualTransactions(): Promise<ManualTransaction[]> {
+  try {
+    const v = await get(KEY_MANUAL);
+    if (!Array.isArray(v)) return [];
+    const out: ManualTransaction[] = [];
+    for (const item of v) {
+      const t = mergeManualTransaction(item);
+      if (t) out.push(t);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+export async function saveManualTransactions(
+  txs: ManualTransaction[],
+): Promise<void> {
+  await set(KEY_MANUAL, txs);
+}
+
+export async function clearManualTransactions(): Promise<void> {
+  await del(KEY_MANUAL);
 }
 
 function mergeEdits(v: unknown): EditsState {

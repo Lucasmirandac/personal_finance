@@ -1,5 +1,11 @@
+import {
+  accountsToBalanceAnchor,
+  accountsToCardConfigs,
+  hasProjectionSetup,
+} from "./accounts";
 import { monthsBetween } from "./recurring";
 import {
+  Account,
   CardConfig,
   Fonte,
   RecurringRule,
@@ -190,21 +196,40 @@ export type ProjectDailyBalanceInput = {
   normalized: TransactionNormalized[];
   recurringRules: RecurringRule[];
   settings: Settings;
+  accounts?: Account[];
   windowFrom?: string;
   windowTo?: string;
 };
 
+function resolveProjectionConfig(input: ProjectDailyBalanceInput): {
+  anchor: { data: string; valor: number } | null;
+  cards: CardConfig[];
+  horizonDays: number;
+} {
+  const accounts = input.accounts ?? [];
+  const anchor =
+    accounts.length > 0
+      ? accountsToBalanceAnchor(accounts)
+      : input.settings.balanceAnchor;
+  const cards =
+    accounts.length > 0
+      ? accountsToCardConfigs(accounts)
+      : input.settings.cards;
+  return {
+    anchor,
+    cards,
+    horizonDays: input.settings.projectionHorizonDays,
+  };
+}
+
 export function projectDailyBalance(
   input: ProjectDailyBalanceInput,
 ): { series: DailyBalancePoint[]; summary: ProjectionSummary | null } {
-  const anchor = input.settings.balanceAnchor;
+  const { anchor, cards, horizonDays } = resolveProjectionConfig(input);
   if (!anchor) return { series: [], summary: null };
 
   const today = todayIso();
-  const horizonEnd = addDaysIso(
-    today,
-    input.settings.projectionHorizonDays,
-  );
+  const horizonEnd = addDaysIso(today, horizonDays);
   const windowFrom =
     input.windowFrom ?? (anchor.data > today ? anchor.data : today);
   const windowTo = input.windowTo ?? horizonEnd;
@@ -216,10 +241,7 @@ export function projectDailyBalance(
   }
 
   const rollFrom = anchor.data;
-  const faturaEvents = buildFaturaEvents(
-    input.normalized,
-    input.settings.cards,
-  );
+  const faturaEvents = buildFaturaEvents(input.normalized, cards);
   const recurringEvents = buildRecurringEvents(
     input.recurringRules,
     rollFrom,
@@ -300,7 +322,11 @@ function round2(n: number): number {
 export function isSettingsComplete(
   settings: Settings,
   sourcesInDataset: Fonte[],
+  accounts: Account[] = [],
 ): boolean {
+  if (accounts.length > 0) {
+    return hasProjectionSetup(accounts, sourcesInDataset);
+  }
   if (!settings.balanceAnchor) return false;
   const cardSources = sourcesInDataset.filter(
     (f) => f === "inter" || f === "nubank",

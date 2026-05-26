@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
-import { SettingsPanel } from "@/components/SettingsPanel";
+import { AccountsPanel } from "@/components/AccountsPanel";
+import { AdjustBalanceModal } from "@/components/AdjustBalanceModal";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { BalanceProjectionChart } from "@/components/charts/BalanceProjectionChart";
 import { KpiCard, KpiStrip } from "@/components/KpiCard";
@@ -13,6 +14,7 @@ import {
   projectDailyBalance,
   CashEvent,
 } from "@/lib/projection";
+import { accountsToBalanceAnchor } from "@/lib/accounts";
 import { formatBRL, formatDateBR } from "@/lib/format";
 import { Fonte } from "@/lib/types";
 import {
@@ -21,6 +23,7 @@ import {
   Plus,
   Repeat,
   Settings as SettingsIcon,
+  SlidersHorizontal,
   TrendingUp,
 } from "lucide-react";
 
@@ -55,9 +58,16 @@ function eventBadgeClass(type: CashEvent["type"]): string {
 type EventFilter = "all" | CashEvent["type"];
 
 export function SaldoPageContent() {
-  const { dataset, normalized, recurringRules, settings, updateSettings } =
-    useAppStore();
+  const {
+    dataset,
+    normalized,
+    recurringRules,
+    settings,
+    accounts,
+    updateSettings,
+  } = useAppStore();
   const [editing, setEditing] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
 
   const cardSources = useMemo(() => {
@@ -66,7 +76,8 @@ export function SaldoPageContent() {
     return [...set];
   }, [dataset.sources]);
 
-  const complete = isSettingsComplete(settings, cardSources);
+  const complete = isSettingsComplete(settings, cardSources, accounts);
+  const anchor = accountsToBalanceAnchor(accounts) ?? settings.balanceAnchor;
 
   const { series, summary } = useMemo(
     () =>
@@ -74,8 +85,9 @@ export function SaldoPageContent() {
         normalized,
         recurringRules,
         settings,
+        accounts,
       }),
-    [normalized, recurringRules, settings],
+    [normalized, recurringRules, settings, accounts],
   );
 
   const upcoming = useMemo(() => {
@@ -103,23 +115,21 @@ export function SaldoPageContent() {
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Saldo</h1>
           <p className="subtle text-xs mt-0.5">
-            Configure o saldo inicial e os cartões para projetar seu fluxo de
-            caixa.
+            Crie suas contas e saldos atuais para projetar seu fluxo de caixa.
           </p>
         </div>
         {!complete && (
           <p className="text-sm subtle">
-            Informe quanto há na conta hoje e quando cada fatura vence.
+            Cadastre pelo menos uma conta com saldo inicial. Cartões do CSV
+            precisam de fechamento e pagamento configurados.
           </p>
         )}
-        <SettingsPanel
+        <AccountsPanel
           settings={settings}
-          cardSources={cardSources}
-          onSave={async (next) => {
+          onSaveSettings={async (next) => {
             await updateSettings(next);
             setEditing(false);
           }}
-          onCancel={complete ? () => setEditing(false) : undefined}
         />
       </div>
     );
@@ -136,7 +146,7 @@ export function SaldoPageContent() {
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Saldo</h1>
           <p className="subtle text-xs mt-0.5">
-            Projeção · âncora {formatDateBR(settings.balanceAnchor!.data)} ·{" "}
+            Projeção · âncora {formatDateBR(anchor!.data)} ·{" "}
             {settings.projectionHorizonDays} dias
           </p>
         </div>
@@ -148,6 +158,14 @@ export function SaldoPageContent() {
           <button
             type="button"
             className="btn btn-sm"
+            onClick={() => setAdjustOpen(true)}
+          >
+            <SlidersHorizontal size={13} />
+            Ajustar saldo
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm"
             onClick={() => setEditing(true)}
           >
             <SettingsIcon size={13} />
@@ -155,6 +173,8 @@ export function SaldoPageContent() {
           </button>
         </div>
       </div>
+
+      <AdjustBalanceModal open={adjustOpen} onClose={() => setAdjustOpen(false)} />
 
       {summary && (
         <div className="panel p-4 border-[var(--accent)]/25 bg-[color-mix(in_oklab,var(--accent)_6%,transparent)]">
@@ -188,7 +208,7 @@ export function SaldoPageContent() {
           <KpiCard
             label="Saldo inicial"
             value={formatBRL(summary.saldoInicial)}
-            hint={formatDateBR(settings.balanceAnchor!.data)}
+            hint={formatDateBR(anchor!.data)}
             compact
           />
           <KpiCard

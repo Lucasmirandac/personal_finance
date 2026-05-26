@@ -11,15 +11,18 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useAppStore } from "@/lib/store";
 import { applyFilters } from "@/lib/aggregations";
 import { useFilters } from "@/lib/filtersContext";
+import { defaultAccount } from "@/lib/accounts";
 import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits";
+import { isManualQuickRaw } from "@/lib/manualTransactions";
 import { Fonte, TransactionNormalized } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
 import { NatureBadge } from "@/components/NatureBadge";
+import { QuickAddModal } from "@/components/QuickAddModal";
 import { TransactionEditModal } from "@/components/TransactionEditModal";
+import { useAppStore, QuickAddDraft } from "@/lib/store";
 import { formatBRL, formatDateRangeCaption, formatInt } from "@/lib/format";
 import { exportTreatedCsv } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
@@ -28,6 +31,7 @@ import {
   ArrowUp,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -55,6 +59,7 @@ export default function TransacoesPage() {
     deletedNormalized,
     deletedCount,
     edits,
+    accounts,
     findOriginalRaw,
     editTransaction,
     revertTransaction,
@@ -66,6 +71,8 @@ export default function TransacoesPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [editRow, setEditRow] = useState<TransactionNormalized | null>(null);
+  const [repeatDraft, setRepeatDraft] = useState<QuickAddDraft | null>(null);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "dataISO", desc: true },
   ]);
@@ -218,6 +225,25 @@ export default function TransacoesPage() {
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"
+                aria-label="Repetir esta transação"
+                title="Repetir esta"
+                onClick={() => {
+                  const def = defaultAccount(accounts);
+                  setRepeatDraft({
+                    valorOriginal: Math.abs(tx.valorOriginal),
+                    lancamento: tx.lancamento,
+                    categoria: tx.categoria,
+                    tipo: tx.tipo === "Receita" ? "Receita" : "Avulso",
+                    accountId: tx.accountId ?? def?.id,
+                  });
+                  setQuickAddOpen(true);
+                }}
+              >
+                <Copy size={13} />
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
                 aria-label="Editar transação"
                 title="Editar"
                 onClick={() => setEditRow(tx)}
@@ -257,7 +283,7 @@ export default function TransacoesPage() {
         },
       },
     ],
-    [edits, deleteTransaction, restoreTransaction, revertTransaction],
+    [accounts, edits, deleteTransaction, restoreTransaction, revertTransaction],
   );
 
   const table = useReactTable({
@@ -340,12 +366,21 @@ export default function TransacoesPage() {
           open
           original={editOriginal}
           current={editCurrent}
-          canRevert={isEdited(editRow.id, edits)}
+          canRevert={isEdited(editRow.id, edits) && !isManualQuickRaw(editOriginal)}
           onSave={(patch) => editTransaction(editRow.id, patch)}
           onRevert={() => revertTransaction(editRow.id)}
           onClose={() => setEditRow(null)}
         />
       )}
+
+      <QuickAddModal
+        open={quickAddOpen}
+        draft={repeatDraft}
+        onClose={() => {
+          setQuickAddOpen(false);
+          setRepeatDraft(null);
+        }}
+      />
 
       <div className="panel overflow-hidden">
         <div className="table-wrap max-h-[calc(100dvh-14rem)] overflow-auto">
