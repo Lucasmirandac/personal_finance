@@ -184,4 +184,5 @@ export type AppState = {
   accounts: Account[];
   manualTransactions: ManualTransaction[];
   budgets: CategoryBudget[];
+  subscriptionDismissals: string[];
 };

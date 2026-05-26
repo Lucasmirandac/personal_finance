@@ -6,6 +6,7 @@ import { useAppStore } from "@/lib/store";
 import { formatBRL, formatDateBR } from "@/lib/format";
 import { newRecurringId } from "@/lib/recurring";
 import { RecurringForm, RecurringFormValues } from "@/components/RecurringForm";
+import { SubscriptionsPanel } from "@/components/SubscriptionsPanel";
 import { RecurringKind, RecurringRule } from "@/lib/types";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -70,6 +71,8 @@ export default function RecorrentesPage() {
           Despesas fixas e receitas mensais geradas automaticamente no dashboard.
         </p>
       </div>
+
+      <SubscriptionsPanel />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <RuleSection

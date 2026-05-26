@@ -55,6 +55,8 @@ import {
   saveRecurring,
   saveRules,
   saveSettings,
+  saveSubscriptionDismissals,
+  loadSubscriptionDismissals,
 } from "./storage";
 import {
   Account,
@@ -142,6 +144,9 @@ type Ctx = {
   lastBackupAt: string | null;
   exportBackup: () => Promise<void>;
   importBackup: (backup: BackupFile, mode: BackupImportMode) => Promise<void>;
+  subscriptionDismissals: string[];
+  dismissSubscription: (key: string) => Promise<void>;
+  restoreSubscription: (key: string) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -170,11 +175,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
   const [budgets, setBudgetsState] = useState<CategoryBudget[]>(EMPTY_BUDGETS);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
+  const [subscriptionDismissals, setSubscriptionDismissals] = useState<
+    string[]
+  >([]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, bud, lastBk] = await Promise.all([
+      const [d, r, rec, s, e, manual, bud, lastBk, dismissals] =
+        await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
@@ -183,6 +192,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         loadManualTransactions(),
         loadBudgets(),
         loadLastBackupAt(),
+        loadSubscriptionDismissals(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -203,6 +213,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setEdits(e);
       setBudgetsState(bud);
       setLastBackupAt(lastBk);
+      setSubscriptionDismissals(dismissals);
       setLoaded(true);
     })();
     return () => {
@@ -244,6 +255,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistBudgets = useCallback(async (next: CategoryBudget[]) => {
     await saveBudgets(next);
     setBudgetsState(next);
+  }, []);
+
+  const persistSubscriptionDismissals = useCallback(async (next: string[]) => {
+    const unique = [...new Set(next)];
+    await saveSubscriptionDismissals(unique);
+    setSubscriptionDismissals(unique);
   }, []);
 
   const importedRaw = useMemo(
@@ -335,8 +352,26 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setManualTransactions([]);
     setEdits({ ...EMPTY_EDITS });
     setBudgetsState([]);
+    setSubscriptionDismissals([]);
     setLastBackupAt(null);
   }, []);
+
+  const dismissSubscription = useCallback(
+    async (key: string) => {
+      if (subscriptionDismissals.includes(key)) return;
+      await persistSubscriptionDismissals([...subscriptionDismissals, key]);
+    },
+    [subscriptionDismissals, persistSubscriptionDismissals],
+  );
+
+  const restoreSubscription = useCallback(
+    async (key: string) => {
+      await persistSubscriptionDismissals(
+        subscriptionDismissals.filter((k) => k !== key),
+      );
+    },
+    [subscriptionDismissals, persistSubscriptionDismissals],
+  );
 
   const exportBackup = useCallback(async () => {
     const backup = await exportAndDownloadBackup();
@@ -408,6 +443,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         accounts,
         manualTransactions,
         budgets,
+        subscriptionDismissals,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -424,6 +460,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveAccounts(resolved.accounts),
         saveManualTransactions(resolved.manualTransactions),
         saveBudgets(resolved.budgets),
+        saveSubscriptionDismissals(resolved.subscriptionDismissals),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -443,10 +480,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setManualTransactions(resolved.manualTransactions);
       setEdits(resolved.edits);
       setBudgetsState(resolved.budgets);
+      setSubscriptionDismissals(resolved.subscriptionDismissals);
     },
     [
       accounts,
       budgets,
+      subscriptionDismissals,
       dataset,
       edits,
       manualTransactions,
@@ -749,6 +788,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     lastBackupAt,
     exportBackup,
     importBackup,
+    subscriptionDismissals,
+    dismissSubscription,
+    restoreSubscription,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

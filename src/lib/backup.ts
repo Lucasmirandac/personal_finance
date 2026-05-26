@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   loadAccounts,
   loadBudgets,
+  loadSubscriptionDismissals,
   loadDataset,
   loadEdits,
   loadManualTransactions,
@@ -24,7 +25,8 @@ import {
   Settings,
 } from "./types";
 
-export const BACKUP_VERSION = 2 as const;
+export const BACKUP_VERSION = 3 as const;
+export const BACKUP_VERSION_V2 = 2 as const;
 export const BACKUP_VERSION_LEGACY = 1 as const;
 export const BACKUP_APP = "personal-finance" as const;
 
@@ -39,6 +41,7 @@ export type BackupPayload = {
   accounts: Account[];
   manualTransactions: ManualTransaction[];
   budgets: CategoryBudget[];
+  subscriptionDismissals: string[];
 };
 
 /** @deprecated use BackupFile */
@@ -50,7 +53,10 @@ export type BackupV1 = {
 };
 
 export type BackupFile = {
-  version: typeof BACKUP_VERSION | typeof BACKUP_VERSION_LEGACY;
+  version:
+    | typeof BACKUP_VERSION
+    | typeof BACKUP_VERSION_V2
+    | typeof BACKUP_VERSION_LEGACY;
   app: typeof BACKUP_APP;
   exportedAt: string;
   data: BackupPayload;
@@ -63,6 +69,7 @@ export type MergePreview = {
   recurringToAdd: number;
   manualToAdd: number;
   budgetsToAdd: number;
+  dismissalsToAdd: number;
 };
 
 const transactionRawSchema = z.object({
@@ -124,8 +131,19 @@ const backupDataV2Schema = backupDataBaseSchema.extend({
   budgets: z.array(budgetSchema).optional(),
 });
 
-const backupV2Schema = z.object({
+const backupDataV3Schema = backupDataV2Schema.extend({
+  subscriptionDismissals: z.array(z.string()).optional(),
+});
+
+const backupV3Schema = z.object({
   version: z.literal(BACKUP_VERSION),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataV3Schema,
+});
+
+const backupV2Schema = z.object({
+  version: z.literal(BACKUP_VERSION_V2),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
   data: backupDataV2Schema,
@@ -169,6 +187,12 @@ export function resolveBackupApplication(
     accounts: mergeById(current.accounts, backup.accounts),
     recurring: mergeById(current.recurring, backup.recurring),
     budgets: mergeById(current.budgets, backup.budgets),
+    subscriptionDismissals: [
+      ...new Set([
+        ...current.subscriptionDismissals,
+        ...backup.subscriptionDismissals,
+      ]),
+    ],
     rules: backup.rules,
     settings: backup.settings,
     edits: backup.edits,
@@ -195,6 +219,10 @@ export function computeMergePreview(
   );
   const existingBudgetIds = new Set(current.budgets.map((b) => b.id));
   const newBudgets = backup.budgets.filter((b) => !existingBudgetIds.has(b.id));
+  const existingDismissals = new Set(current.subscriptionDismissals);
+  const newDismissals = backup.subscriptionDismissals.filter(
+    (k) => !existingDismissals.has(k),
+  );
 
   return {
     sourcesToAdd: newSources.length,
@@ -204,6 +232,7 @@ export function computeMergePreview(
     recurringToAdd: newRecurring.length,
     manualToAdd: newManual.length,
     budgetsToAdd: newBudgets.length,
+    dismissalsToAdd: newDismissals.length,
   };
 }
 
@@ -328,8 +357,13 @@ function sanitizeEdits(raw: Record<string, unknown>): EditsState {
   return out;
 }
 
+function sanitizeDismissals(raw: unknown[] | undefined): string[] {
+  if (!raw || !Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((x): x is string => typeof x === "string" && x.length > 0))];
+}
+
 function toBackupPayload(
-  parsed: z.infer<typeof backupDataV2Schema>,
+  parsed: z.infer<typeof backupDataV3Schema>,
   version: number,
 ): BackupPayload {
   return {
@@ -341,8 +375,12 @@ function toBackupPayload(
     accounts: sanitizeAccounts(parsed.accounts),
     manualTransactions: parsed.manualTransactions as ManualTransaction[],
     budgets:
-      version >= BACKUP_VERSION
+      version >= BACKUP_VERSION_V2
         ? sanitizeBudgets(parsed.budgets)
+        : [],
+    subscriptionDismissals:
+      version >= BACKUP_VERSION
+        ? sanitizeDismissals(parsed.subscriptionDismissals)
         : [],
   };
 }
@@ -357,6 +395,7 @@ export async function exportAllData(): Promise<BackupFile> {
     accounts,
     manualTransactions,
     budgets,
+    subscriptionDismissals,
   ] = await Promise.all([
     loadDataset(),
     loadRules(),
@@ -366,6 +405,7 @@ export async function exportAllData(): Promise<BackupFile> {
     loadAccounts(),
     loadManualTransactions(),
     loadBudgets(),
+    loadSubscriptionDismissals(),
   ]);
 
   return {
@@ -381,6 +421,7 @@ export async function exportAllData(): Promise<BackupFile> {
       accounts,
       manualTransactions,
       budgets,
+      subscriptionDismissals,
     },
   };
 }
@@ -407,13 +448,24 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
+  const v3 = backupV3Schema.safeParse(json);
+  if (v3.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v3.data,
+        data: toBackupPayload(v3.data.data, BACKUP_VERSION),
+      },
+    };
+  }
+
   const v2 = backupV2Schema.safeParse(json);
   if (v2.success) {
     return {
       ok: true,
       backup: {
         ...v2.data,
-        data: toBackupPayload(v2.data.data, BACKUP_VERSION),
+        data: toBackupPayload(v2.data.data, BACKUP_VERSION_V2),
       },
     };
   }
@@ -432,7 +484,8 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
-  const first = v2.error.issues[0] ?? v1.error.issues[0];
+  const first =
+    v3.error.issues[0] ?? v2.error.issues[0] ?? v1.error.issues[0];
   return {
     ok: false,
     error: first
@@ -473,6 +526,7 @@ export function summarizeBackup(backup: BackupFile | BackupPayload): {
   recurring: number;
   manual: number;
   budgets: number;
+  dismissals: number;
 } {
   const data = "data" in backup ? backup.data : backup;
   const importedTx = data.dataset.sources.reduce((n, s) => n + s.raw.length, 0);
@@ -483,6 +537,7 @@ export function summarizeBackup(backup: BackupFile | BackupPayload): {
     recurring: data.recurring.length,
     manual: data.manualTransactions.length,
     budgets: data.budgets.length,
+    dismissals: data.subscriptionDismissals.length,
   };
 }
 
@@ -496,6 +551,7 @@ export function emptyBackupPayload(): BackupPayload {
     accounts: [],
     manualTransactions: [],
     budgets: [],
+    subscriptionDismissals: [],
   };
 }
 

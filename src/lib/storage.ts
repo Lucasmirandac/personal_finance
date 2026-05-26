@@ -33,6 +33,7 @@ const KEY_ACCOUNTS = "pf:accounts:v1";
 const KEY_MANUAL = "pf:manual:v1";
 const KEY_LAST_BACKUP = "pf:lastBackup:v1";
 const KEY_BUDGETS = "pf:budgets:v1";
+const KEY_SUBSCRIPTION_DISMISSALS = "pf:subscriptionDismissals:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -143,9 +144,32 @@ export async function clearAllData(opts?: {
   await clearAccounts();
   await clearManualTransactions();
   await clearBudgets();
+  await clearSubscriptionDismissals();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
+}
+
+function mergeDismissalKeys(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((x): x is string => typeof x === "string" && x.length > 0))];
+}
+
+export async function loadSubscriptionDismissals(): Promise<string[]> {
+  try {
+    const v = await get(KEY_SUBSCRIPTION_DISMISSALS);
+    return mergeDismissalKeys(v);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveSubscriptionDismissals(keys: string[]): Promise<void> {
+  await set(KEY_SUBSCRIPTION_DISMISSALS, mergeDismissalKeys(keys));
+}
+
+export async function clearSubscriptionDismissals(): Promise<void> {
+  await del(KEY_SUBSCRIPTION_DISMISSALS);
 }
 
 function mergeBudget(v: unknown): CategoryBudget | null {
