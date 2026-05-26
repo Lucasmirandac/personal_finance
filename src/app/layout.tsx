@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppStoreProvider } from "@/lib/store";
+import { FiltersProvider } from "@/lib/filtersContext";
 import { AppShell } from "@/components/AppShell";
 
 const geistSans = Geist({
@@ -15,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard de Gastos",
+  title: "Finanças — análise e projeção local",
   description:
-    "Análise local e privada de faturas em CSV — KPIs, gráficos e exportação.",
+    "Análise local e privada de faturas em CSV — saldo projetado, KPIs e exportação.",
 };
 
 export default function RootLayout({
@@ -30,7 +31,9 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <AppStoreProvider>
-          <AppShell>{children}</AppShell>
+          <FiltersProvider>
+            <AppShell>{children}</AppShell>
+          </FiltersProvider>
         </AppStoreProvider>
       </body>
     </html>

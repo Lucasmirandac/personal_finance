@@ -1,22 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
+import { useFilters } from "@/lib/filtersContext";
+import { isProjectionReady } from "@/lib/setupStatus";
 import {
   applyFilters,
   buildInsights,
   categoryAggregation,
   computeKpis,
-  EMPTY_FILTERS,
   establishmentAggregation,
   expenseComposition,
-  Filters,
   monthlySeries,
   weekdayAggregation,
 } from "@/lib/aggregations";
 import { EmptyState } from "@/components/EmptyState";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
+import { NextEventPeek } from "@/components/NextEventPeek";
 import { KpiCard, KpiStrip } from "@/components/KpiCard";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { MonthlyChart } from "@/components/charts/MonthlyChart";
@@ -25,7 +27,6 @@ import { WeekdayChart } from "@/components/charts/WeekdayChart";
 import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { Tabs } from "@/components/Tabs";
-import { ProjectionTab } from "@/components/ProjectionTab";
 import {
   formatBRL,
   formatDateRangeCaption,
@@ -34,21 +35,20 @@ import {
 } from "@/lib/format";
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
-import { FileDown, FileSpreadsheet } from "lucide-react";
+import { FileDown, FileSpreadsheet, List, ArrowRight } from "lucide-react";
 
 const DASH_TABS = [
   { id: "geral", label: "Visão geral" },
   { id: "cartao", label: "Cartão" },
   { id: "categorias", label: "Categorias" },
   { id: "estabelecimentos", label: "Estabelecimentos" },
-  { id: "projecao", label: "Projeção" },
 ] as const;
 
 type DashTab = (typeof DASH_TABS)[number]["id"];
 
 export default function DashboardPage() {
-  const { loaded, dataset, hasAnalysis, normalized } = useAppStore();
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const { loaded, dataset, hasAnalysis, normalized, settings } = useAppStore();
+  const { filters, setFilters, clearFilters } = useFilters();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [tab, setTab] = useState<DashTab>("geral");
   const [estView, setEstView] = useState<"top" | "recurring">("top");
@@ -90,6 +90,7 @@ export default function DashboardPage() {
   );
 
   const maxCatTotal = cats[0]?.total ?? 1;
+  const projectionReady = isProjectionReady(dataset, settings);
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;
@@ -98,13 +99,17 @@ export default function DashboardPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Análise</h1>
           <p className="subtle text-xs mt-0.5">
             {dataset.sources.length} fonte(s) · {formatInt(normalized.length)} linhas
             {windowCaption && <> · {windowCaption}</>}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
+          <Link href="/transacoes" className="btn btn-sm">
+            <List size={13} />
+            Transações
+          </Link>
           <FiltersButton
             activeCount={activeCount}
             onClick={() => setDrawerOpen(true)}
@@ -129,8 +134,23 @@ export default function DashboardPage() {
         data={normalized}
         filters={filters}
         onChange={setFilters}
-        onClear={() => setFilters(EMPTY_FILTERS)}
+        onClear={clearFilters}
       />
+
+      {!projectionReady && (
+        <div className="panel px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-[var(--warning)]/30">
+          <p className="text-xs">
+            Configure cartões e saldo inicial para ver sua{" "}
+            <strong>projeção de saldo</strong>.
+          </p>
+          <Link href="/config?tab=cartoes" className="btn btn-primary btn-sm shrink-0">
+            Configurar
+            <ArrowRight size={13} />
+          </Link>
+        </div>
+      )}
+
+      {projectionReady && <NextEventPeek />}
 
       <KpiStrip>
         <KpiCard label="Receitas" value={formatBRL(kpis.totalReceitas)} tone="success" />
@@ -350,8 +370,6 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-
-        {tab === "projecao" && <ProjectionTab />}
       </Tabs>
     </div>
   );

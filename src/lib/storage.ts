@@ -1,6 +1,9 @@
 import { get, set, del } from "idb-keyval";
+import { EMPTY_EDITS } from "./edits";
+import { newSourceId, newTransactionId } from "./ids";
 import {
   Dataset,
+  EditsState,
   EMPTY_DATASET,
   LegacyDataset,
   RecurringRule,
@@ -9,6 +12,7 @@ import {
   DEFAULT_SETTINGS,
   Settings,
   Source,
+  TransactionEdit,
   TransactionRaw,
 } from "./types";
 
@@ -17,13 +21,7 @@ const KEY_DATASET_LEGACY = "pf:dataset:v1";
 const KEY_RULES = "pf:rules:v1";
 const KEY_RECURRING = "pf:recurring:v1";
 const KEY_SETTINGS = "pf:settings:v1";
-
-function newSourceId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `src-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
+const KEY_EDITS = "pf:edits:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -41,9 +39,30 @@ function isDataset(v: unknown): v is Dataset {
   return Array.isArray(o.sources);
 }
 
+function ensureRawIds(raw: TransactionRaw[]): TransactionRaw[] {
+  return raw.map((r) => ({
+    ...r,
+    id: typeof r.id === "string" && r.id.length > 0 ? r.id : newTransactionId(),
+  }));
+}
+
+function migrateDatasetIds(dataset: Dataset): Dataset {
+  let changed = false;
+  const sources = dataset.sources.map((source) => {
+    const needsId = source.raw.some(
+      (r) => typeof r.id !== "string" || r.id.length === 0,
+    );
+    if (!needsId) return source;
+    changed = true;
+    return { ...source, raw: ensureRawIds(source.raw) };
+  });
+  return changed ? { sources } : dataset;
+}
+
 function migrateLegacy(legacy: LegacyDataset): Dataset {
   const sourceId = newSourceId();
   const raw: TransactionRaw[] = legacy.raw.map((r) => ({
+    id: newTransactionId(),
     data: r.data,
     lancamento: r.lancamento,
     categoria: r.categoria,
@@ -66,7 +85,13 @@ function migrateLegacy(legacy: LegacyDataset): Dataset {
 export async function loadDataset(): Promise<Dataset> {
   try {
     const current = (await get(KEY_DATASET)) as unknown;
-    if (isDataset(current)) return current;
+    if (isDataset(current)) {
+      const withIds = migrateDatasetIds(current);
+      if (withIds !== current) {
+        await set(KEY_DATASET, withIds);
+      }
+      return withIds;
+    }
 
     const legacy = (await get(KEY_DATASET_LEGACY)) as unknown;
     if (isLegacyDataset(legacy)) {
@@ -101,6 +126,48 @@ export async function clearAllData(): Promise<void> {
   await clearDataset();
   await clearRecurring();
   await clearSettings();
+  await clearEdits();
+}
+
+function mergeEdits(v: unknown): EditsState {
+  if (!v || typeof v !== "object") return { ...EMPTY_EDITS };
+  const o = v as Record<string, unknown>;
+  const out: EditsState = {};
+  for (const [key, val] of Object.entries(o)) {
+    if (!val || typeof val !== "object") continue;
+    const e = val as Partial<TransactionEdit>;
+    if (typeof e.rawId !== "string" || typeof e.editedAt !== "string") continue;
+    out[key] = {
+      rawId: e.rawId,
+      editedAt: e.editedAt,
+      ...(typeof e.data === "string" ? { data: e.data } : {}),
+      ...(typeof e.lancamento === "string" ? { lancamento: e.lancamento } : {}),
+      ...(typeof e.categoria === "string" ? { categoria: e.categoria } : {}),
+      ...(typeof e.tipo === "string" ? { tipo: e.tipo } : {}),
+      ...(typeof e.valorOriginal === "number"
+        ? { valorOriginal: e.valorOriginal }
+        : {}),
+      ...(e.deleted === true ? { deleted: true } : {}),
+    };
+  }
+  return out;
+}
+
+export async function loadEdits(): Promise<EditsState> {
+  try {
+    const v = await get(KEY_EDITS);
+    return mergeEdits(v);
+  } catch {
+    return { ...EMPTY_EDITS };
+  }
+}
+
+export async function saveEdits(edits: EditsState): Promise<void> {
+  await set(KEY_EDITS, edits);
+}
+
+export async function clearEdits(): Promise<void> {
+  await del(KEY_EDITS);
 }
 
 function mergeSettings(v: unknown): Settings {

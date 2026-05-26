@@ -127,7 +127,7 @@ export function normalizeTransactions(
   raws: TransactionRaw[],
   rules: Rules,
 ): TransactionNormalized[] {
-  return raws.map((raw, idx) => {
+  return raws.map((raw) => {
     const dataISO = resolveDataISO(raw.data);
     const categoria =
       raw.categoria.trim() === "" ? SEM_CATEGORIA : raw.categoria.trim();
@@ -149,7 +149,6 @@ export function normalizeTransactions(
     return {
       ...raw,
       categoria,
-      id: `${raw.sourceId}-${dataISO}-${idx}`,
       estabelecimento: extractEstabelecimento(raw.lancamento),
       valorAnalise,
       natureza,

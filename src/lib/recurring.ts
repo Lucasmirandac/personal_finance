@@ -96,6 +96,7 @@ export function expandRecurringRules(
         rule.kind === "receita" ? -Math.abs(rule.valor) : Math.abs(rule.valor);
 
       raws.push({
+        id: `manual:${rule.id}:${anoMes}`,
         data: isoToBr(dataISO),
         lancamento: rule.descricao,
         categoria: rule.categoria.trim() || "(sem categoria)",

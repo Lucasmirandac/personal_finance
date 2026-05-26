@@ -25,6 +25,7 @@ export type RecurringRule = {
 };
 
 export type TransactionRaw = {
+  id: string;
   data: string; // dd/mm/yyyy original
   lancamento: string;
   categoria: string;
@@ -34,8 +35,20 @@ export type TransactionRaw = {
   sourceId: string;
 };
 
+export type TransactionEdit = {
+  rawId: string;
+  data?: string;
+  lancamento?: string;
+  categoria?: string;
+  tipo?: string;
+  valorOriginal?: number;
+  deleted?: boolean;
+  editedAt: string;
+};
+
+export type EditsState = Record<string, TransactionEdit>;
+
 export type TransactionNormalized = TransactionRaw & {
-  id: string;
   estabelecimento: string;
   valorAnalise: number;
   natureza: Natureza;

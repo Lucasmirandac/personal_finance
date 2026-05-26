@@ -1,20 +1,24 @@
 import Link from "next/link";
 
 export function EmptyState({
-  title = "Nenhum dataset carregado",
-  description = "Importe um CSV ou cadastre recorrentes em /recorrentes para começar a análise.",
+  title = "Nenhum dado para analisar",
+  description = "Comece importando um CSV ou cadastrando recorrentes.",
 }: {
   title?: string;
   description?: string;
 }) {
   return (
     <div className="card p-10 text-center max-w-xl mx-auto">
-      <div className="text-3xl">📄</div>
-      <h2 className="text-lg font-semibold mt-3">{title}</h2>
+      <h2 className="text-lg font-semibold">{title}</h2>
       <p className="subtle mt-1">{description}</p>
-      <Link href="/" className="btn btn-primary mt-4 inline-flex">
-        Ir para importação
-      </Link>
+      <div className="flex flex-wrap gap-2 justify-center mt-4">
+        <Link href="/" className="btn btn-primary">
+          Começar
+        </Link>
+        <Link href="/config?tab=importar" className="btn">
+          Importar CSV
+        </Link>
+      </div>
     </div>
   );
 }

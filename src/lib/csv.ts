@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { z } from "zod";
+import { newSourceId, newTransactionId } from "./ids";
 import { Fonte, Source, TransactionRaw } from "./types";
 
 const INTER_HEADERS = [
@@ -42,13 +43,6 @@ const NubankRowSchema = z.object({
 
 const DATE_BR_RE = /^([0-3]?\d)\/([01]?\d)\/(\d{4})$/;
 const DATE_ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-function newSourceId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `src-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
 
 export function detectFormat(headers: string[]): Fonte | null {
   const normalized = headers.map((h) => h.trim());
@@ -212,6 +206,7 @@ export function parseCsvText(text: string, fileName = "import.csv"): ParseCsvRes
         return;
       }
       raw.push({
+        id: newTransactionId(),
         data: r.Data.trim(),
         lancamento: r.Lançamento.trim(),
         categoria: r.Categoria.trim(),
@@ -256,6 +251,7 @@ export function parseCsvText(text: string, fileName = "import.csv"): ParseCsvRes
         return;
       }
       raw.push({
+        id: newTransactionId(),
         data: isoToBr(dataISO),
         lancamento: r.title.trim(),
         categoria: "",

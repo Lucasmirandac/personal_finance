@@ -9,7 +9,33 @@ import {
   useState,
 } from "react";
 import {
+  applyEdits,
+  buildEditEntry,
+  countDeleted,
+  EMPTY_EDITS,
+  getDeletedRaws,
+  pruneEditsForRawIds,
+  TransactionEditPatch,
+} from "./edits";
+import { normalizeTransactions } from "./normalize";
+import { expandRecurringRules } from "./recurring";
+import {
+  clearAllData,
+  loadDataset,
+  loadEdits,
+  loadRecurring,
+  loadRules,
+  loadSettings,
+  resetRules as resetRulesStorage,
+  saveDataset,
+  saveEdits,
+  saveRecurring,
+  saveRules,
+  saveSettings,
+} from "./storage";
+import {
   Dataset,
+  EditsState,
   EMPTY_DATASET,
   RecurringRule,
   Rules,
@@ -18,21 +44,8 @@ import {
   Settings,
   Source,
   TransactionNormalized,
+  TransactionRaw,
 } from "./types";
-import {
-  loadDataset,
-  saveDataset,
-  clearAllData,
-  loadRules,
-  saveRules,
-  resetRules as resetRulesStorage,
-  loadRecurring,
-  saveRecurring,
-  loadSettings,
-  saveSettings,
-} from "./storage";
-import { normalizeTransactions } from "./normalize";
-import { expandRecurringRules } from "./recurring";
 
 type Ctx = {
   loaded: boolean;
@@ -42,7 +55,11 @@ type Ctx = {
   recurringRules: RecurringRule[];
   rules: Rules;
   settings: Settings;
+  edits: EditsState;
+  deletedCount: number;
   normalized: TransactionNormalized[];
+  deletedNormalized: TransactionNormalized[];
+  findOriginalRaw: (rawId: string) => TransactionRaw | undefined;
   addSource: (source: Source) => Promise<void>;
   removeSource: (id: string) => Promise<void>;
   clearAllSources: () => Promise<void>;
@@ -53,6 +70,10 @@ type Ctx = {
   updateRules: (rules: Rules) => Promise<void>;
   resetRules: () => Promise<void>;
   updateSettings: (settings: Settings) => Promise<void>;
+  editTransaction: (rawId: string, patch: TransactionEditPatch) => Promise<void>;
+  revertTransaction: (rawId: string) => Promise<void>;
+  deleteTransaction: (rawId: string) => Promise<void>;
+  restoreTransaction: (rawId: string) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -63,21 +84,24 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s] = await Promise.all([
+      const [d, r, rec, s, e] = await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
         loadSettings(),
+        loadEdits(),
       ]);
       if (!alive) return;
       setDatasetState(d);
       setRules(r);
       setRecurringRules(rec);
       setSettings(s);
+      setEdits(e);
       setLoaded(true);
     })();
     return () => {
@@ -90,10 +114,54 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setDatasetState(next);
   }, []);
 
+  const persistEdits = useCallback(async (next: EditsState) => {
+    await saveEdits(next);
+    setEdits(next);
+  }, []);
+
   const persistRecurring = useCallback(async (next: RecurringRule[]) => {
     await saveRecurring(next);
     setRecurringRules(next);
   }, []);
+
+  const importedRaw = useMemo(
+    () => dataset.sources.flatMap((s) => s.raw),
+    [dataset.sources],
+  );
+
+  const findOriginalRaw = useCallback(
+    (rawId: string): TransactionRaw | undefined =>
+      importedRaw.find((r) => r.id === rawId),
+    [importedRaw],
+  );
+
+  const manualRaw = useMemo(
+    () => expandRecurringRules(recurringRules.filter((r) => r.ativo)),
+    [recurringRules],
+  );
+
+  const allRaw = useMemo(
+    () => [...importedRaw, ...manualRaw],
+    [importedRaw, manualRaw],
+  );
+
+  const { effective } = useMemo(
+    () => applyEdits(allRaw, edits),
+    [allRaw, edits],
+  );
+
+  const normalized = useMemo<TransactionNormalized[]>(() => {
+    if (effective.length === 0) return [];
+    return normalizeTransactions(effective, rules);
+  }, [effective, rules]);
+
+  const deletedNormalized = useMemo<TransactionNormalized[]>(() => {
+    const deleted = getDeletedRaws(allRaw, edits);
+    if (deleted.length === 0) return [];
+    return normalizeTransactions(deleted, rules);
+  }, [allRaw, edits, rules]);
+
+  const deletedCount = useMemo(() => countDeleted(edits), [edits]);
 
   const addSource = useCallback(
     async (source: Source) => {
@@ -105,12 +173,20 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const removeSource = useCallback(
     async (id: string) => {
+      const removed = dataset.sources.find((s) => s.id === id);
+      const rawIds = removed?.raw.map((r) => r.id) ?? [];
       const next: Dataset = {
         sources: dataset.sources.filter((s) => s.id !== id),
       };
       await persistDataset(next);
+      if (rawIds.length > 0) {
+        const nextEdits = pruneEditsForRawIds(edits, rawIds);
+        if (nextEdits !== edits) {
+          await persistEdits(nextEdits);
+        }
+      }
     },
-    [dataset.sources, persistDataset],
+    [dataset.sources, edits, persistDataset, persistEdits],
   );
 
   const clearAllSources = useCallback(async () => {
@@ -118,6 +194,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setDatasetState({ ...EMPTY_DATASET });
     setRecurringRules([]);
     setSettings({ ...DEFAULT_SETTINGS });
+    setEdits({ ...EMPTY_EDITS });
   }, []);
 
   const updateSettings = useCallback(async (next: Settings) => {
@@ -169,20 +246,73 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setRules(r);
   }, []);
 
-  const manualRaw = useMemo(
-    () => expandRecurringRules(recurringRules.filter((r) => r.ativo)),
-    [recurringRules],
+  const editTransaction = useCallback(
+    async (rawId: string, patch: TransactionEditPatch) => {
+      const next = {
+        ...edits,
+        [rawId]: buildEditEntry(rawId, edits[rawId], patch),
+      };
+      await persistEdits(next);
+    },
+    [edits, persistEdits],
   );
 
-  const allRaw = useMemo(
-    () => [...dataset.sources.flatMap((s) => s.raw), ...manualRaw],
-    [dataset.sources, manualRaw],
+  const revertTransaction = useCallback(
+    async (rawId: string) => {
+      if (!edits[rawId]) return;
+      const next = { ...edits };
+      delete next[rawId];
+      await persistEdits(next);
+    },
+    [edits, persistEdits],
   );
 
-  const normalized = useMemo<TransactionNormalized[]>(() => {
-    if (allRaw.length === 0) return [];
-    return normalizeTransactions(allRaw, rules);
-  }, [allRaw, rules]);
+  const deleteTransaction = useCallback(
+    async (rawId: string) => {
+      const next = {
+        ...edits,
+        [rawId]: {
+          rawId,
+          editedAt: new Date().toISOString(),
+          deleted: true,
+          ...(edits[rawId]
+            ? {
+                data: edits[rawId].data,
+                lancamento: edits[rawId].lancamento,
+                categoria: edits[rawId].categoria,
+                tipo: edits[rawId].tipo,
+                valorOriginal: edits[rawId].valorOriginal,
+              }
+            : {}),
+        },
+      };
+      await persistEdits(next);
+    },
+    [edits, persistEdits],
+  );
+
+  const restoreTransaction = useCallback(
+    async (rawId: string) => {
+      const existing = edits[rawId];
+      if (!existing) return;
+      const { deleted: _d, ...rest } = existing;
+      const hasOther = Object.keys(rest).some(
+        (k) => k !== "rawId" && k !== "editedAt",
+      );
+      if (!hasOther) {
+        const next = { ...edits };
+        delete next[rawId];
+        await persistEdits(next);
+        return;
+      }
+      const next = {
+        ...edits,
+        [rawId]: { ...rest, rawId, editedAt: new Date().toISOString() },
+      };
+      await persistEdits(next);
+    },
+    [edits, persistEdits],
+  );
 
   const hasData = dataset.sources.length > 0;
   const hasActiveRecurring = recurringRules.some((r) => r.ativo);
@@ -196,7 +326,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     recurringRules,
     rules,
     settings,
+    edits,
+    deletedCount,
     normalized,
+    deletedNormalized,
+    findOriginalRaw,
     addSource,
     removeSource,
     clearAllSources,
@@ -207,6 +341,10 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     updateRules,
     resetRules: resetRulesFn,
     updateSettings,
+    editTransaction,
+    revertTransaction,
+    deleteTransaction,
+    restoreTransaction,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
