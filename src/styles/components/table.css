@@ -1,0 +1,48 @@
+table.dt {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+table.dt th,
+table.dt td {
+  text-align: left;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.dt th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+table.dt tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--surface-2) 50%, transparent);
+}
+table.dt tbody tr:hover {
+  background: var(--surface-2);
+}
+table.dt td.num,
+table.dt th.num {
+  text-align: right;
+}
+.row-pay {
+  background: color-mix(in oklab, var(--warning) 6%, transparent) !important;
+}
+.row-est {
+  background: color-mix(in oklab, var(--success) 6%, transparent) !important;
+}
+.row-fixa {
+  background: color-mix(in oklab, var(--warning) 5%, transparent) !important;
+}
+.row-receita {
+  background: color-mix(in oklab, var(--success) 5%, transparent) !important;
+}

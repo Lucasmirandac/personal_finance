@@ -1,0 +1,39 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.badge-dot::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.badge-pay {
+  color: var(--warning);
+  border-color: color-mix(in oklab, var(--warning) 25%, var(--border));
+}
+.badge-est {
+  color: var(--success);
+  border-color: color-mix(in oklab, var(--success) 25%, var(--border));
+}
+.badge-gasto {
+  color: var(--muted);
+}
+.badge-fixa {
+  color: var(--warning);
+  border-color: color-mix(in oklab, var(--warning) 25%, var(--border));
+}
+.badge-receita {
+  color: var(--success);
+  border-color: color-mix(in oklab, var(--success) 25%, var(--border));
+}

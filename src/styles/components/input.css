@@ -1,0 +1,19 @@
+.input,
+.select,
+.textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  width: 100%;
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: 1px solid var(--border-strong);
+  outline-offset: 0;
+  border-color: var(--border-strong);
+}

@@ -1,0 +1,12 @@
+.progress-bar {
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 48px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--foreground);
+  border-radius: 2px;
+}

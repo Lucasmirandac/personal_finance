@@ -34,7 +34,7 @@ export function InsightsPanel({ insights, max = 4 }: { insights: Insight[]; max?
       {hasRitmoMes && (
         <Link
           href="/dashboard?tab=comparar"
-          className="text-xs text-[var(--accent)] hover:underline inline-flex"
+          className="text-xs text-[var(--accent-strong)] hover:underline inline-flex"
         >
           Ver comparação completa →
         </Link>
