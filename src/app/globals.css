@@ -253,6 +253,13 @@ body {
   overflow-x: auto;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 table.dt {
   width: 100%;
   border-collapse: collapse;
