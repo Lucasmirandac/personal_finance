@@ -25,13 +25,18 @@ type Props = {
   onCancel: () => void;
 };
 
+function initialDiaMes(initial?: RecurringRule | null): string {
+  if (!initial || !Number.isFinite(initial.diaMes)) return "5";
+  return String(Math.min(31, Math.max(1, Math.round(initial.diaMes))));
+}
+
 export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
   const [descricao, setDescricao] = useState(initial?.descricao ?? "");
   const [categoria, setCategoria] = useState(initial?.categoria ?? "");
   const [valorStr, setValorStr] = useState(
     initial ? String(initial.valor) : "",
   );
-  const [diaMes, setDiaMes] = useState(String(initial?.diaMes ?? 5));
+  const [diaMes, setDiaMes] = useState(initialDiaMes(initial));
   const [inicio, setInicio] = useState(initial?.inicio ?? "2026-01-01");
   const [fim, setFim] = useState(initial?.fim ?? "");
   const [error, setError] = useState<string | null>(null);

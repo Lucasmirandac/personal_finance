@@ -107,6 +107,7 @@ const backupDataBaseSchema = z.object({
   rules: z.object({
     pagamentoPatterns: z.array(z.string()),
     estornoPatterns: z.array(z.string()),
+    genericCategorias: z.array(z.string()).optional(),
   }),
   recurring: z.array(z.record(z.string(), z.unknown())),
   settings: z.object({
@@ -362,13 +363,27 @@ function sanitizeDismissals(raw: unknown[] | undefined): string[] {
   return [...new Set(raw.filter((x): x is string => typeof x === "string" && x.length > 0))];
 }
 
+function sanitizeRules(raw: z.infer<typeof backupDataBaseSchema>["rules"]): Rules {
+  return {
+    pagamentoPatterns: Array.isArray(raw.pagamentoPatterns)
+      ? raw.pagamentoPatterns
+      : DEFAULT_RULES.pagamentoPatterns,
+    estornoPatterns: Array.isArray(raw.estornoPatterns)
+      ? raw.estornoPatterns
+      : DEFAULT_RULES.estornoPatterns,
+    genericCategorias: Array.isArray(raw.genericCategorias)
+      ? raw.genericCategorias
+      : DEFAULT_RULES.genericCategorias,
+  };
+}
+
 function toBackupPayload(
   parsed: z.infer<typeof backupDataV3Schema>,
   version: number,
 ): BackupPayload {
   return {
     dataset: parsed.dataset as Dataset,
-    rules: parsed.rules as Rules,
+    rules: sanitizeRules(parsed.rules),
     recurring: sanitizeRecurring(parsed.recurring),
     settings: parsed.settings as Settings,
     edits: sanitizeEdits(parsed.edits as Record<string, unknown>),

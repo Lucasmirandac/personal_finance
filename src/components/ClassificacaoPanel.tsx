@@ -48,6 +48,10 @@ export function ClassificacaoPanel() {
     setDraft({ ...draft, estornoPatterns: list });
     setDirty(true);
   }
+  function setGeneric(list: string[]) {
+    setDraft({ ...draft, genericCategorias: list });
+    setDirty(true);
+  }
 
   return (
     <div className="space-y-4">
@@ -86,6 +90,9 @@ export function ClassificacaoPanel() {
               await updateRules({
                 pagamentoPatterns: draft.pagamentoPatterns.filter((p) => p.trim()),
                 estornoPatterns: draft.estornoPatterns.filter((p) => p.trim()),
+                genericCategorias: draft.genericCategorias
+                  .map((p) => p.trim())
+                  .filter(Boolean),
               });
               setDirty(false);
             }}
@@ -97,7 +104,7 @@ export function ClassificacaoPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <PatternEditor
           title="Pagamento de fatura"
           description="Lançamentos contendo qualquer um destes padrões viram Pagamento de fatura (Valor análise = 0)."
@@ -113,6 +120,14 @@ export function ClassificacaoPanel() {
           onChange={setEst}
           placeholderItem="ESTORNO"
           defaults={DEFAULT_RULES.estornoPatterns}
+        />
+        <PatternEditor
+          title="Categorias genéricas"
+          description='Categorias tratadas como "vazias" pela Auto-categorização (além de "(sem categoria)").'
+          values={draft.genericCategorias}
+          onChange={setGeneric}
+          placeholderItem="Outros"
+          defaults={DEFAULT_RULES.genericCategorias}
         />
       </div>
 

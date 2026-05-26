@@ -91,6 +91,7 @@ export type TransactionNormalized = TransactionRaw & {
 export type Rules = {
   pagamentoPatterns: string[];
   estornoPatterns: string[];
+  genericCategorias: string[];
 };
 
 export const DEFAULT_RULES: Rules = {
@@ -109,6 +110,7 @@ export const DEFAULT_RULES: Rules = {
     "CANCELAMENTO",
     "REEMBOLSO",
   ],
+  genericCategorias: ["Outros", "Diversos", "Geral", "Sem categoria"],
 };
 
 export type Source = {

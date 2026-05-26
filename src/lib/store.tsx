@@ -162,6 +162,20 @@ function syncSettingsFromAccounts(
   };
 }
 
+function normalizeRecurringRule(rule: RecurringRule): RecurringRule {
+  const diaMes = Number.isFinite(rule.diaMes)
+    ? Math.min(31, Math.max(1, Math.round(rule.diaMes)))
+    : 1;
+  return {
+    ...rule,
+    diaMes,
+    inicio:
+      /^\d{4}-\d{2}$/.test(rule.inicio)
+        ? `${rule.inicio}-01`
+        : rule.inicio,
+  };
+}
+
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [dataset, setDatasetState] = useState<Dataset>(EMPTY_DATASET);
@@ -248,8 +262,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const persistRecurring = useCallback(async (next: RecurringRule[]) => {
-    await saveRecurring(next);
-    setRecurringRules(next);
+    const normalized = next.map(normalizeRecurringRule);
+    await saveRecurring(normalized);
+    setRecurringRules(normalized);
   }, []);
 
   const persistBudgets = useCallback(async (next: CategoryBudget[]) => {

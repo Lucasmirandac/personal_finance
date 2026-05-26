@@ -478,6 +478,9 @@ export async function loadRules(): Promise<Rules> {
       estornoPatterns: Array.isArray(v.estornoPatterns)
         ? v.estornoPatterns
         : DEFAULT_RULES.estornoPatterns,
+      genericCategorias: Array.isArray(v.genericCategorias)
+        ? v.genericCategorias
+        : DEFAULT_RULES.genericCategorias,
     };
   } catch {
     return { ...DEFAULT_RULES };

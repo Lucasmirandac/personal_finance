@@ -12,12 +12,14 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { applyFilters } from "@/lib/aggregations";
+import { buildAutoCategorySuggestions } from "@/lib/autoCategorize";
 import { useFilters } from "@/lib/filtersContext";
 import { defaultAccount } from "@/lib/accounts";
 import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits";
 import { isManualQuickRaw } from "@/lib/manualTransactions";
 import { Fonte, TransactionNormalized } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
+import { AutoCategorizeModal } from "@/components/AutoCategorizeModal";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
 import { NatureBadge } from "@/components/NatureBadge";
 import { QuickAddModal } from "@/components/QuickAddModal";
@@ -39,6 +41,7 @@ import {
   RotateCcw,
   Trash2,
   Undo2,
+  Wand2,
 } from "lucide-react";
 
 const FONTE_LABELS: Record<Fonte, string> = {
@@ -59,6 +62,7 @@ export default function TransacoesPage() {
     deletedNormalized,
     deletedCount,
     edits,
+    rules,
     accounts,
     findOriginalRaw,
     editTransaction,
@@ -73,6 +77,7 @@ export default function TransacoesPage() {
   const [editRow, setEditRow] = useState<TransactionNormalized | null>(null);
   const [repeatDraft, setRepeatDraft] = useState<QuickAddDraft | null>(null);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [autoCategorizeOpen, setAutoCategorizeOpen] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "dataISO", desc: true },
   ]);
@@ -85,6 +90,21 @@ export default function TransacoesPage() {
   const filteredDeleted = useMemo(
     () => applyFilters(deletedNormalized, filters),
     [deletedNormalized, filters],
+  );
+
+  const autoSuggestions = useMemo(
+    () => buildAutoCategorySuggestions(normalized, rules),
+    [normalized, rules],
+  );
+
+  const transactionsById = useMemo(
+    () => new Map(normalized.map((t) => [t.id, t])),
+    [normalized],
+  );
+
+  const suggestionsById = useMemo(
+    () => new Map(autoSuggestions.map((s) => [s.rawId, s])),
+    [autoSuggestions],
   );
 
   const tableData = useMemo<TableRow[]>(() => {
@@ -309,6 +329,15 @@ export default function TransacoesPage() {
       ? mergeRawWithEdit(editOriginal, edits[editRow.id])
       : undefined;
 
+  async function applyAutoCategorize(selectedRawIds: string[]) {
+    for (const id of selectedRawIds) {
+      const sug = suggestionsById.get(id);
+      if (sug) {
+        await editTransaction(id, { categoria: sug.suggestion });
+      }
+    }
+  }
+
   if (!loaded) return <div className="subtle">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;
 
@@ -342,6 +371,16 @@ export default function TransacoesPage() {
             activeCount={activeCount}
             onClick={() => setDrawerOpen(true)}
           />
+          {autoSuggestions.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={() => setAutoCategorizeOpen(true)}
+            >
+              <Wand2 size={13} />
+              Auto-categorizar {formatInt(autoSuggestions.length)} linhas
+            </button>
+          )}
           <button
             className="btn btn-sm"
             onClick={() => exportTreatedCsv(filteredActive, "fatura_tratada_filtrada.csv")}
@@ -380,6 +419,15 @@ export default function TransacoesPage() {
           setQuickAddOpen(false);
           setRepeatDraft(null);
         }}
+      />
+
+      <AutoCategorizeModal
+        open={autoCategorizeOpen}
+        suggestions={autoSuggestions}
+        transactionsById={transactionsById}
+        edits={edits}
+        onClose={() => setAutoCategorizeOpen(false)}
+        onApply={applyAutoCategorize}
       />
 
       <div className="panel overflow-hidden">

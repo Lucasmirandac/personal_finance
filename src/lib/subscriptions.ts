@@ -67,11 +67,24 @@ function medianDayFromIso(dates: string[]): number {
   const days = dates
     .map((d) => {
       const parts = d.split("-");
-      return parts.length >= 3 ? Number(parts[2]) : NaN;
+      return parts.length >= 3 ? Number(parts[2]) : Number.NaN;
     })
     .filter((d) => !Number.isNaN(d) && d >= 1 && d <= 31);
   const med = Math.round(median(days));
   return Math.min(28, Math.max(1, med || 1));
+}
+
+function clampRecurringDay(day: unknown): number {
+  const n = typeof day === "number" ? day : Number(day);
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(28, Math.max(1, Math.round(n)));
+}
+
+function firstDayOfMonth(anoMes: string | undefined): string {
+  if (!anoMes || !/^\d{4}-\d{2}$/.test(anoMes)) {
+    return `${currentMonthIso()}-01`;
+  }
+  return `${anoMes}-01`;
 }
 
 function namesMatch(a: string, b: string): boolean {
@@ -211,14 +224,15 @@ export function suggestionToRecurring(
   s: SubscriptionSuggestion,
   defaults?: { accountId?: string },
 ): RecurringRule {
+  const diaMes = clampRecurringDay(s.diaMediano);
   return {
     id: newRecurringId(),
     kind: "despesa_fixa",
     descricao: s.estabelecimento,
     categoria: s.categoria,
     valor: s.valorMediano,
-    diaMes: Math.min(28, Math.max(1, s.diaMediano)),
-    inicio: s.meses[0] ?? currentMonthIso(),
+    diaMes,
+    inicio: firstDayOfMonth(s.meses[0]),
     fim: null,
     ativo: true,
     criadoEm: new Date().toISOString(),
