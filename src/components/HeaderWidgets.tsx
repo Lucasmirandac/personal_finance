@@ -6,6 +6,32 @@ import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
 import { getSetupSteps, isProjectionReady } from "@/lib/setupStatus";
 import { projectDailyBalance } from "@/lib/projection";
+import { daysSince } from "@/lib/backup";
+
+export function BackupReminder() {
+  const { lastBackupAt, hasAnalysis } = useAppStore();
+  const days = daysSince(lastBackupAt);
+
+  if (!hasAnalysis) return null;
+  if (days === null || days <= 14) return null;
+
+  const urgent = days > 30;
+
+  return (
+    <Link
+      href="/config?tab=backup"
+      className={clsx(
+        "hidden sm:inline-flex items-center gap-1 chip hover:border-[var(--border-strong)] text-[10px]",
+        urgent
+          ? "text-[var(--danger)] border-[var(--danger)]/40"
+          : "subtle",
+      )}
+      title="Faça backup dos seus dados locais"
+    >
+      Backup há {days}d
+    </Link>
+  );
+}
 
 export function SetupIndicator() {
   const { dataset, settings, recurringRules, accounts } = useAppStore();

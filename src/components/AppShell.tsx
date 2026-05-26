@@ -4,7 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { SetupIndicator, Saldo30Widget } from "@/components/HeaderWidgets";
+import {
+  BackupReminder,
+  SetupIndicator,
+  Saldo30Widget,
+} from "@/components/HeaderWidgets";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import clsx from "clsx";
 import { ChevronDown, Database, Wallet } from "lucide-react";
@@ -19,6 +23,7 @@ const CONFIG_LINKS = [
   { href: "/config?tab=importar", label: "Importar" },
   { href: "/config?tab=classificacao", label: "Classificação" },
   { href: "/config?tab=contas", label: "Contas" },
+  { href: "/config?tab=backup", label: "Backup" },
 ] as const;
 
 function NavLink({
@@ -136,6 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <SetupIndicator />
+            <BackupReminder />
             <Saldo30Widget />
             {hasAnalysis && (
               <span className="chip hidden lg:inline-flex items-center gap-1">

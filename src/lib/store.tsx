@@ -29,10 +29,18 @@ import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manu
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
 import {
+  BackupImportMode,
+  BackupPayload,
+  BackupV1,
+  exportAndDownloadBackup,
+  resolveBackupApplication,
+} from "./backup";
+import {
   bootstrapAccounts,
   clearAllData,
   loadDataset,
   loadEdits,
+  loadLastBackupAt,
   loadManualTransactions,
   loadRecurring,
   loadRules,
@@ -122,6 +130,9 @@ type Ctx = {
   revertTransaction: (rawId: string) => Promise<void>;
   deleteTransaction: (rawId: string) => Promise<void>;
   restoreTransaction: (rawId: string) => Promise<void>;
+  lastBackupAt: string | null;
+  exportBackup: () => Promise<void>;
+  importBackup: (backup: BackupV1, mode: BackupImportMode) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -148,17 +159,19 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     ManualTransaction[]
   >([]);
   const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual] = await Promise.all([
+      const [d, r, rec, s, e, manual, lastBk] = await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
         loadSettings(),
         loadEdits(),
         loadManualTransactions(),
+        loadLastBackupAt(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -177,6 +190,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setAccounts(accs);
       setManualTransactions(manual);
       setEdits(e);
+      setLastBackupAt(lastBk);
       setLoaded(true);
     })();
     return () => {
@@ -303,7 +317,68 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setAccounts([]);
     setManualTransactions([]);
     setEdits({ ...EMPTY_EDITS });
+    setLastBackupAt(null);
   }, []);
+
+  const exportBackup = useCallback(async () => {
+    const backup = await exportAndDownloadBackup();
+    setLastBackupAt(backup.exportedAt);
+  }, []);
+
+  const importBackup = useCallback(
+    async (backup: BackupV1, mode: BackupImportMode) => {
+      const current: BackupPayload = {
+        dataset,
+        rules,
+        recurring: recurringRules,
+        settings,
+        edits,
+        accounts,
+        manualTransactions,
+      };
+      const resolved = resolveBackupApplication(current, backup.data, mode);
+
+      if (mode === "replace") {
+        await clearAllData({ preserveLastBackup: true });
+      }
+
+      await Promise.all([
+        saveDataset(resolved.dataset),
+        saveRules(resolved.rules),
+        saveRecurring(resolved.recurring),
+        saveSettings(resolved.settings),
+        saveEdits(resolved.edits),
+        saveAccounts(resolved.accounts),
+        saveManualTransactions(resolved.manualTransactions),
+      ]);
+
+      const { accounts: accs, dataset: ds } = await bootstrapAccounts(
+        resolved.dataset,
+        resolved.settings,
+      );
+      const synced = syncSettingsFromAccounts(accs, resolved.settings);
+      if (JSON.stringify(synced) !== JSON.stringify(resolved.settings)) {
+        await saveSettings(synced);
+      }
+
+      setDatasetState(ds);
+      setRules(resolved.rules);
+      setRecurringRules(resolved.recurring);
+      setSettings(synced);
+      setAccounts(accs);
+      setManualTransactions(resolved.manualTransactions);
+      setEdits(resolved.edits);
+    },
+    [
+      accounts,
+      dataset,
+      edits,
+      manualTransactions,
+      recurringRules,
+      rules,
+      settings,
+    ],
+  );
 
   const updateSettings = useCallback(async (next: Settings) => {
     await saveSettings(next);
@@ -590,6 +665,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     revertTransaction,
     deleteTransaction,
     restoreTransaction,
+    lastBackupAt,
+    exportBackup,
+    importBackup,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -30,6 +30,7 @@ const KEY_SETTINGS = "pf:settings:v1";
 const KEY_EDITS = "pf:edits:v1";
 const KEY_ACCOUNTS = "pf:accounts:v1";
 const KEY_MANUAL = "pf:manual:v1";
+const KEY_LAST_BACKUP = "pf:lastBackup:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -130,13 +131,35 @@ export async function clearDataset(): Promise<void> {
   await del(KEY_DATASET_LEGACY);
 }
 
-export async function clearAllData(): Promise<void> {
+export async function clearAllData(opts?: {
+  preserveLastBackup?: boolean;
+}): Promise<void> {
   await clearDataset();
   await clearRecurring();
   await clearSettings();
   await clearEdits();
   await clearAccounts();
   await clearManualTransactions();
+  if (!opts?.preserveLastBackup) {
+    await clearLastBackupAt();
+  }
+}
+
+export async function loadLastBackupAt(): Promise<string | null> {
+  try {
+    const v = await get(KEY_LAST_BACKUP);
+    return typeof v === "string" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveLastBackupAt(iso: string): Promise<void> {
+  await set(KEY_LAST_BACKUP, iso);
+}
+
+export async function clearLastBackupAt(): Promise<void> {
+  await del(KEY_LAST_BACKUP);
 }
 
 function mergeAccount(v: unknown): Account | null {

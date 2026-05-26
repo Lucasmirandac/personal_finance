@@ -6,6 +6,7 @@ import { Tabs } from "@/components/Tabs";
 import { ImportPanel } from "@/components/ImportPanel";
 import { ClassificacaoPanel } from "@/components/ClassificacaoPanel";
 import { AccountsPanel } from "@/components/AccountsPanel";
+import { BackupPanel } from "@/components/BackupPanel";
 import { EmptyState } from "@/components/EmptyState";
 import { useAppStore } from "@/lib/store";
 
@@ -13,12 +14,20 @@ const CONFIG_TABS = [
   { id: "importar", label: "Importar" },
   { id: "classificacao", label: "Classificação" },
   { id: "contas", label: "Contas" },
+  { id: "backup", label: "Backup" },
 ] as const;
 
 type ConfigTab = (typeof CONFIG_TABS)[number]["id"];
 
 function parseTab(v: string | null): ConfigTab {
-  if (v === "classificacao" || v === "contas" || v === "importar") return v;
+  if (
+    v === "classificacao" ||
+    v === "contas" ||
+    v === "importar" ||
+    v === "backup"
+  ) {
+    return v;
+  }
   if (v === "cartoes") return "contas";
   return "importar";
 }
@@ -70,6 +79,8 @@ export default function ConfigPageInner() {
             onSaveSettings={(next) => updateSettings(next)}
           />
         )}
+
+        {tab === "backup" && <BackupPanel />}
       </Tabs>
     </div>
   );
