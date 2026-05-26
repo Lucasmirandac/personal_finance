@@ -1,68 +1,63 @@
-// Quick verification script: runs the parse + normalize pipeline against the real CSV
-// and prints KPIs. Mirrors the logic the browser uses.
+// Quick verification script: runs the parse + normalize pipeline against CSVs
 import { readFileSync } from "node:fs";
 import { parseCsvText } from "../src/lib/csv.ts";
 import { normalizeTransactions } from "../src/lib/normalize.ts";
 import { DEFAULT_RULES } from "../src/lib/types.ts";
-import { applyFilters, computeKpis } from "../src/lib/aggregations.ts";
-import { computePreset } from "../src/lib/datePresets.ts";
+import { computeKpis } from "../src/lib/aggregations.ts";
 
-const path = process.argv[2];
-if (!path) {
-  console.error("Usage: node scripts/verify.mjs <csv path>");
-  process.exit(1);
-}
-const text = readFileSync(path, "utf8");
-const parsed = parseCsvText(text);
-if (!parsed.ok && parsed.raw.length === 0) {
-  console.error("Parse failed:", parsed);
-  process.exit(1);
+function loadSource(path) {
+  const text = readFileSync(path, "utf8");
+  const fileName = path.split("/").pop() ?? path;
+  const parsed = parseCsvText(text, fileName);
+  if (!parsed.source || parsed.source.raw.length === 0) {
+    throw new Error(`Parse failed for ${path}: ${JSON.stringify(parsed)}`);
+  }
+  return parsed;
 }
 
-const norm = normalizeTransactions(parsed.raw, DEFAULT_RULES);
-const kpis = computeKpis(norm, norm);
+const interPath =
+  process.argv[2] ?? "/Users/lucascosta/Downloads/fatura_janeiro_ate_agora.csv";
+const nubankPath =
+  process.argv[3] ?? "/Users/lucascosta/Downloads/Nubank_2026-05-12.csv";
 
-const datasetMax = norm.reduce(
-  (m, t) => (t.dataISO && (!m || t.dataISO > m) ? t.dataISO : m),
-  null,
+const inter = loadSource(interPath);
+const nubank = loadSource(nubankPath);
+
+const interOnly = normalizeTransactions(inter.source.raw, DEFAULT_RULES);
+const combined = normalizeTransactions(
+  [...inter.source.raw, ...nubank.source.raw],
+  DEFAULT_RULES,
 );
-const last30 = computePreset("last30", datasetMax);
-const ytd = computePreset("ytd", datasetMax);
-const filtered30 = applyFilters(norm, {
-  dateFrom: last30.from,
-  dateTo: last30.to,
-  categorias: [],
-  naturezas: [],
-  faixas: [],
-  search: "",
-});
-const filteredYtd = applyFilters(norm, {
-  dateFrom: ytd.from,
-  dateTo: ytd.to,
-  categorias: [],
-  naturezas: [],
-  faixas: [],
-  search: "",
-});
-const kpis30 = computeKpis(filtered30, norm);
-const kpisYtd = computeKpis(filteredYtd, norm);
 
-console.log(JSON.stringify(
-  {
-    rows: parsed.raw.length,
-    errors: parsed.errors.length,
-    totalGasto: kpis.totalGasto.toFixed(2),
-    countConsumo: kpis.countConsumo,
-    countExcluidos: kpis.countExcluidos,
-    totalBruto: kpis.totalBruto.toFixed(2),
-    ticketMedio: kpis.ticketMedio.toFixed(2),
-    maiorCompra: kpis.maiorCompra,
-    datasetMax,
-    presets: {
-      last30: { ...last30, totalGasto: kpis30.totalGasto.toFixed(2), rows: filtered30.length },
-      ytd: { ...ytd, totalGasto: kpisYtd.totalGasto.toFixed(2), rows: filteredYtd.length },
+const kpisInter = computeKpis(interOnly, interOnly);
+const kpisCombined = computeKpis(combined, combined);
+
+console.log(
+  JSON.stringify(
+    {
+      inter: {
+        file: inter.source.fileName,
+        format: inter.detectedFormat,
+        rows: inter.source.raw.length,
+        totalGasto: kpisInter.totalGasto.toFixed(2),
+        countConsumo: kpisInter.countConsumo,
+        countExcluidos: kpisInter.countExcluidos,
+      },
+      nubank: {
+        file: nubank.source.fileName,
+        format: nubank.detectedFormat,
+        rows: nubank.source.raw.length,
+      },
+      combined: {
+        rows: combined.length,
+        totalGasto: kpisCombined.totalGasto.toFixed(2),
+        countConsumo: kpisCombined.countConsumo,
+        deltaGasto: (
+          kpisCombined.totalGasto - kpisInter.totalGasto
+        ).toFixed(2),
+      },
     },
-  },
-  null,
-  2,
-));
+    null,
+    2,
+  ),
+);

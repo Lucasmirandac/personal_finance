@@ -2,33 +2,48 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import { Dropzone } from "@/components/Dropzone";
 import { parseCsvFile, CsvRowError } from "@/lib/csv";
 import { useAppStore } from "@/lib/store";
 import { formatBRL, formatInt } from "@/lib/format";
-import { normalizeTransactions } from "@/lib/normalize";
+import { Fonte } from "@/lib/types";
+
+const FONTE_LABELS: Record<Fonte, string> = {
+  inter: "Inter",
+  nubank: "Nubank",
+};
 
 export default function Home() {
-  const { loaded, dataset, rules, setDataset, resetDataset } = useAppStore();
+  const {
+    loaded,
+    dataset,
+    hasData,
+    rules,
+    normalized,
+    addSource,
+    removeSource,
+    clearAllSources,
+  } = useAppStore();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [rowErrors, setRowErrors] = useState<CsvRowError[]>([]);
+  const [lastDetected, setLastDetected] = useState<Fonte | null>(null);
 
   async function onFile(file: File) {
     setBusy(true);
     setErrorMsg(null);
     setRowErrors([]);
+    setLastDetected(null);
     try {
       const result = await parseCsvFile(file);
       if (result.missingColumns.length > 0) {
-        setErrorMsg(
-          `Colunas obrigatórias ausentes: ${result.missingColumns.join(", ")}.`,
-        );
+        setErrorMsg(result.missingColumns.join(" "));
         setBusy(false);
         return;
       }
-      if (result.raw.length === 0) {
+      if (!result.source || result.source.raw.length === 0) {
         setErrorMsg("Nenhuma linha válida encontrada no CSV.");
         setRowErrors(result.errors);
         setBusy(false);
@@ -37,12 +52,8 @@ export default function Home() {
       if (result.errors.length > 0) {
         setRowErrors(result.errors);
       }
-      await setDataset({
-        fileName: file.name,
-        importedAt: new Date().toISOString(),
-        rowsRaw: result.raw.length,
-        raw: result.raw,
-      });
+      setLastDetected(result.detectedFormat);
+      await addSource(result.source);
       router.push("/dashboard");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao ler o arquivo";
@@ -52,12 +63,10 @@ export default function Home() {
     }
   }
 
-  const normalizedPreview = dataset
-    ? normalizeTransactions(dataset.raw, rules)
-    : [];
-  const gastosOnly = normalizedPreview.filter((t) => t.natureza === "Gasto");
+  const gastosOnly = normalized.filter((t) => t.natureza === "Gasto");
   const totalAnalise = gastosOnly.reduce((acc, t) => acc + t.valorAnalise, 0);
-  const excluidos = normalizedPreview.length - gastosOnly.length;
+  const excluidos = normalized.length - gastosOnly.length;
+  const totalRows = dataset.sources.reduce((acc, s) => acc + s.rowsRaw, 0);
 
   return (
     <div className="space-y-6">
@@ -66,14 +75,27 @@ export default function Home() {
           Importar fatura
         </h1>
         <p className="subtle mt-1 max-w-2xl">
-          Anexe seu CSV com lançamentos. O parsing e a análise acontecem
-          totalmente no seu navegador — nada é enviado a servidores. Os dados e
-          regras ficam salvos localmente (IndexedDB).
+          Anexe CSVs do Inter ou Nubank. Cada arquivo é adicionado à base atual.
+          Tudo processado no navegador — nada é enviado a servidores.
         </p>
 
         <div className="mt-6">
           <Dropzone onFile={onFile} disabled={busy} />
         </div>
+
+        {lastDetected && (
+          <div className="mt-4 flex items-center gap-2">
+            <span className="text-sm subtle">Formato detectado:</span>
+            <span
+              className={clsx(
+                "badge",
+                lastDetected === "inter" ? "badge-gasto" : "badge-est",
+              )}
+            >
+              {FONTE_LABELS[lastDetected]}
+            </span>
+          </div>
+        )}
 
         {busy && (
           <div className="mt-4 text-sm subtle">Processando o arquivo…</div>
@@ -105,26 +127,30 @@ export default function Home() {
         )}
       </section>
 
-      {loaded && dataset && (
-        <section className="card p-6">
+      {loaded && hasData && (
+        <section className="card p-6 space-y-5">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h2 className="text-lg font-semibold">Dataset atual</h2>
+              <h2 className="text-lg font-semibold">Base consolidada</h2>
               <p className="subtle text-sm mt-1">
-                {dataset.fileName} · importado em{" "}
-                {new Date(dataset.importedAt).toLocaleString("pt-BR")}
+                {dataset.sources.length} fonte(s) · {formatInt(totalRows)} linhas
+                importadas
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 className="btn-danger btn"
                 onClick={async () => {
-                  if (confirm("Limpar dados locais e voltar ao estado inicial?")) {
-                    await resetDataset();
+                  if (
+                    confirm(
+                      "Limpar todas as fontes e voltar ao estado inicial?",
+                    )
+                  ) {
+                    await clearAllSources();
                   }
                 }}
               >
-                Limpar dados
+                Limpar tudo
               </button>
               <button
                 className="btn btn-primary"
@@ -134,28 +160,76 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-            <Stat label="Linhas no CSV" value={formatInt(dataset.rowsRaw)} />
-            <Stat label="Transações de consumo" value={formatInt(gastosOnly.length)} />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Stat label="Linhas importadas" value={formatInt(totalRows)} />
+            <Stat
+              label="Transações de consumo"
+              value={formatInt(gastosOnly.length)}
+            />
             <Stat
               label="Excluídos (pag./estorno)"
               value={formatInt(excluidos)}
             />
             <Stat label="Gasto analisado" value={formatBRL(totalAnalise)} />
           </div>
+
+          <div>
+            <h3 className="font-medium text-sm mb-3">Fontes carregadas</h3>
+            <ul className="space-y-2">
+              {dataset.sources.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{s.fileName}</div>
+                    <div className="text-xs subtle mt-0.5 flex flex-wrap items-center gap-2">
+                      <span
+                        className={clsx(
+                          "badge",
+                          s.fonte === "inter" ? "badge-gasto" : "badge-est",
+                        )}
+                      >
+                        {FONTE_LABELS[s.fonte]}
+                      </span>
+                      <span>{formatInt(s.rowsRaw)} linhas</span>
+                      <span>
+                        {new Date(s.importedAt).toLocaleString("pt-BR")}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-danger shrink-0"
+                    onClick={async () => {
+                      if (
+                        confirm(`Remover "${s.fileName}" da base consolidada?`)
+                      ) {
+                        await removeSource(s.id);
+                      }
+                    }}
+                  >
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
 
       <section className="grid sm:grid-cols-3 gap-4">
-        <Help title="1. Parse local"
-          body="Lê o CSV no navegador com PapaParse, validando datas brasileiras e valores em R$." />
+        <Help
+          title="1. Parse local"
+          body="Detecta automaticamente Inter (Data, Lançamento, Categoria, Tipo, Valor) ou Nubank (date, title, amount)."
+        />
         <Help
           title="2. Classificação"
           body="Aplica regras editáveis para separar pagamentos de fatura, estornos e gastos reais."
         />
         <Help
           title="3. Análise"
-          body="KPIs, séries mensais, rankings de categorias e estabelecimentos e exportação Excel/CSV."
+          body="Some várias faturas em uma base única. KPIs, gráficos e exportação Excel/CSV."
         />
       </section>
     </div>

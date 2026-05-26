@@ -14,7 +14,7 @@ const NAV = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { dataset, normalized } = useAppStore();
+  const { dataset, hasData, normalized } = useAppStore();
 
   return (
     <div className="min-h-dvh flex flex-col">
@@ -52,8 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
           <div className="text-right text-xs subtle hidden md:block">
-            {dataset
-              ? `${dataset.fileName} · ${normalized.length} linhas`
+            {hasData
+              ? `${dataset.sources.length} fonte(s) · ${normalized.length} linhas`
               : "Nenhum dataset carregado"}
           </div>
         </div>

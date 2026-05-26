@@ -26,7 +26,7 @@ import { formatBRL, formatDateRangeCaption, formatInt, formatPercent } from "@/l
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 
 export default function DashboardPage() {
-  const { loaded, dataset, normalized } = useAppStore();
+  const { loaded, dataset, hasData, normalized } = useAppStore();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   const filtered = useMemo(
@@ -46,7 +46,7 @@ export default function DashboardPage() {
   );
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
-  if (!dataset) return <EmptyState />;
+  if (!hasData) return <EmptyState />;
 
   const topPurchases = [...filtered]
     .filter((t) => t.natureza === "Gasto")
@@ -64,8 +64,8 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="subtle text-sm">
-            {dataset.fileName} · {formatInt(normalized.length)} linhas no
-            dataset
+            {dataset.sources.length} fonte(s) · {formatInt(normalized.length)}{" "}
+            linhas na base
           </p>
           {windowCaption && (
             <p className="text-sm mt-1 text-[var(--accent)]">

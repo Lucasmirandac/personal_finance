@@ -13,9 +13,11 @@ App Next.js local e privado para análise de faturas em CSV, sem backend e sem u
 - xlsx (exportação .xlsx multi-aba)
 - idb-keyval (persistência local em IndexedDB)
 
-## Formato do CSV esperado
+## Formatos de CSV suportados
 
-Colunas obrigatórias (cabeçalho na primeira linha):
+O formato é detectado automaticamente pelos cabeçalhos.
+
+### Inter (fatura do cartão)
 
 ```
 "Data","Lançamento","Categoria","Tipo","Valor"
@@ -23,7 +25,22 @@ Colunas obrigatórias (cabeçalho na primeira linha):
 ```
 
 - `Data` no formato `dd/mm/yyyy`.
-- `Valor` em formato BRL: `R$ 1.234,56`. Aceita negativos: `-R$ 10,00`, `R$ -10,00`, `(R$ 10,00)`.
+- `Valor` em formato BRL: `R$ 1.234,56`. Aceita negativos.
+
+### Nubank (fatura do cartão)
+
+```
+date,title,amount
+2026-04-13,Pagamento recebido,-267.90
+2026-04-12,Lucas De Miranda Costa,318.52
+```
+
+- `date` no formato ISO `yyyy-mm-dd`.
+- `amount` com ponto decimal; negativo = pagamento recebido.
+
+### Múltiplas fontes
+
+Cada upload **adiciona** à base consolidada. Na página de importação é possível ver e remover fontes individualmente, ou limpar tudo de uma vez.
 
 ## Classificação automática
 

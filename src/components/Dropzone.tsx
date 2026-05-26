@@ -65,9 +65,11 @@ export function Dropzone({ onFile, disabled }: Props) {
             Arraste seu CSV aqui ou clique para selecionar
           </div>
           <div className="text-sm subtle mt-1">
-            Formato esperado: colunas <code>Data</code>,{" "}
-            <code>Lançamento</code>, <code>Categoria</code>, <code>Tipo</code>,{" "}
-            <code>Valor</code>.
+            <strong>Inter:</strong> <code>Data</code>, <code>Lançamento</code>,{" "}
+            <code>Categoria</code>, <code>Tipo</code>, <code>Valor</code>
+            <br />
+            <strong>Nubank:</strong> <code>date</code>, <code>title</code>,{" "}
+            <code>amount</code> — formato detectado automaticamente.
           </div>
         </div>
       </div>

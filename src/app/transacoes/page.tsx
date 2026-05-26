@@ -24,7 +24,7 @@ import { formatBRL, formatDateRangeCaption, formatInt } from "@/lib/format";
 import { exportTreatedCsv } from "@/lib/exporters";
 
 export default function TransacoesPage() {
-  const { loaded, dataset, normalized } = useAppStore();
+  const { loaded, hasData, normalized } = useAppStore();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sorting, setSorting] = useState<SortingState>([
     { id: "dataISO", desc: true },
@@ -122,7 +122,7 @@ export default function TransacoesPage() {
   );
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
-  if (!dataset) return <EmptyState />;
+  if (!hasData) return <EmptyState />;
 
   return (
     <div className="space-y-5">

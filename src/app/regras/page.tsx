@@ -8,7 +8,8 @@ import { formatBRL, formatInt } from "@/lib/format";
 import { normalizeTransactions } from "@/lib/normalize";
 
 export default function RegrasPage() {
-  const { loaded, dataset, rules, updateRules, resetRules } = useAppStore();
+  const { loaded, dataset, hasData, rules, updateRules, resetRules } =
+    useAppStore();
   const [draft, setDraft] = useState<Rules>(rules);
   const [dirty, setDirty] = useState(false);
   const [storedRules, setStoredRules] = useState<Rules>(rules);
@@ -18,9 +19,14 @@ export default function RegrasPage() {
     setDirty(false);
   }
 
+  const allRaw = useMemo(
+    () => dataset.sources.flatMap((s) => s.raw),
+    [dataset.sources],
+  );
+
   const preview = useMemo(() => {
-    if (!dataset) return null;
-    const norm = normalizeTransactions(dataset.raw, draft);
+    if (allRaw.length === 0) return null;
+    const norm = normalizeTransactions(allRaw, draft);
     const gasto = norm.filter((t) => t.natureza === "Gasto");
     const pag = norm.filter((t) => t.natureza === "Pagamento de fatura");
     const est = norm.filter((t) => t.natureza === "Estorno / crédito");
@@ -32,10 +38,10 @@ export default function RegrasPage() {
       countEst: est.length,
       excludedSamples: [...pag, ...est].slice(0, 12),
     };
-  }, [dataset, draft]);
+  }, [allRaw, draft]);
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
-  if (!dataset)
+  if (!hasData)
     return (
       <EmptyState description="Importe um CSV para começar a editar as regras de classificação." />
     );

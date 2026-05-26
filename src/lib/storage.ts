@@ -1,15 +1,85 @@
 import { get, set, del } from "idb-keyval";
-import { Dataset, Rules, DEFAULT_RULES } from "./types";
+import {
+  Dataset,
+  EMPTY_DATASET,
+  LegacyDataset,
+  Rules,
+  DEFAULT_RULES,
+  Source,
+  TransactionRaw,
+} from "./types";
 
-const KEY_DATASET = "pf:dataset:v1";
+const KEY_DATASET = "pf:dataset:v2";
+const KEY_DATASET_LEGACY = "pf:dataset:v1";
 const KEY_RULES = "pf:rules:v1";
 
-export async function loadDataset(): Promise<Dataset | null> {
+function newSourceId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `src-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function isLegacyDataset(v: unknown): v is LegacyDataset {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.fileName === "string" &&
+    Array.isArray(o.raw) &&
+    !Array.isArray(o.sources)
+  );
+}
+
+function isDataset(v: unknown): v is Dataset {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return Array.isArray(o.sources);
+}
+
+function migrateLegacy(legacy: LegacyDataset): Dataset {
+  const sourceId = newSourceId();
+  const raw: TransactionRaw[] = legacy.raw.map((r) => ({
+    data: r.data,
+    lancamento: r.lancamento,
+    categoria: r.categoria,
+    tipo: r.tipo,
+    valorOriginal: r.valorOriginal,
+    fonte: r.fonte ?? "inter",
+    sourceId: r.sourceId ?? sourceId,
+  }));
+  const source: Source = {
+    id: sourceId,
+    fileName: legacy.fileName,
+    fonte: "inter",
+    importedAt: legacy.importedAt,
+    rowsRaw: legacy.rowsRaw ?? raw.length,
+    raw,
+  };
+  return { sources: [source] };
+}
+
+export async function loadDataset(): Promise<Dataset> {
   try {
-    const v = (await get(KEY_DATASET)) as Dataset | undefined;
-    return v ?? null;
+    const current = (await get(KEY_DATASET)) as unknown;
+    if (isDataset(current)) return current;
+
+    const legacy = (await get(KEY_DATASET_LEGACY)) as unknown;
+    if (isLegacyDataset(legacy)) {
+      const migrated = migrateLegacy(legacy);
+      await set(KEY_DATASET, migrated);
+      await del(KEY_DATASET_LEGACY);
+      return migrated;
+    }
+
+    if (isLegacyDataset(current)) {
+      const migrated = migrateLegacy(current);
+      await set(KEY_DATASET, migrated);
+      return migrated;
+    }
+
+    return { ...EMPTY_DATASET };
   } catch {
-    return null;
+    return { ...EMPTY_DATASET };
   }
 }
 
@@ -19,6 +89,7 @@ export async function saveDataset(dataset: Dataset): Promise<void> {
 
 export async function clearDataset(): Promise<void> {
   await del(KEY_DATASET);
+  await del(KEY_DATASET_LEGACY);
 }
 
 export async function loadRules(): Promise<Rules> {

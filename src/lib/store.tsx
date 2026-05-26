@@ -8,7 +8,14 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Dataset, Rules, DEFAULT_RULES, TransactionNormalized } from "./types";
+import {
+  Dataset,
+  EMPTY_DATASET,
+  Rules,
+  DEFAULT_RULES,
+  Source,
+  TransactionNormalized,
+} from "./types";
 import {
   loadDataset,
   saveDataset,
@@ -21,11 +28,13 @@ import { normalizeTransactions } from "./normalize";
 
 type Ctx = {
   loaded: boolean;
-  dataset: Dataset | null;
+  dataset: Dataset;
+  hasData: boolean;
   rules: Rules;
   normalized: TransactionNormalized[];
-  setDataset: (dataset: Dataset | null) => Promise<void>;
-  resetDataset: () => Promise<void>;
+  addSource: (source: Source) => Promise<void>;
+  removeSource: (id: string) => Promise<void>;
+  clearAllSources: () => Promise<void>;
   updateRules: (rules: Rules) => Promise<void>;
   resetRules: () => Promise<void>;
 };
@@ -34,7 +43,7 @@ const AppContext = createContext<Ctx | null>(null);
 
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
-  const [dataset, setDatasetState] = useState<Dataset | null>(null);
+  const [dataset, setDatasetState] = useState<Dataset>(EMPTY_DATASET);
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES);
 
   useEffect(() => {
@@ -51,18 +60,34 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const setDataset = useCallback(async (next: Dataset | null) => {
-    if (next) {
-      await saveDataset(next);
-    } else {
-      await clearDataset();
-    }
+  const persist = useCallback(async (next: Dataset) => {
+    await saveDataset(next);
     setDatasetState(next);
   }, []);
 
-  const resetDataset = useCallback(async () => {
+  const addSource = useCallback(
+    async (source: Source) => {
+      const next: Dataset = {
+        sources: [...dataset.sources, source],
+      };
+      await persist(next);
+    },
+    [dataset.sources, persist],
+  );
+
+  const removeSource = useCallback(
+    async (id: string) => {
+      const next: Dataset = {
+        sources: dataset.sources.filter((s) => s.id !== id),
+      };
+      await persist(next);
+    },
+    [dataset.sources, persist],
+  );
+
+  const clearAllSources = useCallback(async () => {
     await clearDataset();
-    setDatasetState(null);
+    setDatasetState({ ...EMPTY_DATASET });
   }, []);
 
   const updateRules = useCallback(async (next: Rules) => {
@@ -75,18 +100,27 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setRules(r);
   }, []);
 
+  const allRaw = useMemo(
+    () => dataset.sources.flatMap((s) => s.raw),
+    [dataset.sources],
+  );
+
   const normalized = useMemo<TransactionNormalized[]>(() => {
-    if (!dataset) return [];
-    return normalizeTransactions(dataset.raw, rules);
-  }, [dataset, rules]);
+    if (allRaw.length === 0) return [];
+    return normalizeTransactions(allRaw, rules);
+  }, [allRaw, rules]);
+
+  const hasData = dataset.sources.length > 0;
 
   const value: Ctx = {
     loaded,
     dataset,
+    hasData,
     rules,
     normalized,
-    setDataset,
-    resetDataset,
+    addSource,
+    removeSource,
+    clearAllSources,
     updateRules,
     resetRules: resetRulesFn,
   };

@@ -4,7 +4,13 @@ import {
   TransactionNormalized,
   TransactionRaw,
 } from "./types";
-import { parseBrDate } from "./csv";
+import { parseBrDate, parseIsoDate } from "./csv";
+
+export const SEM_CATEGORIA = "(sem categoria)";
+
+function resolveDataISO(data: string): string {
+  return parseBrDate(data) ?? parseIsoDate(data) ?? "";
+}
 import { formatMonthLabel } from "./format";
 
 const WEEKDAYS_PT = [
@@ -102,17 +108,23 @@ export function normalizeTransactions(
   rules: Rules,
 ): TransactionNormalized[] {
   return raws.map((raw, idx) => {
-    const dataISO = parseBrDate(raw.data) ?? "";
+    const dataISO = resolveDataISO(raw.data);
+    const categoria =
+      raw.categoria.trim() === "" ? SEM_CATEGORIA : raw.categoria.trim();
     const [y, m, d] = dataISO.split("-").map(Number);
     const dateObj = dataISO ? new Date(Date.UTC(y, m - 1, d)) : new Date(0);
     const diaSemanaIndex = dateObj.getUTCDay();
     const diaSemana = WEEKDAYS_PT[diaSemanaIndex];
     const anoMes = dataISO ? `${y}-${String(m).padStart(2, "0")}` : "";
     const mesLabel = formatMonthLabel(anoMes);
-    const { natureza, valorAnalise } = classifyNatureza(raw, rules);
+    const { natureza, valorAnalise } = classifyNatureza(
+      { ...raw, categoria },
+      rules,
+    );
     return {
       ...raw,
-      id: `${dataISO}-${idx}`,
+      categoria,
+      id: `${raw.sourceId}-${dataISO}-${idx}`,
       estabelecimento: extractEstabelecimento(raw.lancamento),
       valorAnalise,
       natureza,
