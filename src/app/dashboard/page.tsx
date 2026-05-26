@@ -22,7 +22,7 @@ import { CategoryChart } from "@/components/charts/CategoryChart";
 import { WeekdayChart } from "@/components/charts/WeekdayChart";
 import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
-import { formatBRL, formatInt, formatPercent } from "@/lib/format";
+import { formatBRL, formatDateRangeCaption, formatInt, formatPercent } from "@/lib/format";
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 
 export default function DashboardPage() {
@@ -40,6 +40,10 @@ export default function DashboardPage() {
   const weekdays = useMemo(() => weekdayAggregation(filtered), [filtered]);
   const ests = useMemo(() => establishmentAggregation(filtered), [filtered]);
   const insights = useMemo(() => buildInsights(filtered), [filtered]);
+  const windowCaption = formatDateRangeCaption(
+    filters.dateFrom,
+    filters.dateTo,
+  );
 
   if (!loaded) return <div className="subtle">Carregando…</div>;
   if (!dataset) return <EmptyState />;
@@ -63,6 +67,11 @@ export default function DashboardPage() {
             {dataset.fileName} · {formatInt(normalized.length)} linhas no
             dataset
           </p>
+          {windowCaption && (
+            <p className="text-sm mt-1 text-[var(--accent)]">
+              Janela: {windowCaption}
+            </p>
+          )}
         </div>
         <div className="flex gap-2 flex-wrap">
           <button className="btn" onClick={() => exportTreatedCsv(filtered)}>

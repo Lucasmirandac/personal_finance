@@ -20,7 +20,7 @@ import {
 import { TransactionNormalized } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { FiltersBar } from "@/components/FiltersBar";
-import { formatBRL, formatInt } from "@/lib/format";
+import { formatBRL, formatDateRangeCaption, formatInt } from "@/lib/format";
 import { exportTreatedCsv } from "@/lib/exporters";
 
 export default function TransacoesPage() {
@@ -116,6 +116,11 @@ export default function TransacoesPage() {
     initialState: { pagination: { pageSize: 50 } },
   });
 
+  const windowCaption = formatDateRangeCaption(
+    filters.dateFrom,
+    filters.dateTo,
+  );
+
   if (!loaded) return <div className="subtle">Carregando…</div>;
   if (!dataset) return <EmptyState />;
 
@@ -127,6 +132,11 @@ export default function TransacoesPage() {
           <p className="subtle text-sm">
             {formatInt(data.length)} de {formatInt(normalized.length)} linhas após filtros
           </p>
+          {windowCaption && (
+            <p className="text-sm mt-1 text-[var(--accent)]">
+              Janela: {windowCaption}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <button

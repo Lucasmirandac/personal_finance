@@ -38,6 +38,33 @@ export function formatDateBR(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/** Caption for active date range filter, e.g. "12/03/2026 – 26/05/2026 · 76 dias" */
+export function formatDateRangeCaption(
+  from: string | null,
+  to: string | null,
+): string | null {
+  if (!from && !to) return null;
+  const start = from ?? to!;
+  const end = to ?? from!;
+  const days = daysBetweenInclusive(start, end);
+  const range =
+    from && to
+      ? `${formatDateBR(from)} – ${formatDateBR(to)}`
+      : from
+        ? `desde ${formatDateBR(from)}`
+        : `até ${formatDateBR(to!)}`;
+  return days > 0 ? `${range} · ${days} dias` : range;
+}
+
+function daysBetweenInclusive(fromIso: string, toIso: string): number {
+  const [y1, m1, d1] = fromIso.split("-").map(Number);
+  const [y2, m2, d2] = toIso.split("-").map(Number);
+  const a = Date.UTC(y1, m1 - 1, d1);
+  const b = Date.UTC(y2, m2 - 1, d2);
+  if (b < a) return 0;
+  return Math.floor((b - a) / 86400000) + 1;
+}
+
 const MONTH_LABELS = [
   "Jan",
   "Fev",

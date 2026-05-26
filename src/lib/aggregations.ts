@@ -2,7 +2,8 @@ import { Natureza, TransactionNormalized } from "./types";
 import { formatMonthLabel } from "./format";
 
 export type Filters = {
-  anosMeses: string[]; // anoMes selected; empty = all
+  dateFrom: string | null; // yyyy-mm-dd
+  dateTo: string | null; // yyyy-mm-dd
   categorias: string[];
   naturezas: Natureza[];
   faixas: string[];
@@ -10,7 +11,8 @@ export type Filters = {
 };
 
 export const EMPTY_FILTERS: Filters = {
-  anosMeses: [],
+  dateFrom: null,
+  dateTo: null,
   categorias: [],
   naturezas: [],
   faixas: [],
@@ -23,8 +25,8 @@ export function applyFilters(
 ): TransactionNormalized[] {
   const q = filters.search.trim().toLowerCase();
   return data.filter((t) => {
-    if (filters.anosMeses.length && !filters.anosMeses.includes(t.anoMes))
-      return false;
+    if (filters.dateFrom && t.dataISO < filters.dateFrom) return false;
+    if (filters.dateTo && t.dataISO > filters.dateTo) return false;
     if (filters.categorias.length && !filters.categorias.includes(t.categoria))
       return false;
     if (filters.naturezas.length && !filters.naturezas.includes(t.natureza))

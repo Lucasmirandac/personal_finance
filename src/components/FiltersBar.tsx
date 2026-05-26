@@ -3,7 +3,7 @@
 import { Filters } from "@/lib/aggregations";
 import { Natureza, TransactionNormalized } from "@/lib/types";
 import { MultiSelect } from "./MultiSelect";
-import { formatMonthLabel } from "@/lib/format";
+import { DateRangePicker } from "./DateRangePicker";
 import { useMemo } from "react";
 import { FAIXA_LABELS } from "@/lib/normalize";
 
@@ -17,12 +17,15 @@ type Props = {
 const NATUREZAS: Natureza[] = ["Gasto", "Pagamento de fatura", "Estorno / crédito"];
 
 export function FiltersBar({ data, filters, onChange, onClear }: Props) {
-  const months = useMemo(() => {
-    const set = new Set<string>();
-    for (const t of data) if (t.anoMes) set.add(t.anoMes);
-    return [...set]
-      .sort()
-      .map((m) => ({ value: m, label: formatMonthLabel(m) }));
+  const { datasetMin, datasetMax } = useMemo(() => {
+    let min: string | null = null;
+    let max: string | null = null;
+    for (const t of data) {
+      if (!t.dataISO) continue;
+      if (!min || t.dataISO < min) min = t.dataISO;
+      if (!max || t.dataISO > max) max = t.dataISO;
+    }
+    return { datasetMin: min, datasetMax: max };
   }, [data]);
 
   const categories = useMemo(() => {
@@ -36,8 +39,10 @@ export function FiltersBar({ data, filters, onChange, onClear }: Props) {
     [],
   );
 
+  const hasDateRange = Boolean(filters.dateFrom || filters.dateTo);
+
   const activeCount =
-    filters.anosMeses.length +
+    (hasDateRange ? 1 : 0) +
     filters.categorias.length +
     filters.naturezas.length +
     filters.faixas.length +
@@ -46,11 +51,14 @@ export function FiltersBar({ data, filters, onChange, onClear }: Props) {
   return (
     <div className="card p-4 grid gap-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <MultiSelect
-          label="Mês"
-          options={months}
-          values={filters.anosMeses}
-          onChange={(v) => onChange({ ...filters, anosMeses: v })}
+        <DateRangePicker
+          dateFrom={filters.dateFrom}
+          dateTo={filters.dateTo}
+          datasetMin={datasetMin}
+          datasetMax={datasetMax}
+          onChange={(from, to) =>
+            onChange({ ...filters, dateFrom: from, dateTo: to })
+          }
         />
         <MultiSelect
           label="Categoria"
