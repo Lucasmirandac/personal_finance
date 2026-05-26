@@ -8,12 +8,14 @@ import { ClassificacaoPanel } from "@/components/ClassificacaoPanel";
 import { AccountsPanel } from "@/components/AccountsPanel";
 import { BackupPanel } from "@/components/BackupPanel";
 import { BudgetsPanel } from "@/components/BudgetsPanel";
+import { AliasesPanel } from "@/components/AliasesPanel";
 import { EmptyState } from "@/components/EmptyState";
 import { useAppStore } from "@/lib/store";
 
 const CONFIG_TABS = [
   { id: "importar", label: "Importar" },
   { id: "classificacao", label: "Classificação" },
+  { id: "apelidos", label: "Apelidos" },
   { id: "contas", label: "Contas" },
   { id: "backup", label: "Backup" },
   { id: "orcamentos", label: "Orçamentos" },
@@ -24,6 +26,7 @@ type ConfigTab = (typeof CONFIG_TABS)[number]["id"];
 function parseTab(v: string | null): ConfigTab {
   if (
     v === "classificacao" ||
+    v === "apelidos" ||
     v === "contas" ||
     v === "importar" ||
     v === "backup" ||
@@ -73,6 +76,16 @@ export default function ConfigPageInner() {
             <EmptyState
               title="Importe dados primeiro"
               description="É necessário ter CSV importado para editar padrões de classificação."
+            />
+          ))}
+
+        {tab === "apelidos" &&
+          (hasAnalysis ? (
+            <AliasesPanel />
+          ) : (
+            <EmptyState
+              title="Importe dados primeiro"
+              description="É necessário ter transações para configurar apelidos de estabelecimentos."
             />
           ))}
 

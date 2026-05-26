@@ -178,6 +178,16 @@ export type CategoryBudget = {
 
 export const EMPTY_BUDGETS: CategoryBudget[] = [];
 
+export type EstablishmentAlias = {
+  id: string;
+  canonical: string;
+  patterns: string[];
+  criadoEm: string;
+  atualizadaEm: string;
+};
+
+export const EMPTY_ALIASES: EstablishmentAlias[] = [];
+
 export type AppState = {
   dataset: Dataset;
   rules: Rules;
@@ -187,4 +197,5 @@ export type AppState = {
   manualTransactions: ManualTransaction[];
   budgets: CategoryBudget[];
   subscriptionDismissals: string[];
+  establishmentAliases: EstablishmentAlias[];
 };

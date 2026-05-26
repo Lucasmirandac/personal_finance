@@ -21,6 +21,7 @@ import {
   Source,
   TransactionEdit,
   TransactionRaw,
+  EstablishmentAlias,
 } from "./types";
 
 const KEY_DATASET = "pf:dataset:v2";
@@ -34,6 +35,7 @@ const KEY_MANUAL = "pf:manual:v1";
 const KEY_LAST_BACKUP = "pf:lastBackup:v1";
 const KEY_BUDGETS = "pf:budgets:v1";
 const KEY_SUBSCRIPTION_DISMISSALS = "pf:subscriptionDismissals:v1";
+const KEY_ALIASES = "pf:aliases:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -145,6 +147,7 @@ export async function clearAllData(opts?: {
   await clearManualTransactions();
   await clearBudgets();
   await clearSubscriptionDismissals();
+  await clearAliases();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
@@ -511,4 +514,49 @@ export async function saveRecurring(rules: RecurringRule[]): Promise<void> {
 
 export async function clearRecurring(): Promise<void> {
   await del(KEY_RECURRING);
+}
+
+function mergeAlias(v: unknown): EstablishmentAlias | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<EstablishmentAlias>;
+  if (typeof o.id !== "string" || typeof o.canonical !== "string") return null;
+  const patterns = Array.isArray(o.patterns)
+    ? o.patterns.filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+    : [];
+  if (patterns.length === 0) return null;
+  const now = new Date().toISOString();
+  return {
+    id: o.id,
+    canonical: o.canonical.trim(),
+    patterns: patterns.map((p) => p.trim()),
+    criadoEm: typeof o.criadoEm === "string" ? o.criadoEm : now,
+    atualizadaEm: typeof o.atualizadaEm === "string" ? o.atualizadaEm : now,
+  };
+}
+
+function mergeAliases(v: unknown): EstablishmentAlias[] {
+  if (!Array.isArray(v)) return [];
+  const out: EstablishmentAlias[] = [];
+  for (const item of v) {
+    const a = mergeAlias(item);
+    if (a) out.push(a);
+  }
+  return out;
+}
+
+export async function loadAliases(): Promise<EstablishmentAlias[]> {
+  try {
+    const v = await get(KEY_ALIASES);
+    return mergeAliases(v);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveAliases(aliases: EstablishmentAlias[]): Promise<void> {
+  await set(KEY_ALIASES, aliases);
+}
+
+export async function clearAliases(): Promise<void> {
+  await del(KEY_ALIASES);
 }

@@ -1,4 +1,5 @@
 import {
+  EstablishmentAlias,
   Natureza,
   Rules,
   TipoFluxo,
@@ -7,6 +8,11 @@ import {
 } from "./types";
 import { parseBrDate, parseIsoDate } from "./csv";
 import { formatMonthLabel } from "./format";
+import {
+  applyAliasToEstabelecimento,
+  compileAliases,
+  CompiledAliases,
+} from "./aliases";
 
 export const SEM_CATEGORIA = "(sem categoria)";
 
@@ -132,7 +138,14 @@ export function classifyNatureza(
 export function normalizeTransactions(
   raws: TransactionRaw[],
   rules: Rules,
+  aliases?: EstablishmentAlias[] | CompiledAliases,
 ): TransactionNormalized[] {
+  const compiled: CompiledAliases =
+    aliases && aliases.length > 0
+      ? "patternNorm" in aliases[0]
+        ? (aliases as CompiledAliases)
+        : compileAliases(aliases as EstablishmentAlias[])
+      : [];
   return raws.map((raw) => {
     const dataISO = resolveDataISO(raw.data);
     const categoria =
@@ -152,10 +165,16 @@ export function normalizeTransactions(
       valorAnalise,
       raw.valorOriginal,
     );
+    const extracted = extractEstabelecimento(raw.lancamento);
+    const estabelecimento = applyAliasToEstabelecimento(
+      extracted,
+      raw.lancamento,
+      compiled,
+    );
     return {
       ...raw,
       categoria,
-      estabelecimento: extractEstabelecimento(raw.lancamento),
+      estabelecimento,
       valorAnalise,
       natureza,
       ajuste: natureza !== "Gasto",

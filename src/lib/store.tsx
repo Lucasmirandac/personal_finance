@@ -25,6 +25,7 @@ import {
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
+import { compileAliases } from "./aliases";
 import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
@@ -57,6 +58,8 @@ import {
   saveSettings,
   saveSubscriptionDismissals,
   loadSubscriptionDismissals,
+  loadAliases,
+  saveAliases,
 } from "./storage";
 import {
   Account,
@@ -66,6 +69,7 @@ import {
   EMPTY_ACCOUNTS,
   EMPTY_BUDGETS,
   EMPTY_DATASET,
+  EstablishmentAlias,
   ManualTransaction,
   RecurringRule,
   Rules,
@@ -147,6 +151,10 @@ type Ctx = {
   subscriptionDismissals: string[];
   dismissSubscription: (key: string) => Promise<void>;
   restoreSubscription: (key: string) => Promise<void>;
+  establishmentAliases: EstablishmentAlias[];
+  addAlias: (alias: EstablishmentAlias) => Promise<void>;
+  updateAlias: (alias: EstablishmentAlias) => Promise<void>;
+  removeAlias: (id: string) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -192,11 +200,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [subscriptionDismissals, setSubscriptionDismissals] = useState<
     string[]
   >([]);
+  const [establishmentAliases, setEstablishmentAliases] = useState<
+    EstablishmentAlias[]
+  >([]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, bud, lastBk, dismissals] =
+      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases] =
         await Promise.all([
         loadDataset(),
         loadRules(),
@@ -207,6 +218,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         loadBudgets(),
         loadLastBackupAt(),
         loadSubscriptionDismissals(),
+        loadAliases(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -228,6 +240,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setBudgetsState(bud);
       setLastBackupAt(lastBk);
       setSubscriptionDismissals(dismissals);
+      setEstablishmentAliases(aliases);
       setLoaded(true);
     })();
     return () => {
@@ -278,6 +291,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setSubscriptionDismissals(unique);
   }, []);
 
+  const persistAliases = useCallback(async (next: EstablishmentAlias[]) => {
+    await saveAliases(next);
+    setEstablishmentAliases(next);
+  }, []);
+
   const importedRaw = useMemo(
     () => dataset.sources.flatMap((s) => s.raw),
     [dataset.sources],
@@ -305,16 +323,21 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [allRaw, edits],
   );
 
+  const compiledAliases = useMemo(
+    () => compileAliases(establishmentAliases),
+    [establishmentAliases],
+  );
+
   const normalized = useMemo<TransactionNormalized[]>(() => {
     if (effective.length === 0) return [];
-    return normalizeTransactions(effective, rules);
-  }, [effective, rules]);
+    return normalizeTransactions(effective, rules, compiledAliases);
+  }, [effective, rules, compiledAliases]);
 
   const deletedNormalized = useMemo<TransactionNormalized[]>(() => {
     const deleted = getDeletedRaws(allRaw, edits);
     if (deleted.length === 0) return [];
-    return normalizeTransactions(deleted, rules);
-  }, [allRaw, edits, rules]);
+    return normalizeTransactions(deleted, rules, compiledAliases);
+  }, [allRaw, edits, rules, compiledAliases]);
 
   const deletedCount = useMemo(() => countDeleted(edits), [edits]);
 
@@ -368,6 +391,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setEdits({ ...EMPTY_EDITS });
     setBudgetsState([]);
     setSubscriptionDismissals([]);
+    setEstablishmentAliases([]);
     setLastBackupAt(null);
   }, []);
 
@@ -459,6 +483,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         manualTransactions,
         budgets,
         subscriptionDismissals,
+        establishmentAliases,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -476,6 +501,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveManualTransactions(resolved.manualTransactions),
         saveBudgets(resolved.budgets),
         saveSubscriptionDismissals(resolved.subscriptionDismissals),
+        saveAliases(resolved.establishmentAliases),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -496,11 +522,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setEdits(resolved.edits);
       setBudgetsState(resolved.budgets);
       setSubscriptionDismissals(resolved.subscriptionDismissals);
+      setEstablishmentAliases(resolved.establishmentAliases);
     },
     [
       accounts,
       budgets,
       subscriptionDismissals,
+      establishmentAliases,
       dataset,
       edits,
       manualTransactions,
@@ -669,6 +697,49 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setRules(r);
   }, []);
 
+  const addAlias = useCallback(
+    async (alias: EstablishmentAlias) => {
+      const dup = establishmentAliases.some(
+        (a) =>
+          a.canonical.toLowerCase() === alias.canonical.toLowerCase() &&
+          a.id !== alias.id,
+      );
+      if (dup) {
+        throw new Error("Já existe apelido com este nome canônico.");
+      }
+      await persistAliases([...establishmentAliases, alias]);
+    },
+    [establishmentAliases, persistAliases],
+  );
+
+  const updateAlias = useCallback(
+    async (alias: EstablishmentAlias) => {
+      const dup = establishmentAliases.some(
+        (a) =>
+          a.id !== alias.id &&
+          a.canonical.toLowerCase() === alias.canonical.toLowerCase(),
+      );
+      if (dup) {
+        throw new Error("Já existe apelido com este nome canônico.");
+      }
+      await persistAliases(
+        establishmentAliases.map((a) =>
+          a.id === alias.id
+            ? { ...alias, atualizadaEm: new Date().toISOString() }
+            : a,
+        ),
+      );
+    },
+    [establishmentAliases, persistAliases],
+  );
+
+  const removeAlias = useCallback(
+    async (id: string) => {
+      await persistAliases(establishmentAliases.filter((a) => a.id !== id));
+    },
+    [establishmentAliases, persistAliases],
+  );
+
   const editTransaction = useCallback(
     async (rawId: string, patch: TransactionEditPatch) => {
       const manual = manualTransactions.find((t) => t.id === rawId);
@@ -806,6 +877,10 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     subscriptionDismissals,
     dismissSubscription,
     restoreSubscription,
+    establishmentAliases,
+    addAlias,
+    updateAlias,
+    removeAlias,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -25,6 +25,7 @@ export function BackupPanel() {
     manualTransactions,
     budgets,
     subscriptionDismissals,
+    establishmentAliases,
     lastBackupAt,
     exportBackup,
     importBackup,
@@ -50,6 +51,7 @@ export function BackupPanel() {
         manualTransactions,
         budgets,
         subscriptionDismissals,
+        establishmentAliases,
       }),
     [
       dataset,
@@ -61,6 +63,7 @@ export function BackupPanel() {
       manualTransactions,
       budgets,
       subscriptionDismissals,
+      establishmentAliases,
     ],
   );
 
@@ -77,6 +80,7 @@ export function BackupPanel() {
       manualTransactions,
       budgets,
       subscriptionDismissals,
+      establishmentAliases,
     }),
     [
       dataset,
@@ -88,6 +92,7 @@ export function BackupPanel() {
       manualTransactions,
       budgets,
       subscriptionDismissals,
+      establishmentAliases,
     ],
   );
 
@@ -274,7 +279,8 @@ export function BackupPanel() {
               {formatInt(parsedSummary.accounts)} contas ·{" "}
               {formatInt(parsedSummary.recurring)} recorrentes ·{" "}
               {formatInt(parsedSummary.budgets)} orçamentos ·{" "}
-              {formatInt(parsedSummary.dismissals)} dispensas de assinatura
+              {formatInt(parsedSummary.dismissals)} dispensas ·{" "}
+              {formatInt(parsedSummary.aliases)} apelidos
             </p>
 
             <fieldset className="space-y-2">
@@ -306,7 +312,8 @@ export function BackupPanel() {
                 {formatInt(mergePreview.accountsToAdd)} contas,{" "}
                 {formatInt(mergePreview.recurringToAdd)} recorrentes,{" "}
                 {formatInt(mergePreview.budgetsToAdd)} orçamentos,{" "}
-                {formatInt(mergePreview.dismissalsToAdd)} dispensas de assinatura.
+                {formatInt(mergePreview.dismissalsToAdd)} dispensas,{" "}
+                {formatInt(mergePreview.aliasesToAdd)} apelidos.
               </p>
             )}
 

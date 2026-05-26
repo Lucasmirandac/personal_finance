@@ -3,6 +3,7 @@ import {
   loadAccounts,
   loadBudgets,
   loadSubscriptionDismissals,
+  loadAliases,
   loadDataset,
   loadEdits,
   loadManualTransactions,
@@ -19,13 +20,15 @@ import {
   DEFAULT_SETTINGS,
   EditsState,
   EMPTY_DATASET,
+  EstablishmentAlias,
   ManualTransaction,
   RecurringRule,
   Rules,
   Settings,
 } from "./types";
 
-export const BACKUP_VERSION = 3 as const;
+export const BACKUP_VERSION = 4 as const;
+export const BACKUP_VERSION_V3 = 3 as const;
 export const BACKUP_VERSION_V2 = 2 as const;
 export const BACKUP_VERSION_LEGACY = 1 as const;
 export const BACKUP_APP = "personal-finance" as const;
@@ -42,6 +45,7 @@ export type BackupPayload = {
   manualTransactions: ManualTransaction[];
   budgets: CategoryBudget[];
   subscriptionDismissals: string[];
+  establishmentAliases: EstablishmentAlias[];
 };
 
 /** @deprecated use BackupFile */
@@ -55,6 +59,7 @@ export type BackupV1 = {
 export type BackupFile = {
   version:
     | typeof BACKUP_VERSION
+    | typeof BACKUP_VERSION_V3
     | typeof BACKUP_VERSION_V2
     | typeof BACKUP_VERSION_LEGACY;
   app: typeof BACKUP_APP;
@@ -70,6 +75,7 @@ export type MergePreview = {
   manualToAdd: number;
   budgetsToAdd: number;
   dismissalsToAdd: number;
+  aliasesToAdd: number;
 };
 
 const transactionRawSchema = z.object({
@@ -136,8 +142,27 @@ const backupDataV3Schema = backupDataV2Schema.extend({
   subscriptionDismissals: z.array(z.string()).optional(),
 });
 
-const backupV3Schema = z.object({
+const aliasSchema = z.object({
+  id: z.string(),
+  canonical: z.string(),
+  patterns: z.array(z.string()),
+  criadoEm: z.string(),
+  atualizadaEm: z.string(),
+});
+
+const backupDataV4Schema = backupDataV3Schema.extend({
+  establishmentAliases: z.array(aliasSchema).optional(),
+});
+
+const backupV4Schema = z.object({
   version: z.literal(BACKUP_VERSION),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataV4Schema,
+});
+
+const backupV3Schema = z.object({
+  version: z.literal(BACKUP_VERSION_V3),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
   data: backupDataV3Schema,
@@ -194,6 +219,10 @@ export function resolveBackupApplication(
         ...backup.subscriptionDismissals,
       ]),
     ],
+    establishmentAliases: mergeById(
+      current.establishmentAliases,
+      backup.establishmentAliases,
+    ),
     rules: backup.rules,
     settings: backup.settings,
     edits: backup.edits,
@@ -224,6 +253,10 @@ export function computeMergePreview(
   const newDismissals = backup.subscriptionDismissals.filter(
     (k) => !existingDismissals.has(k),
   );
+  const existingAliasIds = new Set(current.establishmentAliases.map((a) => a.id));
+  const newAliases = backup.establishmentAliases.filter(
+    (a) => !existingAliasIds.has(a.id),
+  );
 
   return {
     sourcesToAdd: newSources.length,
@@ -234,6 +267,7 @@ export function computeMergePreview(
     manualToAdd: newManual.length,
     budgetsToAdd: newBudgets.length,
     dismissalsToAdd: newDismissals.length,
+    aliasesToAdd: newAliases.length,
   };
 }
 
@@ -363,6 +397,29 @@ function sanitizeDismissals(raw: unknown[] | undefined): string[] {
   return [...new Set(raw.filter((x): x is string => typeof x === "string" && x.length > 0))];
 }
 
+function sanitizeAliases(raw: unknown[] | undefined): EstablishmentAlias[] {
+  if (!raw || !Array.isArray(raw)) return [];
+  const out: EstablishmentAlias[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Partial<EstablishmentAlias>;
+    if (typeof o.id !== "string" || typeof o.canonical !== "string") continue;
+    const patterns = Array.isArray(o.patterns)
+      ? o.patterns.filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+      : [];
+    if (patterns.length === 0) continue;
+    const now = new Date().toISOString();
+    out.push({
+      id: o.id,
+      canonical: o.canonical.trim(),
+      patterns: patterns.map((p) => p.trim()),
+      criadoEm: typeof o.criadoEm === "string" ? o.criadoEm : now,
+      atualizadaEm: typeof o.atualizadaEm === "string" ? o.atualizadaEm : now,
+    });
+  }
+  return out;
+}
+
 function sanitizeRules(raw: z.infer<typeof backupDataBaseSchema>["rules"]): Rules {
   return {
     pagamentoPatterns: Array.isArray(raw.pagamentoPatterns)
@@ -378,7 +435,7 @@ function sanitizeRules(raw: z.infer<typeof backupDataBaseSchema>["rules"]): Rule
 }
 
 function toBackupPayload(
-  parsed: z.infer<typeof backupDataV3Schema>,
+  parsed: z.infer<typeof backupDataV4Schema>,
   version: number,
 ): BackupPayload {
   return {
@@ -394,8 +451,12 @@ function toBackupPayload(
         ? sanitizeBudgets(parsed.budgets)
         : [],
     subscriptionDismissals:
-      version >= BACKUP_VERSION
+      version >= BACKUP_VERSION_V3
         ? sanitizeDismissals(parsed.subscriptionDismissals)
+        : [],
+    establishmentAliases:
+      version >= BACKUP_VERSION
+        ? sanitizeAliases(parsed.establishmentAliases)
         : [],
   };
 }
@@ -411,6 +472,7 @@ export async function exportAllData(): Promise<BackupFile> {
     manualTransactions,
     budgets,
     subscriptionDismissals,
+    establishmentAliases,
   ] = await Promise.all([
     loadDataset(),
     loadRules(),
@@ -421,6 +483,7 @@ export async function exportAllData(): Promise<BackupFile> {
     loadManualTransactions(),
     loadBudgets(),
     loadSubscriptionDismissals(),
+    loadAliases(),
   ]);
 
   return {
@@ -437,6 +500,7 @@ export async function exportAllData(): Promise<BackupFile> {
       manualTransactions,
       budgets,
       subscriptionDismissals,
+      establishmentAliases,
     },
   };
 }
@@ -463,13 +527,24 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
+  const v4 = backupV4Schema.safeParse(json);
+  if (v4.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v4.data,
+        data: toBackupPayload(v4.data.data, BACKUP_VERSION),
+      },
+    };
+  }
+
   const v3 = backupV3Schema.safeParse(json);
   if (v3.success) {
     return {
       ok: true,
       backup: {
         ...v3.data,
-        data: toBackupPayload(v3.data.data, BACKUP_VERSION),
+        data: toBackupPayload(v3.data.data, BACKUP_VERSION_V3),
       },
     };
   }
@@ -500,7 +575,7 @@ export function parseBackup(text: string): ParseBackupResult {
   }
 
   const first =
-    v3.error.issues[0] ?? v2.error.issues[0] ?? v1.error.issues[0];
+    v4.error.issues[0] ?? v3.error.issues[0] ?? v2.error.issues[0] ?? v1.error.issues[0];
   return {
     ok: false,
     error: first
@@ -542,6 +617,7 @@ export function summarizeBackup(backup: BackupFile | BackupPayload): {
   manual: number;
   budgets: number;
   dismissals: number;
+  aliases: number;
 } {
   const data = "data" in backup ? backup.data : backup;
   const importedTx = data.dataset.sources.reduce((n, s) => n + s.raw.length, 0);
@@ -553,6 +629,7 @@ export function summarizeBackup(backup: BackupFile | BackupPayload): {
     manual: data.manualTransactions.length,
     budgets: data.budgets.length,
     dismissals: data.subscriptionDismissals.length,
+    aliases: data.establishmentAliases.length,
   };
 }
 
@@ -567,6 +644,7 @@ export function emptyBackupPayload(): BackupPayload {
     manualTransactions: [],
     budgets: [],
     subscriptionDismissals: [],
+    establishmentAliases: [],
   };
 }
 
