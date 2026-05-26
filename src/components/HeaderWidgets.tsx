@@ -7,6 +7,43 @@ import { useAppStore } from "@/lib/store";
 import { getSetupSteps, isProjectionReady } from "@/lib/setupStatus";
 import { projectDailyBalance } from "@/lib/projection";
 import { daysSince } from "@/lib/backup";
+import {
+  budgetAlertSummary,
+  budgetUsageForMonth,
+} from "@/lib/budgets";
+
+export function BudgetAlertWidget() {
+  const { normalized, budgets, hasAnalysis } = useAppStore();
+
+  const usages = useMemo(
+    () => budgetUsageForMonth(normalized, budgets),
+    [normalized, budgets],
+  );
+  const alerts = useMemo(() => budgetAlertSummary(usages), [usages]);
+
+  if (!hasAnalysis || usages.length === 0) return null;
+  if (alerts.warning + alerts.danger === 0) return null;
+
+  const label =
+    alerts.danger > 0
+      ? `${alerts.danger} orçamento${alerts.danger > 1 ? "s" : ""} estourado${alerts.danger > 1 ? "s" : ""}`
+      : `${alerts.warning} perto do limite`;
+
+  return (
+    <Link
+      href="/dashboard?tab=orcamentos"
+      className={clsx(
+        "hidden sm:inline-flex items-center gap-1 chip hover:border-[var(--border-strong)] text-[10px]",
+        alerts.danger > 0
+          ? "text-[var(--danger)] border-[var(--danger)]/40"
+          : "text-[var(--warning)] border-[var(--warning)]/40",
+      )}
+      title="Ver orçamentos do mês"
+    >
+      {label}
+    </Link>
+  );
+}
 
 export function BackupReminder() {
   const { lastBackupAt, hasAnalysis } = useAppStore();

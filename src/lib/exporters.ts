@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
-import { TransactionNormalized } from "./types";
+import { BudgetUsage } from "./budgets";
+import { CategoryBudget, TransactionNormalized } from "./types";
 import {
   categoryAggregation,
   computeKpis,
@@ -87,6 +88,8 @@ function formatNumber(n: number): string {
 
 export function exportWorkbook(
   data: TransactionNormalized[],
+  budgets: CategoryBudget[] = [],
+  budgetUsages: BudgetUsage[] = [],
   fileName = "dashboard_fatura.xlsx",
 ) {
   const wb = XLSX.utils.book_new();
@@ -217,6 +220,29 @@ export function exportWorkbook(
     ...insights.map((i) => [i.title, i.detail, i.tone]),
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(insRows), "Insights");
+
+  if (budgets.length > 0 || budgetUsages.length > 0) {
+    const usageById = new Map(budgetUsages.map((u) => [u.budgetId, u]));
+    const orcRows = [
+      ["Categoria", "Limite mensal", "Gasto atual", "Percentual (%)", "Status", "Ativo"],
+      ...budgets.map((b) => {
+        const u = usageById.get(b.id);
+        return [
+          b.categoria,
+          b.valorMensal,
+          u?.gasto ?? 0,
+          u?.percentual ?? 0,
+          u?.status ?? "ok",
+          b.ativa ? "Sim" : "Não",
+        ];
+      }),
+    ];
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet(orcRows),
+      "Orcamentos",
+    );
+  }
 
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
   const blob = new Blob([out], {

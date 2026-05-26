@@ -29,15 +29,16 @@ import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manu
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
 import {
+  BackupFile,
   BackupImportMode,
   BackupPayload,
-  BackupV1,
   exportAndDownloadBackup,
   resolveBackupApplication,
 } from "./backup";
 import {
   bootstrapAccounts,
   clearAllData,
+  loadBudgets,
   loadDataset,
   loadEdits,
   loadLastBackupAt,
@@ -47,6 +48,7 @@ import {
   loadSettings,
   resetRules as resetRulesStorage,
   saveAccounts,
+  saveBudgets,
   saveDataset,
   saveEdits,
   saveManualTransactions,
@@ -56,9 +58,11 @@ import {
 } from "./storage";
 import {
   Account,
+  CategoryBudget,
   Dataset,
   EditsState,
   EMPTY_ACCOUNTS,
+  EMPTY_BUDGETS,
   EMPTY_DATASET,
   ManualTransaction,
   RecurringRule,
@@ -130,9 +134,14 @@ type Ctx = {
   revertTransaction: (rawId: string) => Promise<void>;
   deleteTransaction: (rawId: string) => Promise<void>;
   restoreTransaction: (rawId: string) => Promise<void>;
+  budgets: CategoryBudget[];
+  addBudget: (budget: CategoryBudget) => Promise<void>;
+  updateBudget: (budget: CategoryBudget) => Promise<void>;
+  removeBudget: (id: string) => Promise<void>;
+  toggleBudget: (id: string) => Promise<void>;
   lastBackupAt: string | null;
   exportBackup: () => Promise<void>;
-  importBackup: (backup: BackupV1, mode: BackupImportMode) => Promise<void>;
+  importBackup: (backup: BackupFile, mode: BackupImportMode) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -159,18 +168,20 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     ManualTransaction[]
   >([]);
   const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
+  const [budgets, setBudgetsState] = useState<CategoryBudget[]>(EMPTY_BUDGETS);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, lastBk] = await Promise.all([
+      const [d, r, rec, s, e, manual, bud, lastBk] = await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
         loadSettings(),
         loadEdits(),
         loadManualTransactions(),
+        loadBudgets(),
         loadLastBackupAt(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
@@ -190,6 +201,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setAccounts(accs);
       setManualTransactions(manual);
       setEdits(e);
+      setBudgetsState(bud);
       setLastBackupAt(lastBk);
       setLoaded(true);
     })();
@@ -227,6 +239,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistRecurring = useCallback(async (next: RecurringRule[]) => {
     await saveRecurring(next);
     setRecurringRules(next);
+  }, []);
+
+  const persistBudgets = useCallback(async (next: CategoryBudget[]) => {
+    await saveBudgets(next);
+    setBudgetsState(next);
   }, []);
 
   const importedRaw = useMemo(
@@ -317,6 +334,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setAccounts([]);
     setManualTransactions([]);
     setEdits({ ...EMPTY_EDITS });
+    setBudgetsState([]);
     setLastBackupAt(null);
   }, []);
 
@@ -325,8 +343,62 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setLastBackupAt(backup.exportedAt);
   }, []);
 
+  const addBudget = useCallback(
+    async (budget: CategoryBudget) => {
+      const dup = budgets.some(
+        (b) =>
+          b.categoria.toLowerCase() === budget.categoria.toLowerCase() &&
+          b.id !== budget.id,
+      );
+      if (dup) {
+        throw new Error("Já existe orçamento para esta categoria.");
+      }
+      await persistBudgets([...budgets, budget]);
+    },
+    [budgets, persistBudgets],
+  );
+
+  const updateBudget = useCallback(
+    async (budget: CategoryBudget) => {
+      const dup = budgets.some(
+        (b) =>
+          b.id !== budget.id &&
+          b.categoria.toLowerCase() === budget.categoria.toLowerCase(),
+      );
+      if (dup) {
+        throw new Error("Já existe orçamento para esta categoria.");
+      }
+      await persistBudgets(
+        budgets.map((b) =>
+          b.id === budget.id
+            ? { ...budget, atualizadaEm: new Date().toISOString() }
+            : b,
+        ),
+      );
+    },
+    [budgets, persistBudgets],
+  );
+
+  const removeBudget = useCallback(
+    async (id: string) => {
+      await persistBudgets(budgets.filter((b) => b.id !== id));
+    },
+    [budgets, persistBudgets],
+  );
+
+  const toggleBudget = useCallback(
+    async (id: string) => {
+      await persistBudgets(
+        budgets.map((b) =>
+          b.id === id ? { ...b, ativa: !b.ativa, atualizadaEm: new Date().toISOString() } : b,
+        ),
+      );
+    },
+    [budgets, persistBudgets],
+  );
+
   const importBackup = useCallback(
-    async (backup: BackupV1, mode: BackupImportMode) => {
+    async (backup: BackupFile, mode: BackupImportMode) => {
       const current: BackupPayload = {
         dataset,
         rules,
@@ -335,6 +407,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         edits,
         accounts,
         manualTransactions,
+        budgets,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -350,6 +423,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveEdits(resolved.edits),
         saveAccounts(resolved.accounts),
         saveManualTransactions(resolved.manualTransactions),
+        saveBudgets(resolved.budgets),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -368,9 +442,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setAccounts(accs);
       setManualTransactions(resolved.manualTransactions);
       setEdits(resolved.edits);
+      setBudgetsState(resolved.budgets);
     },
     [
       accounts,
+      budgets,
       dataset,
       edits,
       manualTransactions,
@@ -665,6 +741,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     revertTransaction,
     deleteTransaction,
     restoreTransaction,
+    budgets,
+    addBudget,
+    updateBudget,
+    removeBudget,
+    toggleBudget,
     lastBackupAt,
     exportBackup,
     importBackup,

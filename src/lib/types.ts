@@ -165,6 +165,17 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const EMPTY_ACCOUNTS: Account[] = [];
 
+export type CategoryBudget = {
+  id: string;
+  categoria: string;
+  valorMensal: number;
+  ativa: boolean;
+  criadaEm: string;
+  atualizadaEm: string;
+};
+
+export const EMPTY_BUDGETS: CategoryBudget[] = [];
+
 export type AppState = {
   dataset: Dataset;
   rules: Rules;
@@ -172,4 +183,5 @@ export type AppState = {
   settings: Settings;
   accounts: Account[];
   manualTransactions: ManualTransaction[];
+  budgets: CategoryBudget[];
 };

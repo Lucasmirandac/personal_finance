@@ -4,7 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { establishmentAggregation } from "@/lib/aggregations";
 import { isoToBr, parseBrlValue, parseBrDate } from "@/lib/csv";
 import { defaultAccount } from "@/lib/accounts";
+import {
+  budgetUsageForMonth,
+  currentMonthIso,
+  findBudgetForCategory,
+  projectUsageAfterExpense,
+} from "@/lib/budgets";
 import { useAppStore, QuickAddDraft } from "@/lib/store";
+import clsx from "clsx";
 import { X } from "lucide-react";
 
 type Props = {
@@ -24,7 +31,7 @@ function yesterdayIso(): string {
 }
 
 export function QuickAddModal({ open, draft, onClose }: Props) {
-  const { accounts, normalized, addManualTransaction } = useAppStore();
+  const { accounts, normalized, budgets, addManualTransaction } = useAppStore();
   const valorRef = useRef<HTMLInputElement>(null);
 
   const [valorStr, setValorStr] = useState("");
@@ -46,6 +53,76 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     const ests = establishmentAggregation(normalized);
     return ests.slice(0, 50).map((e) => e.estabelecimento);
   }, [normalized]);
+
+  const monthIso = currentMonthIso();
+  const budgetUsages = useMemo(
+    () => budgetUsageForMonth(normalized, budgets, monthIso),
+    [normalized, budgets, monthIso],
+  );
+
+  const expensePreview = useMemo(() => {
+    if (tipo === "Receita") return null;
+    const parsed =
+      parseBrlValue(valorStr) ??
+      (Number(valorStr.replace(",", ".")) || null);
+    if (parsed === null || parsed <= 0) return null;
+    return Math.abs(parsed);
+  }, [valorStr, tipo]);
+
+  const budgetNotice = useMemo(() => {
+    if (tipo === "Receita") return null;
+    const hasActive = budgets.some((b) => b.ativa);
+    if (!hasActive) return null;
+
+    if (!categoria.trim()) {
+      return { kind: "need-category" as const };
+    }
+
+    const budget = findBudgetForCategory(budgets, categoria);
+    if (!budget) return null;
+
+    const usage = budgetUsages.find((u) => u.budgetId === budget.id);
+    if (!usage) return null;
+
+    if (expensePreview && expensePreview > 0) {
+      const projected = projectUsageAfterExpense(usage, expensePreview);
+      if (
+        projected.percentual > usage.percentual ||
+        projected.status !== usage.status
+      ) {
+        return {
+          kind: "projected" as const,
+          categoria: usage.categoria,
+          fromPct: usage.percentual,
+          toPct: projected.percentual,
+          gasto: projected.gasto,
+          limite: usage.limite,
+        };
+      }
+    }
+
+    return {
+      kind: "current" as const,
+      categoria: usage.categoria,
+      gasto: usage.gasto,
+      limite: usage.limite,
+      status: usage.status,
+    };
+  }, [tipo, budgets, categoria, budgetUsages, expensePreview]);
+
+  const fmtBrl = (n: number) =>
+    n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const budgetNoticeTone =
+    budgetNotice?.kind === "projected"
+      ? budgetNotice.toPct >= 100
+        ? "danger"
+        : budgetNotice.toPct >= 80
+          ? "warning"
+          : "neutral"
+      : budgetNotice?.kind === "current"
+        ? budgetNotice.status
+        : "neutral";
 
   useEffect(() => {
     if (!open) return;
@@ -230,6 +307,12 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
             </div>
           </div>
 
+          {budgetNotice?.kind === "need-category" && (
+            <p className="text-xs text-[var(--warning)] border border-[var(--warning)]/30 rounded-md px-2 py-1.5">
+              Adicione categoria para acompanhar orçamento.
+            </p>
+          )}
+
           {!showMore ? (
             <button
               type="button"
@@ -262,6 +345,35 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
                 </select>
               </label>
             </div>
+          )}
+
+          {budgetNotice && budgetNotice.kind !== "need-category" && (
+            <p
+              className={clsx(
+                "text-xs rounded-md px-2 py-1.5 border",
+                budgetNoticeTone === "danger"
+                  ? "text-[var(--danger)] border-[var(--danger)]/30"
+                  : budgetNoticeTone === "warning"
+                    ? "text-[var(--warning)] border-[var(--warning)]/30"
+                    : "subtle border-[var(--border)]",
+              )}
+            >
+              {budgetNotice.kind === "current" && (
+                <>
+                  Você já gastou {fmtBrl(budgetNotice.gasto)}/
+                  {fmtBrl(budgetNotice.limite)} em {budgetNotice.categoria} este
+                  mês.
+                </>
+              )}
+              {budgetNotice.kind === "projected" && (
+                <>
+                  Com este gasto, {budgetNotice.categoria} passa de{" "}
+                  {budgetNotice.fromPct.toFixed(0)}% para{" "}
+                  {budgetNotice.toPct.toFixed(0)}% (
+                  {fmtBrl(budgetNotice.gasto)}/{fmtBrl(budgetNotice.limite)}).
+                </>
+              )}
+            </p>
           )}
 
           {error && <p className="text-xs text-[var(--danger)]">{error}</p>}

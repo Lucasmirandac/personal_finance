@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
 import { useFilters } from "@/lib/filtersContext";
@@ -35,10 +36,17 @@ import {
 } from "@/lib/format";
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
+import {
+  budgetAlertSummary,
+  budgetUsageForMonth,
+  currentMonthIso,
+} from "@/lib/budgets";
+import { BudgetProgressCard } from "@/components/BudgetProgressCard";
 import { FileDown, FileSpreadsheet, List, ArrowRight } from "lucide-react";
 
 const DASH_TABS = [
   { id: "geral", label: "Visão geral" },
+  { id: "orcamentos", label: "Orçamentos" },
   { id: "cartao", label: "Cartão" },
   { id: "categorias", label: "Categorias" },
   { id: "estabelecimentos", label: "Estabelecimentos" },
@@ -46,13 +54,47 @@ const DASH_TABS = [
 
 type DashTab = (typeof DASH_TABS)[number]["id"];
 
+function parseDashTab(v: string | null): DashTab {
+  if (
+    v === "orcamentos" ||
+    v === "cartao" ||
+    v === "categorias" ||
+    v === "estabelecimentos" ||
+    v === "geral"
+  ) {
+    return v;
+  }
+  return "geral";
+}
+
 export default function DashboardPage() {
-  const { loaded, dataset, hasAnalysis, normalized, settings, accounts } =
+  return (
+    <Suspense fallback={<div className="subtle p-4">Carregando…</div>}>
+      <DashboardPageInner />
+    </Suspense>
+  );
+}
+
+function DashboardPageInner() {
+  const { loaded, dataset, hasAnalysis, normalized, settings, accounts, budgets } =
     useAppStore();
   const { filters, setFilters, clearFilters } = useFilters();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [tab, setTab] = useState<DashTab>("geral");
+  const [tab, setTab] = useState<DashTab>(() => parseDashTab(tabParam));
   const [estView, setEstView] = useState<"top" | "recurring">("top");
+
+  useEffect(() => {
+    setTab(parseDashTab(tabParam));
+  }, [tabParam]);
+
+  function onTabChange(id: string) {
+    const next = id as DashTab;
+    setTab(next);
+    router.replace(`/dashboard?tab=${next}`, { scroll: false });
+  }
 
   const filtered = useMemo(
     () => applyFilters(normalized, filters),
@@ -93,6 +135,16 @@ export default function DashboardPage() {
   const maxCatTotal = cats[0]?.total ?? 1;
   const projectionReady = isProjectionReady(dataset, settings, accounts);
 
+  const monthIso = currentMonthIso();
+  const budgetUsages = useMemo(
+    () => budgetUsageForMonth(normalized, budgets, monthIso),
+    [normalized, budgets, monthIso],
+  );
+  const budgetAlerts = useMemo(
+    () => budgetAlertSummary(budgetUsages),
+    [budgetUsages],
+  );
+
   if (!loaded) return <div className="subtle">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;
 
@@ -121,7 +173,7 @@ export default function DashboardPage() {
           </button>
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => exportWorkbook(filtered)}
+            onClick={() => exportWorkbook(filtered, budgets, budgetUsages)}
           >
             <FileSpreadsheet size={13} />
             Excel
@@ -153,6 +205,34 @@ export default function DashboardPage() {
 
       {projectionReady && <NextEventPeek />}
 
+      {budgetAlerts.warning + budgetAlerts.danger > 0 && (
+        <div className="panel px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-[var(--warning)]/30">
+          <p className="text-xs">
+            {budgetAlerts.danger > 0 && (
+              <span className="text-[var(--danger)] font-medium">
+                {budgetAlerts.danger} categoria
+                {budgetAlerts.danger > 1 ? "s" : ""} estourada
+                {budgetAlerts.danger > 1 ? "s" : ""}
+              </span>
+            )}
+            {budgetAlerts.danger > 0 && budgetAlerts.warning > 0 && " · "}
+            {budgetAlerts.warning > 0 && (
+              <span className="text-[var(--warning)]">
+                {budgetAlerts.warning} perto do limite
+              </span>
+            )}
+          </p>
+          <button
+            type="button"
+            className="btn btn-sm shrink-0"
+            onClick={() => onTabChange("orcamentos")}
+          >
+            Ver orçamentos
+            <ArrowRight size={13} />
+          </button>
+        </div>
+      )}
+
       <KpiStrip>
         <KpiCard label="Receitas" value={formatBRL(kpis.totalReceitas)} tone="success" />
         <KpiCard
@@ -173,7 +253,7 @@ export default function DashboardPage() {
         />
       </KpiStrip>
 
-      <Tabs tabs={[...DASH_TABS]} active={tab} onChange={(id) => setTab(id as DashTab)}>
+      <Tabs tabs={[...DASH_TABS]} active={tab} onChange={onTabChange}>
         {tab === "geral" && (
           <div className="space-y-4">
             <ChartCard
@@ -207,6 +287,27 @@ export default function DashboardPage() {
               <div className="section-title mb-2">Insights</div>
               <InsightsPanel insights={insights} max={4} />
             </div>
+          </div>
+        )}
+
+        {tab === "orcamentos" && (
+          <div className="space-y-4">
+            {budgetUsages.length === 0 ? (
+              <div className="panel p-4 space-y-2">
+                <p className="text-sm subtle">
+                  Nenhum orçamento ativo. Crie limites em Configurações.
+                </p>
+                <Link href="/config?tab=orcamentos" className="btn btn-sm btn-primary">
+                  Configurar orçamentos
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {budgetUsages.map((u) => (
+                  <BudgetProgressCard key={u.budgetId} usage={u} />
+                ))}
+              </div>
+            )}
           </div>
         )}
 

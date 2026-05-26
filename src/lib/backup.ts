@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   loadAccounts,
+  loadBudgets,
   loadDataset,
   loadEdits,
   loadManualTransactions,
@@ -11,6 +12,7 @@ import {
 } from "./storage";
 import {
   Account,
+  CategoryBudget,
   Dataset,
   DEFAULT_RULES,
   DEFAULT_SETTINGS,
@@ -20,20 +22,13 @@ import {
   RecurringRule,
   Rules,
   Settings,
-  Source,
 } from "./types";
 
-export const BACKUP_VERSION = 1 as const;
+export const BACKUP_VERSION = 2 as const;
+export const BACKUP_VERSION_LEGACY = 1 as const;
 export const BACKUP_APP = "personal-finance" as const;
 
 export type BackupImportMode = "replace" | "merge";
-
-export type BackupV1 = {
-  version: typeof BACKUP_VERSION;
-  app: typeof BACKUP_APP;
-  exportedAt: string;
-  data: BackupPayload;
-};
 
 export type BackupPayload = {
   dataset: Dataset;
@@ -43,6 +38,22 @@ export type BackupPayload = {
   edits: EditsState;
   accounts: Account[];
   manualTransactions: ManualTransaction[];
+  budgets: CategoryBudget[];
+};
+
+/** @deprecated use BackupFile */
+export type BackupV1 = {
+  version: typeof BACKUP_VERSION_LEGACY;
+  app: typeof BACKUP_APP;
+  exportedAt: string;
+  data: Omit<BackupPayload, "budgets">;
+};
+
+export type BackupFile = {
+  version: typeof BACKUP_VERSION | typeof BACKUP_VERSION_LEGACY;
+  app: typeof BACKUP_APP;
+  exportedAt: string;
+  data: BackupPayload;
 };
 
 export type MergePreview = {
@@ -51,6 +62,7 @@ export type MergePreview = {
   accountsToAdd: number;
   recurringToAdd: number;
   manualToAdd: number;
+  budgetsToAdd: number;
 };
 
 const transactionRawSchema = z.object({
@@ -74,7 +86,16 @@ const sourceSchema = z.object({
   raw: z.array(transactionRawSchema),
 });
 
-const backupDataSchema = z.object({
+const budgetSchema = z.object({
+  id: z.string(),
+  categoria: z.string(),
+  valorMensal: z.number(),
+  ativa: z.boolean(),
+  criadaEm: z.string(),
+  atualizadaEm: z.string(),
+});
+
+const backupDataBaseSchema = z.object({
   dataset: z.object({ sources: z.array(sourceSchema) }),
   rules: z.object({
     pagamentoPatterns: z.array(z.string()),
@@ -99,15 +120,26 @@ const backupDataSchema = z.object({
   manualTransactions: z.array(transactionRawSchema),
 });
 
-const backupV1Schema = z.object({
+const backupDataV2Schema = backupDataBaseSchema.extend({
+  budgets: z.array(budgetSchema).optional(),
+});
+
+const backupV2Schema = z.object({
   version: z.literal(BACKUP_VERSION),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
-  data: backupDataSchema,
+  data: backupDataV2Schema,
+});
+
+const backupV1Schema = z.object({
+  version: z.literal(BACKUP_VERSION_LEGACY),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataBaseSchema,
 });
 
 export type ParseBackupResult =
-  | { ok: true; backup: BackupV1 }
+  | { ok: true; backup: BackupFile }
   | { ok: false; error: string };
 
 function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
@@ -136,6 +168,7 @@ export function resolveBackupApplication(
     ),
     accounts: mergeById(current.accounts, backup.accounts),
     recurring: mergeById(current.recurring, backup.recurring),
+    budgets: mergeById(current.budgets, backup.budgets),
     rules: backup.rules,
     settings: backup.settings,
     edits: backup.edits,
@@ -160,6 +193,8 @@ export function computeMergePreview(
   const newRecurring = backup.recurring.filter(
     (r) => !existingRecurringIds.has(r.id),
   );
+  const existingBudgetIds = new Set(current.budgets.map((b) => b.id));
+  const newBudgets = backup.budgets.filter((b) => !existingBudgetIds.has(b.id));
 
   return {
     sourcesToAdd: newSources.length,
@@ -168,6 +203,7 @@ export function computeMergePreview(
     accountsToAdd: newAccounts.length,
     recurringToAdd: newRecurring.length,
     manualToAdd: newManual.length,
+    budgetsToAdd: newBudgets.length,
   };
 }
 
@@ -249,6 +285,27 @@ function sanitizeAccounts(raw: unknown[]): Account[] {
   return out;
 }
 
+function sanitizeBudgets(raw: unknown[] | undefined): CategoryBudget[] {
+  if (!raw || !Array.isArray(raw)) return [];
+  const out: CategoryBudget[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Partial<CategoryBudget>;
+    if (typeof o.id !== "string" || typeof o.categoria !== "string") continue;
+    if (typeof o.valorMensal !== "number") continue;
+    const now = new Date().toISOString();
+    out.push({
+      id: o.id,
+      categoria: o.categoria.trim(),
+      valorMensal: o.valorMensal,
+      ativa: o.ativa !== false,
+      criadaEm: typeof o.criadaEm === "string" ? o.criadaEm : now,
+      atualizadaEm: typeof o.atualizadaEm === "string" ? o.atualizadaEm : now,
+    });
+  }
+  return out;
+}
+
 function sanitizeEdits(raw: Record<string, unknown>): EditsState {
   const out: EditsState = {};
   for (const [key, val] of Object.entries(raw)) {
@@ -271,7 +328,10 @@ function sanitizeEdits(raw: Record<string, unknown>): EditsState {
   return out;
 }
 
-function toBackupPayload(parsed: z.infer<typeof backupDataSchema>): BackupPayload {
+function toBackupPayload(
+  parsed: z.infer<typeof backupDataV2Schema>,
+  version: number,
+): BackupPayload {
   return {
     dataset: parsed.dataset as Dataset,
     rules: parsed.rules as Rules,
@@ -280,20 +340,33 @@ function toBackupPayload(parsed: z.infer<typeof backupDataSchema>): BackupPayloa
     edits: sanitizeEdits(parsed.edits as Record<string, unknown>),
     accounts: sanitizeAccounts(parsed.accounts),
     manualTransactions: parsed.manualTransactions as ManualTransaction[],
+    budgets:
+      version >= BACKUP_VERSION
+        ? sanitizeBudgets(parsed.budgets)
+        : [],
   };
 }
 
-export async function exportAllData(): Promise<BackupV1> {
-  const [dataset, rules, recurring, settings, edits, accounts, manualTransactions] =
-    await Promise.all([
-      loadDataset(),
-      loadRules(),
-      loadRecurring(),
-      loadSettings(),
-      loadEdits(),
-      loadAccounts(),
-      loadManualTransactions(),
-    ]);
+export async function exportAllData(): Promise<BackupFile> {
+  const [
+    dataset,
+    rules,
+    recurring,
+    settings,
+    edits,
+    accounts,
+    manualTransactions,
+    budgets,
+  ] = await Promise.all([
+    loadDataset(),
+    loadRules(),
+    loadRecurring(),
+    loadSettings(),
+    loadEdits(),
+    loadAccounts(),
+    loadManualTransactions(),
+    loadBudgets(),
+  ]);
 
   return {
     version: BACKUP_VERSION,
@@ -307,6 +380,7 @@ export async function exportAllData(): Promise<BackupV1> {
       edits,
       accounts,
       manualTransactions,
+      budgets,
     },
   };
 }
@@ -333,23 +407,37 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
-  const parsed = backupV1Schema.safeParse(json);
-  if (!parsed.success) {
-    const first = parsed.error.issues[0];
+  const v2 = backupV2Schema.safeParse(json);
+  if (v2.success) {
     return {
-      ok: false,
-      error: first
-        ? `Backup inválido: ${first.path.join(".")} — ${first.message}`
-        : "Backup inválido ou corrompido.",
+      ok: true,
+      backup: {
+        ...v2.data,
+        data: toBackupPayload(v2.data.data, BACKUP_VERSION),
+      },
     };
   }
 
+  const v1 = backupV1Schema.safeParse(json);
+  if (v1.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v1.data,
+        data: toBackupPayload(
+          { ...v1.data.data, budgets: [] },
+          BACKUP_VERSION_LEGACY,
+        ),
+      },
+    };
+  }
+
+  const first = v2.error.issues[0] ?? v1.error.issues[0];
   return {
-    ok: true,
-    backup: {
-      ...parsed.data,
-      data: toBackupPayload(parsed.data.data),
-    },
+    ok: false,
+    error: first
+      ? `Backup inválido: ${first.path.join(".")} — ${first.message}`
+      : "Backup inválido ou corrompido.",
   };
 }
 
@@ -358,7 +446,7 @@ export function backupFilename(date = new Date()): string {
   return `backup-${d}.json`;
 }
 
-export function downloadBackup(backup: BackupV1): void {
+export function downloadBackup(backup: BackupFile): void {
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -371,19 +459,20 @@ export function downloadBackup(backup: BackupV1): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function exportAndDownloadBackup(): Promise<BackupV1> {
+export async function exportAndDownloadBackup(): Promise<BackupFile> {
   const backup = await exportAllData();
   downloadBackup(backup);
   await saveLastBackupAt(backup.exportedAt);
   return backup;
 }
 
-export function summarizeBackup(backup: BackupV1 | BackupPayload): {
+export function summarizeBackup(backup: BackupFile | BackupPayload): {
   sources: number;
   transactions: number;
   accounts: number;
   recurring: number;
   manual: number;
+  budgets: number;
 } {
   const data = "data" in backup ? backup.data : backup;
   const importedTx = data.dataset.sources.reduce((n, s) => n + s.raw.length, 0);
@@ -393,6 +482,7 @@ export function summarizeBackup(backup: BackupV1 | BackupPayload): {
     accounts: data.accounts.length,
     recurring: data.recurring.length,
     manual: data.manualTransactions.length,
+    budgets: data.budgets.length,
   };
 }
 
@@ -405,6 +495,7 @@ export function emptyBackupPayload(): BackupPayload {
     edits: {},
     accounts: [],
     manualTransactions: [],
+    budgets: [],
   };
 }
 

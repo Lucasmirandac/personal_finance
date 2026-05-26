@@ -11,6 +11,7 @@ import {
   EditsState,
   EMPTY_DATASET,
   LegacyDataset,
+  CategoryBudget,
   ManualTransaction,
   RecurringRule,
   Rules,
@@ -31,6 +32,7 @@ const KEY_EDITS = "pf:edits:v1";
 const KEY_ACCOUNTS = "pf:accounts:v1";
 const KEY_MANUAL = "pf:manual:v1";
 const KEY_LAST_BACKUP = "pf:lastBackup:v1";
+const KEY_BUDGETS = "pf:budgets:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -140,9 +142,53 @@ export async function clearAllData(opts?: {
   await clearEdits();
   await clearAccounts();
   await clearManualTransactions();
+  await clearBudgets();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
+}
+
+function mergeBudget(v: unknown): CategoryBudget | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<CategoryBudget>;
+  if (typeof o.id !== "string" || typeof o.categoria !== "string") return null;
+  if (typeof o.valorMensal !== "number" || o.valorMensal < 0) return null;
+  const now = new Date().toISOString();
+  return {
+    id: o.id,
+    categoria: o.categoria.trim(),
+    valorMensal: o.valorMensal,
+    ativa: o.ativa !== false,
+    criadaEm: typeof o.criadaEm === "string" ? o.criadaEm : now,
+    atualizadaEm: typeof o.atualizadaEm === "string" ? o.atualizadaEm : now,
+  };
+}
+
+function mergeBudgets(v: unknown): CategoryBudget[] {
+  if (!Array.isArray(v)) return [];
+  const out: CategoryBudget[] = [];
+  for (const item of v) {
+    const b = mergeBudget(item);
+    if (b) out.push(b);
+  }
+  return out;
+}
+
+export async function loadBudgets(): Promise<CategoryBudget[]> {
+  try {
+    const v = await get(KEY_BUDGETS);
+    return mergeBudgets(v);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveBudgets(budgets: CategoryBudget[]): Promise<void> {
+  await set(KEY_BUDGETS, budgets);
+}
+
+export async function clearBudgets(): Promise<void> {
+  await del(KEY_BUDGETS);
 }
 
 export async function loadLastBackupAt(): Promise<string | null> {

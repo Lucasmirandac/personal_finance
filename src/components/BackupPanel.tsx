@@ -3,8 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
+  BackupFile,
   BackupImportMode,
-  BackupV1,
   computeMergePreview,
   daysSince,
   parseBackup,
@@ -23,13 +23,14 @@ export function BackupPanel() {
     edits,
     accounts,
     manualTransactions,
+    budgets,
     lastBackupAt,
     exportBackup,
     importBackup,
   } = useAppStore();
 
   const [jsonText, setJsonText] = useState("");
-  const [parsed, setParsed] = useState<BackupV1 | null>(null);
+  const [parsed, setParsed] = useState<BackupFile | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [mode, setMode] = useState<BackupImportMode>("replace");
   const [busy, setBusy] = useState(false);
@@ -46,6 +47,7 @@ export function BackupPanel() {
         edits,
         accounts,
         manualTransactions,
+        budgets,
       }),
     [
       dataset,
@@ -55,6 +57,7 @@ export function BackupPanel() {
       edits,
       accounts,
       manualTransactions,
+      budgets,
     ],
   );
 
@@ -69,6 +72,7 @@ export function BackupPanel() {
       edits,
       accounts,
       manualTransactions,
+      budgets,
     }),
     [
       dataset,
@@ -78,6 +82,7 @@ export function BackupPanel() {
       edits,
       accounts,
       manualTransactions,
+      budgets,
     ],
   );
 
@@ -262,7 +267,8 @@ export function BackupPanel() {
               Conteúdo: {formatInt(parsedSummary.sources)} fontes ·{" "}
               {formatInt(parsedSummary.transactions)} transações ·{" "}
               {formatInt(parsedSummary.accounts)} contas ·{" "}
-              {formatInt(parsedSummary.recurring)} recorrentes
+              {formatInt(parsedSummary.recurring)} recorrentes ·{" "}
+              {formatInt(parsedSummary.budgets)} orçamentos
             </p>
 
             <fieldset className="space-y-2">
@@ -292,7 +298,8 @@ export function BackupPanel() {
                 Serão adicionados: {formatInt(mergePreview.sourcesToAdd)} fontes,{" "}
                 {formatInt(mergePreview.transactionsToAdd)} transações,{" "}
                 {formatInt(mergePreview.accountsToAdd)} contas,{" "}
-                {formatInt(mergePreview.recurringToAdd)} recorrentes.
+                {formatInt(mergePreview.recurringToAdd)} recorrentes,{" "}
+                {formatInt(mergePreview.budgetsToAdd)} orçamentos.
               </p>
             )}
 

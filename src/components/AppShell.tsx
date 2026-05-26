@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   BackupReminder,
+  BudgetAlertWidget,
   SetupIndicator,
   Saldo30Widget,
 } from "@/components/HeaderWidgets";
@@ -24,6 +25,7 @@ const CONFIG_LINKS = [
   { href: "/config?tab=classificacao", label: "Classificação" },
   { href: "/config?tab=contas", label: "Contas" },
   { href: "/config?tab=backup", label: "Backup" },
+  { href: "/config?tab=orcamentos", label: "Orçamentos" },
 ] as const;
 
 function NavLink({
@@ -141,6 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <SetupIndicator />
+            <BudgetAlertWidget />
             <BackupReminder />
             <Saldo30Widget />
             {hasAnalysis && (
