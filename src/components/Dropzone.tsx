@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useCallback, useRef, useState } from "react";
+import { UploadCloud } from "lucide-react";
 
 type Props = {
   onFile: (file: File) => void;
@@ -56,11 +57,14 @@ export function Dropzone({ onFile, disabled }: Props) {
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
-      <div className="text-sm font-medium">
-        Arraste um CSV ou clique para selecionar
-      </div>
-      <div className="text-[11px] subtle mt-1">
-        Inter · Nubank — formato detectado automaticamente
+      <div className="flex flex-col items-center gap-2">
+        <UploadCloud size={22} className="text-[var(--muted)]" strokeWidth={1.75} />
+        <div className="text-sm font-medium">
+          Arraste um CSV ou clique para selecionar
+        </div>
+        <div className="text-[11px] subtle">
+          Inter · Nubank — formato detectado automaticamente
+        </div>
       </div>
     </div>
   );

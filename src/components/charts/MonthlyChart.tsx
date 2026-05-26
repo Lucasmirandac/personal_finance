@@ -48,7 +48,7 @@ export function MonthlyChart({ data }: Props) {
           yAxisId="left"
           dataKey="despesas"
           name="Despesas"
-          fill="var(--accent)"
+          fill="var(--danger)"
           radius={[4, 4, 0, 0]}
         />
         <Line
@@ -56,7 +56,7 @@ export function MonthlyChart({ data }: Props) {
           type="monotone"
           dataKey="saldo"
           name="Saldo"
-          stroke="var(--warning)"
+          stroke="var(--foreground)"
           strokeWidth={2}
           dot={{ r: 3 }}
         />

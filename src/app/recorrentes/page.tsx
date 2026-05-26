@@ -7,6 +7,7 @@ import { formatBRL, formatDateBR } from "@/lib/format";
 import { newRecurringId } from "@/lib/recurring";
 import { RecurringForm, RecurringFormValues } from "@/components/RecurringForm";
 import { RecurringKind, RecurringRule } from "@/lib/types";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 const KIND_LABELS: Record<RecurringKind, string> = {
   receita: "Receita",
@@ -160,7 +161,8 @@ function RuleSection({
         </div>
         {!showForm && (
           <button className="btn btn-primary btn-sm" onClick={onAdd}>
-            + Nova
+            <Plus size={13} />
+            Nova
           </button>
         )}
       </div>
@@ -221,6 +223,7 @@ function RuleSection({
             </div>
             <div className="flex gap-2 mt-1.5">
               <button className="btn btn-sm" onClick={() => onEdit(r)}>
+                <Pencil size={12} />
                 Editar
               </button>
               <button
@@ -229,6 +232,7 @@ function RuleSection({
                   if (confirm(`Excluir "${r.descricao}"?`)) onRemove(r.id);
                 }}
               >
+                <Trash2 size={12} />
                 Excluir
               </button>
             </div>

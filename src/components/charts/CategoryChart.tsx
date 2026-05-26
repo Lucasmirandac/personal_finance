@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -11,27 +12,21 @@ import {
   YAxis,
 } from "recharts";
 import { CategoryAgg } from "@/lib/aggregations";
+import { categoryColor, resolveCategoryColors } from "@/lib/chartColors";
 import { formatBRL, formatBRLCompact } from "@/lib/format";
-
-const PALETTE = [
-  "#6366f1",
-  "#22c55e",
-  "#f59e0b",
-  "#ec4899",
-  "#06b6d4",
-  "#a855f7",
-  "#ef4444",
-  "#14b8a6",
-  "#84cc16",
-  "#f97316",
-  "#0ea5e9",
-  "#eab308",
-];
 
 type Props = { data: CategoryAgg[] };
 
 export function CategoryChart({ data }: Props) {
   const slice = data.slice(0, 10);
+  const [colors, setColors] = useState<string[]>(() =>
+    slice.map((_, i) => categoryColor(i)),
+  );
+
+  useEffect(() => {
+    setColors(resolveCategoryColors(slice.length));
+  }, [slice.length]);
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
@@ -57,13 +52,13 @@ export function CategoryChart({ data }: Props) {
           contentStyle={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
+            borderRadius: 6,
           }}
           formatter={(value) => formatBRL(Number(value))}
         />
         <Bar dataKey="total" radius={[0, 6, 6, 0]}>
           {slice.map((_, i) => (
-            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+            <Cell key={i} fill={colors[i] ?? categoryColor(i)} />
           ))}
         </Bar>
       </BarChart>

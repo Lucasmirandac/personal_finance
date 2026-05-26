@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import clsx from "clsx";
+import { Database, Wallet } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Importar" },
@@ -51,8 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-[var(--foreground)] text-[var(--surface)] text-xs font-semibold">
-              $
+            <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-[var(--foreground)] text-[var(--surface)]">
+              <Wallet size={15} strokeWidth={2.25} />
             </span>
             <span className="font-semibold text-sm hidden sm:inline">
               Finanças
@@ -71,7 +72,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           {hasAnalysis && (
-            <span className="chip hidden md:inline-flex shrink-0">
+            <span className="chip hidden md:inline-flex items-center gap-1 shrink-0">
+              <Database size={11} />
               {dataset.sources.length}f · {normalized.length}L
             </span>
           )}

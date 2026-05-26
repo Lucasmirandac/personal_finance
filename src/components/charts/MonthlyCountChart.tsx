@@ -29,7 +29,7 @@ export function MonthlyCountChart({ data }: Props) {
           }}
           formatter={(v) => formatInt(Number(v))}
         />
-        <Bar dataKey="count" name="Transações" fill="var(--warning)" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="count" name="Transações" fill="var(--accent)" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

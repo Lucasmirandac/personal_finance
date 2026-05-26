@@ -6,6 +6,8 @@ import {
   RecurringRule,
   Rules,
   DEFAULT_RULES,
+  DEFAULT_SETTINGS,
+  Settings,
   Source,
   TransactionRaw,
 } from "./types";
@@ -14,6 +16,7 @@ const KEY_DATASET = "pf:dataset:v2";
 const KEY_DATASET_LEGACY = "pf:dataset:v1";
 const KEY_RULES = "pf:rules:v1";
 const KEY_RECURRING = "pf:recurring:v1";
+const KEY_SETTINGS = "pf:settings:v1";
 
 function newSourceId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -97,6 +100,51 @@ export async function clearDataset(): Promise<void> {
 export async function clearAllData(): Promise<void> {
   await clearDataset();
   await clearRecurring();
+  await clearSettings();
+}
+
+function mergeSettings(v: unknown): Settings {
+  if (!v || typeof v !== "object") return { ...DEFAULT_SETTINGS };
+  const o = v as Partial<Settings>;
+  const cards = Array.isArray(o.cards)
+    ? o.cards.filter(
+        (c) =>
+          c &&
+          typeof c === "object" &&
+          (c.fonte === "inter" || c.fonte === "nubank") &&
+          typeof c.diaFechamento === "number" &&
+          typeof c.diaPagamento === "number",
+      )
+    : [];
+  const balanceAnchor =
+    o.balanceAnchor &&
+    typeof o.balanceAnchor === "object" &&
+    typeof o.balanceAnchor.data === "string" &&
+    typeof o.balanceAnchor.valor === "number"
+      ? { data: o.balanceAnchor.data, valor: o.balanceAnchor.valor }
+      : null;
+  const horizon =
+    typeof o.projectionHorizonDays === "number" && o.projectionHorizonDays > 0
+      ? o.projectionHorizonDays
+      : DEFAULT_SETTINGS.projectionHorizonDays;
+  return { cards, balanceAnchor, projectionHorizonDays: horizon };
+}
+
+export async function loadSettings(): Promise<Settings> {
+  try {
+    const v = await get(KEY_SETTINGS);
+    return mergeSettings(v);
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+export async function saveSettings(settings: Settings): Promise<void> {
+  await set(KEY_SETTINGS, settings);
+}
+
+export async function clearSettings(): Promise<void> {
+  await del(KEY_SETTINGS);
 }
 
 export async function loadRules(): Promise<Rules> {

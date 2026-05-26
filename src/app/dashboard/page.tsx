@@ -25,6 +25,7 @@ import { WeekdayChart } from "@/components/charts/WeekdayChart";
 import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { Tabs } from "@/components/Tabs";
+import { ProjectionTab } from "@/components/ProjectionTab";
 import {
   formatBRL,
   formatDateRangeCaption,
@@ -33,12 +34,14 @@ import {
 } from "@/lib/format";
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
+import { FileDown, FileSpreadsheet } from "lucide-react";
 
 const DASH_TABS = [
   { id: "geral", label: "Visão geral" },
   { id: "cartao", label: "Cartão" },
   { id: "categorias", label: "Categorias" },
   { id: "estabelecimentos", label: "Estabelecimentos" },
+  { id: "projecao", label: "Projeção" },
 ] as const;
 
 type DashTab = (typeof DASH_TABS)[number]["id"];
@@ -107,12 +110,14 @@ export default function DashboardPage() {
             onClick={() => setDrawerOpen(true)}
           />
           <button className="btn btn-sm" onClick={() => exportTreatedCsv(filtered)}>
+            <FileDown size={13} />
             CSV
           </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={() => exportWorkbook(filtered)}
           >
+            <FileSpreadsheet size={13} />
             Excel
           </button>
         </div>
@@ -133,7 +138,7 @@ export default function DashboardPage() {
           label="Despesas"
           value={formatBRL(kpis.totalDespesas)}
           hint={`Cartão ${formatBRL(expenseComp.cartao.total)} · Fixas ${formatBRL(expenseComp.fixas.total)}`}
-          tone="accent"
+          tone="danger"
         />
         <KpiCard
           label="Saldo"
@@ -345,6 +350,8 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {tab === "projecao" && <ProjectionTab />}
       </Tabs>
     </div>
   );

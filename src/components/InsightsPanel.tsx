@@ -17,7 +17,7 @@ export function InsightsPanel({ insights, max = 4 }: { insights: Insight[]; max?
               "mt-1.5 w-1.5 h-1.5 rounded-full shrink-0",
               i.tone === "warning" && "bg-[var(--warning)]",
               i.tone === "success" && "bg-[var(--success)]",
-              (!i.tone || i.tone === "info") && "bg-[var(--accent)]",
+              (!i.tone || i.tone === "info") && "bg-[var(--info)]",
             )}
           />
           <div className="min-w-0">

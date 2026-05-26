@@ -6,6 +6,7 @@ import { DEFAULT_RULES, Rules } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { NatureBadge } from "@/components/NatureBadge";
 import { formatBRL, formatInt } from "@/lib/format";
+import { Plus, RotateCcw, Save, Undo2, X } from "lucide-react";
 import { normalizeTransactions } from "@/lib/normalize";
 
 export default function RegrasPage() {
@@ -74,6 +75,7 @@ export default function RegrasPage() {
               }
             }}
           >
+            <RotateCcw size={13} />
             Restaurar padrões
           </button>
           <button
@@ -84,6 +86,7 @@ export default function RegrasPage() {
             }}
             disabled={!dirty}
           >
+            <Undo2 size={13} />
             Descartar
           </button>
           <button
@@ -96,6 +99,7 @@ export default function RegrasPage() {
             }}
             disabled={!dirty}
           >
+            <Save size={13} />
             Salvar e recalcular
           </button>
         </div>
@@ -243,7 +247,7 @@ function PatternEditor({
               onClick={() => remove(i)}
               aria-label="Remover padrão"
             >
-              ×
+              <X size={13} />
             </button>
           </li>
         ))}
@@ -261,8 +265,12 @@ function PatternEditor({
             }
           }}
         />
-        <button className="btn btn-primary btn-sm shrink-0" onClick={add}>
-          +
+        <button
+          className="btn btn-primary btn-sm shrink-0"
+          onClick={add}
+          aria-label="Adicionar padrão"
+        >
+          <Plus size={13} />
         </button>
       </div>
       <div className="text-[11px] subtle px-3 pb-3">

@@ -8,6 +8,13 @@ import { parseCsvFile, CsvRowError } from "@/lib/csv";
 import { useAppStore } from "@/lib/store";
 import { formatBRL, formatInt } from "@/lib/format";
 import { Fonte } from "@/lib/types";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Loader2,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 
 const FONTE_LABELS: Record<Fonte, string> = {
   inter: "Inter",
@@ -89,26 +96,40 @@ export default function Home() {
           </div>
         )}
 
-        {busy && <div className="mt-2 text-xs subtle">Processando…</div>}
+        {busy && (
+          <div className="mt-2 text-xs subtle inline-flex items-center gap-1.5">
+            <Loader2 size={12} className="animate-spin" />
+            Processando…
+          </div>
+        )}
 
         {errorMsg && (
-          <div className="mt-3 rounded-md border border-[var(--danger)]/40 bg-[color-mix(in_oklab,var(--danger)_8%,transparent)] p-2.5 text-xs">
-            <strong className="text-[var(--danger)]">Falha:</strong> {errorMsg}
+          <div className="mt-3 rounded-md border border-[var(--danger)]/40 bg-[color-mix(in_oklab,var(--danger)_8%,transparent)] p-2.5 text-xs flex gap-2">
+            <XCircle size={14} className="text-[var(--danger)] mt-px shrink-0" />
+            <div>
+              <strong className="text-[var(--danger)]">Falha:</strong> {errorMsg}
+            </div>
           </div>
         )}
 
         {rowErrors.length > 0 && (
-          <div className="mt-3 rounded-md border border-[var(--warning)]/40 bg-[color-mix(in_oklab,var(--warning)_8%,transparent)] p-2.5 text-xs">
-            <strong className="text-[var(--warning)]">
-              {rowErrors.length} linha(s) ignorada(s)
-            </strong>
-            <ul className="mt-1 list-disc pl-4 space-y-0.5 max-h-32 overflow-auto">
-              {rowErrors.slice(0, 15).map((e) => (
-                <li key={`${e.row}-${e.reason}`}>
-                  L.{e.row}: {e.reason}
-                </li>
-              ))}
-            </ul>
+          <div className="mt-3 rounded-md border border-[var(--warning)]/40 bg-[color-mix(in_oklab,var(--warning)_8%,transparent)] p-2.5 text-xs flex gap-2">
+            <AlertTriangle
+              size={14}
+              className="text-[var(--warning)] mt-px shrink-0"
+            />
+            <div>
+              <strong className="text-[var(--warning)]">
+                {rowErrors.length} linha(s) ignorada(s)
+              </strong>
+              <ul className="mt-1 list-disc pl-4 space-y-0.5 max-h-32 overflow-auto">
+                {rowErrors.slice(0, 15).map((e) => (
+                  <li key={`${e.row}-${e.reason}`}>
+                    L.{e.row}: {e.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
       </section>
@@ -133,13 +154,15 @@ export default function Home() {
                   }
                 }}
               >
+                <Trash2 size={13} />
                 Limpar tudo
               </button>
               <button
                 className="btn btn-primary btn-sm"
                 onClick={() => router.push("/dashboard")}
               >
-                Dashboard →
+                Dashboard
+                <ArrowRight size={13} />
               </button>
             </div>
           </div>
@@ -215,8 +238,9 @@ export default function Home() {
                             await removeSource(s.id);
                           }
                         }}
+                        aria-label="Remover fonte"
                       >
-                        Remover
+                        <Trash2 size={13} />
                       </button>
                     </td>
                   </tr>

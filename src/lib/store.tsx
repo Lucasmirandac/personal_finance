@@ -14,6 +14,8 @@ import {
   RecurringRule,
   Rules,
   DEFAULT_RULES,
+  DEFAULT_SETTINGS,
+  Settings,
   Source,
   TransactionNormalized,
 } from "./types";
@@ -26,6 +28,8 @@ import {
   resetRules as resetRulesStorage,
   loadRecurring,
   saveRecurring,
+  loadSettings,
+  saveSettings,
 } from "./storage";
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
@@ -37,6 +41,7 @@ type Ctx = {
   hasAnalysis: boolean;
   recurringRules: RecurringRule[];
   rules: Rules;
+  settings: Settings;
   normalized: TransactionNormalized[];
   addSource: (source: Source) => Promise<void>;
   removeSource: (id: string) => Promise<void>;
@@ -47,6 +52,7 @@ type Ctx = {
   toggleRecurring: (id: string) => Promise<void>;
   updateRules: (rules: Rules) => Promise<void>;
   resetRules: () => Promise<void>;
+  updateSettings: (settings: Settings) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -56,19 +62,22 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [dataset, setDatasetState] = useState<Dataset>(EMPTY_DATASET);
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec] = await Promise.all([
+      const [d, r, rec, s] = await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
+        loadSettings(),
       ]);
       if (!alive) return;
       setDatasetState(d);
       setRules(r);
       setRecurringRules(rec);
+      setSettings(s);
       setLoaded(true);
     })();
     return () => {
@@ -108,6 +117,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     await clearAllData();
     setDatasetState({ ...EMPTY_DATASET });
     setRecurringRules([]);
+    setSettings({ ...DEFAULT_SETTINGS });
+  }, []);
+
+  const updateSettings = useCallback(async (next: Settings) => {
+    await saveSettings(next);
+    setSettings(next);
   }, []);
 
   const addRecurring = useCallback(
@@ -180,6 +195,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     hasAnalysis,
     recurringRules,
     rules,
+    settings,
     normalized,
     addSource,
     removeSource,
@@ -190,6 +206,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     toggleRecurring,
     updateRules,
     resetRules: resetRulesFn,
+    updateSettings,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

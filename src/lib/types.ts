@@ -106,8 +106,32 @@ export type LegacyDataset = {
   >;
 };
 
+export type CardConfig = {
+  fonte: Fonte;
+  diaFechamento: number;
+  diaPagamento: number;
+};
+
+export type BalanceAnchor = {
+  data: string;
+  valor: number;
+};
+
+export type Settings = {
+  cards: CardConfig[];
+  balanceAnchor: BalanceAnchor | null;
+  projectionHorizonDays: number;
+};
+
+export const DEFAULT_SETTINGS: Settings = {
+  cards: [],
+  balanceAnchor: null,
+  projectionHorizonDays: 90,
+};
+
 export type AppState = {
   dataset: Dataset;
   rules: Rules;
   recurringRules: RecurringRule[];
+  settings: Settings;
 };

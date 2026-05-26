@@ -24,6 +24,7 @@ import { NatureBadge } from "@/components/NatureBadge";
 import { formatBRL, formatDateRangeCaption, formatInt } from "@/lib/format";
 import { exportTreatedCsv } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 const FONTE_LABELS: Record<Fonte, string> = {
   inter: "Inter",
@@ -147,6 +148,7 @@ export default function TransacoesPage() {
             className="btn btn-sm"
             onClick={() => exportTreatedCsv(data, "fatura_tratada_filtrada.csv")}
           >
+            <Download size={13} />
             Exportar CSV
           </button>
         </div>
@@ -181,8 +183,8 @@ export default function TransacoesPage() {
                       >
                         <span className="inline-flex items-center gap-1">
                           {flexRender(h.column.columnDef.header, h.getContext())}
-                          {sort === "asc" && <span className="text-[10px]">▲</span>}
-                          {sort === "desc" && <span className="text-[10px]">▼</span>}
+                          {sort === "asc" && <ArrowUp size={10} />}
+                          {sort === "desc" && <ArrowDown size={10} />}
                         </span>
                       </th>
                     );
@@ -248,15 +250,17 @@ export default function TransacoesPage() {
               className="btn btn-sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
+              aria-label="Página anterior"
             >
-              ←
+              <ChevronLeft size={14} />
             </button>
             <button
               className="btn btn-sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
+              aria-label="Próxima página"
             >
-              →
+              <ChevronRight size={14} />
             </button>
           </div>
         </div>

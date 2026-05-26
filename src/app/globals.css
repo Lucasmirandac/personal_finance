@@ -1,18 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f5f7;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --border: #d9dee8;
-  --border-strong: #cbd2e0;
-  --foreground: #0f172a;
-  --muted: #64748b;
-  --accent: #4f46e5;
-  --accent-strong: #4338ca;
-  --success: #15803d;
-  --warning: #b45309;
-  --danger: #b91c1c;
+  --background: #f6f3ec;
+  --surface: #fbf8f1;
+  --surface-2: #ede7d8;
+  --border: #e2dccb;
+  --border-strong: #c4bba3;
+  --foreground: #1c1a13;
+  --muted: #766f5b;
+  --accent: #2f6f4e;
+  --accent-strong: #235a3e;
+  --success: #2f6f4e;
+  --warning: #a86a1f;
+  --danger: #9d3a2e;
+  --info: #365f7d;
+  --cat-1: #2f6f4e;
+  --cat-2: #365f7d;
+  --cat-3: #a86a1f;
+  --cat-4: #6e5a85;
+  --cat-5: #9d3a2e;
+  --cat-6: #5e8a6b;
+  --cat-7: #86643a;
+  --cat-8: #4d4940;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -23,6 +32,7 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
@@ -30,24 +40,42 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-cat-1: var(--cat-1);
+  --color-cat-2: var(--cat-2);
+  --color-cat-3: var(--cat-3);
+  --color-cat-4: var(--cat-4);
+  --color-cat-5: var(--cat-5);
+  --color-cat-6: var(--cat-6);
+  --color-cat-7: var(--cat-7);
+  --color-cat-8: var(--cat-8);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #090c14;
-    --surface: #0f1420;
-    --surface-2: #141b2b;
-    --border: #1e293b;
-    --border-strong: #334155;
-    --foreground: #e2e8f0;
-    --muted: #94a3b8;
-    --accent: #818cf8;
-    --accent-strong: #a5b4fc;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --danger: #f87171;
+    --background: #13110c;
+    --surface: #1c1a14;
+    --surface-2: #262219;
+    --border: #332e22;
+    --border-strong: #4d4636;
+    --foreground: #ece6d4;
+    --muted: #9b937e;
+    --accent: #7fc095;
+    --accent-strong: #a3d4b3;
+    --success: #7fc095;
+    --warning: #e4a85d;
+    --danger: #dc8771;
+    --info: #85a8c2;
+    --cat-1: #7fc095;
+    --cat-2: #85a8c2;
+    --cat-3: #e4a85d;
+    --cat-4: #b5a3cf;
+    --cat-5: #dc8771;
+    --cat-6: #97c0a3;
+    --cat-7: #c89e6e;
+    --cat-8: #aaa394;
   }
 }
 

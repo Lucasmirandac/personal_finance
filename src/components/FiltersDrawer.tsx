@@ -7,6 +7,7 @@ import { MultiSelect } from "./MultiSelect";
 import { DateRangePicker } from "./DateRangePicker";
 import { FAIXA_LABELS } from "@/lib/normalize";
 import { countActiveFilters } from "@/lib/filters";
+import { SlidersHorizontal, X } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -91,8 +92,13 @@ export function FiltersDrawer({
                 : "Nenhum filtro aplicado"}
             </div>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-            Fechar
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X size={14} />
           </button>
         </div>
 
@@ -168,7 +174,8 @@ export function FiltersButton({
   onClick: () => void;
 }) {
   return (
-    <button type="button" className="btn" onClick={onClick}>
+    <button type="button" className="btn btn-sm" onClick={onClick}>
+      <SlidersHorizontal size={13} />
       Filtros
       {activeCount > 0 && (
         <span className="inline-flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-[var(--foreground)] text-[var(--surface)] text-[10px] font-semibold px-1">
