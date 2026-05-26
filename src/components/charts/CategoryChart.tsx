@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { CategoryAgg } from "@/lib/aggregations";
 import { categoryColor, resolveCategoryColors } from "@/lib/chartColors";
-import { formatBRL, formatBRLCompact } from "@/lib/format";
+import { formatBRL, formatBRLAxis } from "@/lib/format";
 
 type Props = { data: CategoryAgg[] };
 
@@ -39,7 +39,7 @@ export function CategoryChart({ data }: Props) {
           type="number"
           stroke="var(--muted)"
           fontSize={12}
-          tickFormatter={formatBRLCompact}
+          tickFormatter={formatBRLAxis}
         />
         <YAxis
           type="category"

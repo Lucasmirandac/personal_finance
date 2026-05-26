@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { WeekdayAgg } from "@/lib/aggregations";
-import { formatBRL, formatBRLCompact } from "@/lib/format";
+import { formatBRL, formatBRLAxis } from "@/lib/format";
 
 type Props = { data: WeekdayAgg[] };
 
@@ -23,7 +23,7 @@ export function WeekdayChart({ data }: Props) {
         <YAxis
           stroke="var(--muted)"
           fontSize={12}
-          tickFormatter={formatBRLCompact}
+          tickFormatter={formatBRLAxis}
         />
         <Tooltip
           contentStyle={{

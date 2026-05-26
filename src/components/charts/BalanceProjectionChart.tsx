@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { DailyBalancePoint } from "@/lib/projection";
-import { formatBRL, formatBRLCompact, formatDateBR } from "@/lib/format";
+import { formatBRL, formatBRLAxis, formatDateBR } from "@/lib/format";
 
 type Props = { data: DailyBalancePoint[] };
 
@@ -36,7 +36,7 @@ export function BalanceProjectionChart({ data }: Props) {
         <YAxis
           stroke="var(--muted)"
           fontSize={11}
-          tickFormatter={formatBRLCompact}
+          tickFormatter={formatBRLAxis}
         />
         <ReferenceLine y={0} stroke="var(--danger)" strokeDasharray="4 4" />
         <Tooltip

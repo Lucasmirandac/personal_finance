@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { MonthlySeriesPoint } from "@/lib/aggregations";
-import { formatBRL, formatBRLCompact } from "@/lib/format";
+import { formatBRL, formatBRLAxis } from "@/lib/format";
 
 type Props = { data: MonthlySeriesPoint[] };
 
@@ -26,7 +26,7 @@ export function MonthlyChart({ data }: Props) {
           yAxisId="left"
           stroke="var(--muted)"
           fontSize={12}
-          tickFormatter={formatBRLCompact}
+          tickFormatter={formatBRLAxis}
         />
         <Tooltip
           contentStyle={{

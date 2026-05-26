@@ -22,6 +22,24 @@ export function formatBRLCompact(value: number | null | undefined): string {
   return BRL_COMPACT.format(value);
 }
 
+/** Compact axis ticks without currency symbol (e.g. 4,5K, -2,8M). */
+export function formatBRLAxis(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1_000_000) {
+    return `${sign}${(abs / 1_000_000).toLocaleString("pt-BR", {
+      maximumFractionDigits: 1,
+    })}M`;
+  }
+  if (abs >= 1_000) {
+    return `${sign}${(abs / 1_000).toLocaleString("pt-BR", {
+      maximumFractionDigits: 1,
+    })}K`;
+  }
+  return `${sign}${Math.round(abs)}`;
+}
+
 export function formatInt(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "—";
   return INT.format(value);
