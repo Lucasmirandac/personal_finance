@@ -9,7 +9,7 @@ type Delta = {
 type Props = {
   label: string;
   value: string;
-  hint?: string;
+  hint?: React.ReactNode;
   tone?: "default" | "accent" | "warning" | "success" | "danger";
   delta?: Delta;
   compact?: boolean;

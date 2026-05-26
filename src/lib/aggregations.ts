@@ -381,3 +381,183 @@ export function buildInsights(
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+// --- Month comparison ---
+
+export function shiftMonth(anoMes: string, deltaMonths: number): string {
+  const [y, m] = anoMes.split("-").map(Number);
+  if (!y || !m) return anoMes;
+  let year = y;
+  let month = m + deltaMonths;
+  while (month < 1) {
+    month += 12;
+    year -= 1;
+  }
+  while (month > 12) {
+    month -= 12;
+    year += 1;
+  }
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+export function latestMonthWithData(
+  data: TransactionNormalized[],
+): string | null {
+  let latest: string | null = null;
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida" || !t.anoMes) continue;
+    if (!latest || t.anoMes > latest) latest = t.anoMes;
+  }
+  return latest;
+}
+
+export function availableComparisonMonths(
+  data: TransactionNormalized[],
+): string[] {
+  const set = new Set<string>();
+  for (const t of data) {
+    if (t.tipoFluxo === "saida" && t.anoMes) set.add(t.anoMes);
+  }
+  return [...set].sort((a, b) => (a < b ? 1 : -1));
+}
+
+export function monthlyCategoryTotals(
+  data: TransactionNormalized[],
+  anoMes: string,
+): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const t of data) {
+    if (t.anoMes !== anoMes || t.tipoFluxo !== "saida") continue;
+    map.set(t.categoria, (map.get(t.categoria) ?? 0) + t.valorFluxo);
+  }
+  for (const [k, v] of map) {
+    map.set(k, round2(v));
+  }
+  return map;
+}
+
+export type ComparisonDelta = {
+  abs: number;
+  pct: number | null;
+  direction: "up" | "down" | "flat" | "new";
+};
+
+export type CategoryComparisonRow = {
+  categoria: string;
+  current: number;
+  prev: number;
+  prevYear: number;
+  deltaPrev: ComparisonDelta;
+  deltaPrevYear: ComparisonDelta;
+};
+
+export type MonthComparison = {
+  anchor: string;
+  prev: string;
+  prevYear: string;
+  hasPrev: boolean;
+  hasPrevYear: boolean;
+  totals: {
+    current: number;
+    prev: number;
+    prevYear: number;
+    deltaPrev: ComparisonDelta;
+    deltaPrevYear: ComparisonDelta;
+  };
+  rows: CategoryComparisonRow[];
+};
+
+export function computeComparisonDelta(
+  current: number,
+  other: number,
+): ComparisonDelta {
+  const abs = round2(current - other);
+  if (current === 0 && other === 0) {
+    return { abs, pct: 0, direction: "flat" };
+  }
+  if (other === 0 && current > 0) {
+    return { abs, pct: null, direction: "new" };
+  }
+  if (current === 0 && other > 0) {
+    return { abs, pct: -100, direction: "down" };
+  }
+  const pct = round2(((current - other) / other) * 100);
+  const direction =
+    Math.abs(pct) < 0.5 ? "flat" : pct > 0 ? "up" : "down";
+  return { abs, pct, direction };
+}
+
+function sumMapValues(map: Map<string, number>): number {
+  let total = 0;
+  for (const v of map.values()) total += v;
+  return round2(total);
+}
+
+function monthHasExpense(
+  data: TransactionNormalized[],
+  anoMes: string,
+): boolean {
+  for (const t of data) {
+    if (t.anoMes === anoMes && t.tipoFluxo === "saida") return true;
+  }
+  return false;
+}
+
+export function compareMonths(
+  data: TransactionNormalized[],
+  anchor: string,
+): MonthComparison {
+  const prev = shiftMonth(anchor, -1);
+  const prevYear = shiftMonth(anchor, -12);
+
+  const currentMap = monthlyCategoryTotals(data, anchor);
+  const prevMap = monthlyCategoryTotals(data, prev);
+  const prevYearMap = monthlyCategoryTotals(data, prevYear);
+
+  const categories = new Set<string>([
+    ...currentMap.keys(),
+    ...prevMap.keys(),
+    ...prevYearMap.keys(),
+  ]);
+
+  const rows: CategoryComparisonRow[] = [...categories].map((categoria) => {
+    const current = currentMap.get(categoria) ?? 0;
+    const prevVal = prevMap.get(categoria) ?? 0;
+    const prevYearVal = prevYearMap.get(categoria) ?? 0;
+    return {
+      categoria,
+      current,
+      prev: prevVal,
+      prevYear: prevYearVal,
+      deltaPrev: computeComparisonDelta(current, prevVal),
+      deltaPrevYear: computeComparisonDelta(current, prevYearVal),
+    };
+  });
+
+  rows.sort((a, b) => {
+    if (b.current !== a.current) return b.current - a.current;
+    const maxA = Math.max(a.prev, a.prevYear);
+    const maxB = Math.max(b.prev, b.prevYear);
+    return maxB - maxA;
+  });
+
+  const totalCurrent = sumMapValues(currentMap);
+  const totalPrev = sumMapValues(prevMap);
+  const totalPrevYear = sumMapValues(prevYearMap);
+
+  return {
+    anchor,
+    prev,
+    prevYear,
+    hasPrev: monthHasExpense(data, prev),
+    hasPrevYear: monthHasExpense(data, prevYear),
+    totals: {
+      current: totalCurrent,
+      prev: totalPrev,
+      prevYear: totalPrevYear,
+      deltaPrev: computeComparisonDelta(totalCurrent, totalPrev),
+      deltaPrevYear: computeComparisonDelta(totalCurrent, totalPrevYear),
+    },
+    rows,
+  };
+}

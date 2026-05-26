@@ -27,6 +27,7 @@ import { CategoryChart } from "@/components/charts/CategoryChart";
 import { WeekdayChart } from "@/components/charts/WeekdayChart";
 import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
+import { ComparisonPanel } from "@/components/ComparisonPanel";
 import { Tabs } from "@/components/Tabs";
 import {
   formatBRL,
@@ -46,6 +47,7 @@ import { FileDown, FileSpreadsheet, List, ArrowRight } from "lucide-react";
 
 const DASH_TABS = [
   { id: "geral", label: "Visão geral" },
+  { id: "comparar", label: "Comparar" },
   { id: "orcamentos", label: "Orçamentos" },
   { id: "cartao", label: "Cartão" },
   { id: "categorias", label: "Categorias" },
@@ -60,6 +62,7 @@ function parseDashTab(v: string | null): DashTab {
     v === "cartao" ||
     v === "categorias" ||
     v === "estabelecimentos" ||
+    v === "comparar" ||
     v === "geral"
   ) {
     return v;
@@ -289,6 +292,8 @@ function DashboardPageInner() {
             </div>
           </div>
         )}
+
+        {tab === "comparar" && <ComparisonPanel data={normalized} />}
 
         {tab === "orcamentos" && (
           <div className="space-y-4">
