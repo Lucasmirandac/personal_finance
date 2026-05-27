@@ -158,21 +158,48 @@ export function buildAliasSuggestions(
 
   suggestions.sort((a, b) => b.totalGasto - a.totalGasto);
 
-  const seen = new Set<string>();
-  const deduped: AliasSuggestion[] = [];
+  // Fase 1: deduplicar por conjunto de variantes exato (sem aplicar re-ancoragem ainda)
+  const seen = new Set<string>()
+  const candidates: AliasSuggestion[] = []
   for (const s of suggestions) {
     const variantKey = s.variantes
       .map((v) => v.estabelecimento)
       .sort()
-      .join("\0");
-    if (seen.has(variantKey)) continue;
-    seen.add(variantKey);
-    deduped.push({
+      .join("\0")
+    if (seen.has(variantKey)) continue
+    seen.add(variantKey)
+
+    candidates.push({
       ...s,
       token: pickAnchorToken(s.variantes) || s.token,
-    });
-    if (deduped.length >= limit) break;
+    })
   }
 
-  return deduped;
+  // Fase 2: coalescer entradas que acabam com o mesmo token âncora
+  const merged = new Map<string, AliasSuggestion>()
+  for (const c of candidates) {
+    const existing = merged.get(c.token)
+    if (!existing) {
+      merged.set(c.token, {
+        ...c,
+        variantes: [...c.variantes],
+        totalGasto: c.totalGasto,
+      })
+      continue
+    }
+
+    const byEst = new Map<string, AliasVariant>()
+    for (const v of existing.variantes) byEst.set(v.estabelecimento, v)
+    for (const v of c.variantes) {
+      if (!byEst.has(v.estabelecimento)) byEst.set(v.estabelecimento, v)
+    }
+
+    const variantes = [...byEst.values()].sort((a, b) => b.total - a.total)
+    existing.variantes = variantes
+    existing.totalGasto = variantes.reduce((acc, v) => acc + v.total, 0)
+  }
+
+  return [...merged.values()]
+    .sort((a, b) => b.totalGasto - a.totalGasto)
+    .slice(0, limit)
 }

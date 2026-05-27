@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react"
 import {
   BackupFile,
   BackupImportMode,
@@ -8,14 +8,13 @@ import {
   daysSince,
   parseBackup,
   summarizeBackup,
-} from "@/lib/backup";
-import { useAppStore } from "@/lib/store";
-import { formatInt } from "@/lib/format";
-import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Input";
-import { Panel } from "@/components/ui/Panel";
-import { SectionTitle } from "@/components/ui/SectionTitle";
-import { Download, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
+} from "@/lib/backup"
+import { useAppStore } from "@/lib/store"
+import { formatInt } from "@/lib/format"
+import { Button } from "@/components/ui/Button"
+import { SegmentedControl } from "@/components/ui/SegmentedControl"
+import { Textarea } from "@/components/ui/Input"
+import { Download, Upload, AlertTriangle, CheckCircle2, XCircle } from "lucide-react"
 
 export function BackupPanel() {
   const {
@@ -32,15 +31,15 @@ export function BackupPanel() {
     lastBackupAt,
     exportBackup,
     importBackup,
-  } = useAppStore();
+  } = useAppStore()
 
-  const [jsonText, setJsonText] = useState("");
-  const [parsed, setParsed] = useState<BackupFile | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [mode, setMode] = useState<BackupImportMode>("replace");
-  const [busy, setBusy] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
+  const [jsonText, setJsonText] = useState("")
+  const [parsed, setParsed] = useState<BackupFile | null>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [mode, setMode] = useState<BackupImportMode>("replace")
+  const [busy, setBusy] = useState(false)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
 
   const currentSummary = useMemo(
     () =>
@@ -68,9 +67,9 @@ export function BackupPanel() {
       subscriptionDismissals,
       establishmentAliases,
     ],
-  );
+  )
 
-  const backupDays = daysSince(lastBackupAt);
+  const backupDays = daysSince(lastBackupAt)
 
   const currentPayload = useMemo(
     () => ({
@@ -97,98 +96,98 @@ export function BackupPanel() {
       subscriptionDismissals,
       establishmentAliases,
     ],
-  );
+  )
 
   const mergePreview = useMemo(() => {
-    if (!parsed || mode !== "merge") return null;
-    return computeMergePreview(currentPayload, parsed.data);
-  }, [parsed, mode, currentPayload]);
+    if (!parsed || mode !== "merge") return null
+    return computeMergePreview(currentPayload, parsed.data)
+  }, [parsed, mode, currentPayload])
 
-  const parsedSummary = parsed ? summarizeBackup(parsed) : null;
+  const parsedSummary = parsed ? summarizeBackup(parsed) : null
 
   const handleParse = useCallback((text: string) => {
-    setJsonText(text);
-    setSuccessMsg(null);
-    setImportError(null);
+    setJsonText(text)
+    setSuccessMsg(null)
+    setImportError(null)
     if (!text.trim()) {
-      setParsed(null);
-      setParseError(null);
-      return;
+      setParsed(null)
+      setParseError(null)
+      return
     }
-    const result = parseBackup(text);
+    const result = parseBackup(text)
     if (!result.ok) {
-      setParsed(null);
-      setParseError(result.error);
-      return;
+      setParsed(null)
+      setParseError(result.error)
+      return
     }
-    setParsed(result.backup);
-    setParseError(null);
-  }, []);
+    setParsed(result.backup)
+    setParseError(null)
+  }, [])
 
   async function onFile(file: File) {
     try {
-      const text = await file.text();
-      handleParse(text);
+      const text = await file.text()
+      handleParse(text)
     } catch {
-      setParseError("Não foi possível ler o arquivo.");
+      setParseError("Não foi possível ler o arquivo.")
     }
   }
 
   async function handleExport() {
-    setBusy(true);
-    setImportError(null);
-    setSuccessMsg(null);
+    setBusy(true)
+    setImportError(null)
+    setSuccessMsg(null)
     try {
-      await exportBackup();
-      setSuccessMsg("Backup exportado com sucesso.");
+      await exportBackup()
+      setSuccessMsg("Backup exportado com sucesso.")
     } catch {
-      setImportError("Erro ao exportar backup.");
+      setImportError("Erro ao exportar backup.")
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 
   async function handleImport() {
-    if (!parsed) return;
+    if (!parsed) return
     const msg =
       mode === "replace"
         ? "Substituir todos os dados atuais pelo backup? Esta ação não pode ser desfeita."
-        : "Mesclar o backup com os dados atuais? Regras, configurações e edições do backup substituirão as atuais.";
-    if (!window.confirm(msg)) return;
+        : "Mesclar o backup com os dados atuais? Regras, configurações e edições do backup substituirão as atuais."
+    if (!window.confirm(msg)) return
 
-    setBusy(true);
-    setImportError(null);
-    setSuccessMsg(null);
+    setBusy(true)
+    setImportError(null)
+    setSuccessMsg(null)
     try {
-      await importBackup(parsed, mode);
+      await importBackup(parsed, mode)
       setSuccessMsg(
         mode === "replace"
           ? "Backup restaurado. Todos os dados foram substituídos."
           : "Backup mesclado com sucesso.",
-      );
-      setJsonText("");
-      setParsed(null);
-      setParseError(null);
+      )
+      setJsonText("")
+      setParsed(null)
+      setParseError(null)
     } catch (e) {
       setImportError(
         e instanceof Error ? e.message : "Erro ao restaurar backup.",
-      );
+      )
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 
   return (
-    <div className="space-y-6">
-      <Panel className="p-4 space-y-3">
+    <div className="space-y-4">
+      <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
         <div>
-          <SectionTitle>Exportar tudo</SectionTitle>
-          <p className="text-[11px] text-muted mt-0.5">
+          <p className="text-[11px] uppercase tracking-wider text-muted">Exportar tudo</p>
+          <p className="text-xs text-muted mt-0.5">
             Salva dataset, contas, transações manuais, recorrentes, regras,
             configurações e edições em um único arquivo JSON.
           </p>
         </div>
-        <p className="text-sm">
+        <p className="text-sm tabular-nums">
           {formatInt(currentSummary.sources)} fontes ·{" "}
           {formatInt(currentSummary.transactions)} transações ·{" "}
           {formatInt(currentSummary.accounts)} contas
@@ -204,34 +203,34 @@ export function BackupPanel() {
             </span>
           )}
         </p>
-        <Button variant="primary" disabled={busy} onClick={handleExport}>
+        <Button variant="primary" className="rounded-full" disabled={busy} onClick={handleExport}>
           <Download size={14} />
           Exportar tudo (JSON)
         </Button>
-      </Panel>
+      </div>
 
-      <Panel className="p-4 space-y-3">
+      <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
         <div>
-          <SectionTitle>Restaurar backup</SectionTitle>
-          <p className="text-[11px] text-muted mt-0.5">
+          <p className="text-[11px] uppercase tracking-wider text-muted">Restaurar backup</p>
+          <p className="text-xs text-muted mt-0.5">
             Cole o JSON ou arraste um arquivo de backup exportado anteriormente.
           </p>
         </div>
 
         <div
-          className="border border-dashed border-border rounded-md p-4 text-center"
+          className="rounded-2xl border border-dashed border-border bg-surface-2/40 p-6 text-center"
           onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault()
+            e.stopPropagation()
           }}
           onDrop={(e) => {
-            e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            if (file) void onFile(file);
+            e.preventDefault()
+            const file = e.dataTransfer.files[0]
+            if (file) void onFile(file)
           }}
         >
           <p className="text-xs text-muted mb-2">Arraste o arquivo .json aqui</p>
-          <label className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1 cursor-pointer">
+          <label className="inline-flex items-center justify-center gap-1.5 font-medium rounded-full border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-3 py-1.5 cursor-pointer">
             <Upload size={13} />
             Escolher arquivo
             <input
@@ -239,9 +238,9 @@ export function BackupPanel() {
               accept=".json,application/json"
               className="sr-only"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void onFile(file);
-                e.target.value = "";
+                const file = e.target.files?.[0]
+                if (file) void onFile(file)
+                e.target.value = ""
               }}
             />
           </label>
@@ -250,7 +249,7 @@ export function BackupPanel() {
         <label className="block space-y-1">
           <span className="text-xs text-muted">Ou cole o JSON</span>
           <Textarea
-            className="min-h-[120px] font-mono text-xs"
+            className="min-h-[120px] font-mono text-xs bg-surface-2/40 rounded-2xl border border-border/60"
             placeholder='{"version":1,"app":"personal-finance",...}'
             value={jsonText}
             onChange={(e) => handleParse(e.target.value)}
@@ -258,20 +257,23 @@ export function BackupPanel() {
         </label>
 
         {parseError && (
-          <p className="text-xs text-danger flex items-start gap-1.5">
-            <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+          <div
+            className="flex items-center gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-red)_12%,transparent)] px-4 py-2 text-xs text-[var(--system-red)]"
+            role="alert"
+          >
+            <XCircle size={14} className="shrink-0" />
             {parseError}
-          </p>
+          </div>
         )}
 
         {parsed && parsedSummary && (
-          <div className="border border-border rounded-md p-3 space-y-3 bg-surface-2/50">
-            <p className="text-xs flex items-center gap-1.5 text-success">
+          <div className="rounded-2xl bg-surface-2/50 ring-1 ring-border/60 p-4 space-y-3">
+            <p className="text-xs flex items-center gap-1.5 text-[var(--system-green)]">
               <CheckCircle2 size={14} />
               Backup válido · exportado em{" "}
               {new Date(parsed.exportedAt).toLocaleString("pt-BR")}
             </p>
-            <p className="text-sm">
+            <p className="text-sm tabular-nums">
               Conteúdo: {formatInt(parsedSummary.sources)} fontes ·{" "}
               {formatInt(parsedSummary.transactions)} transações ·{" "}
               {formatInt(parsedSummary.accounts)} contas ·{" "}
@@ -281,30 +283,21 @@ export function BackupPanel() {
               {formatInt(parsedSummary.aliases)} apelidos
             </p>
 
-            <fieldset className="space-y-2">
-              <legend className="text-xs text-muted">Modo de restauração</legend>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="backup-mode"
-                  checked={mode === "replace"}
-                  onChange={() => setMode("replace")}
-                />
-                Substituir tudo
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="backup-mode"
-                  checked={mode === "merge"}
-                  onChange={() => setMode("merge")}
-                />
-                Mesclar com dados atuais
-              </label>
-            </fieldset>
+            <div className="space-y-2">
+              <p className="text-xs text-muted">Modo de restauração</p>
+              <SegmentedControl<BackupImportMode>
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: "replace", label: "Substituir tudo" },
+                  { value: "merge", label: "Mesclar" },
+                ]}
+                size="sm"
+              />
+            </div>
 
             {mergePreview && (
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted tabular-nums">
                 Serão adicionados: {formatInt(mergePreview.sourcesToAdd)} fontes,{" "}
                 {formatInt(mergePreview.transactionsToAdd)} transações,{" "}
                 {formatInt(mergePreview.accountsToAdd)} contas,{" "}
@@ -316,14 +309,19 @@ export function BackupPanel() {
             )}
 
             {mode === "replace" && (
-              <p className="text-xs text-warning">
+              <div
+                className="flex items-center gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-orange)_12%,transparent)] px-4 py-2 text-xs text-[var(--system-orange)]"
+                role="alert"
+              >
+                <AlertTriangle size={14} className="shrink-0" />
                 Substituir apaga todos os dados atuais antes de aplicar o backup.
-              </p>
+              </div>
             )}
 
             <Button
               variant="primary"
               size="sm"
+              className="rounded-full"
               disabled={busy}
               onClick={() => void handleImport()}
             >
@@ -331,18 +329,27 @@ export function BackupPanel() {
             </Button>
           </div>
         )}
-      </Panel>
+      </div>
 
       {successMsg && (
-        <Panel className="p-3 border-success/30">
-          <p className="text-sm text-success">{successMsg}</p>
-        </Panel>
+        <div
+          className="flex items-center gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-green)_12%,transparent)] px-4 py-3 text-sm text-[var(--system-green)]"
+          role="status"
+          aria-live="polite"
+        >
+          <CheckCircle2 size={16} className="shrink-0" />
+          {successMsg}
+        </div>
       )}
       {importError && (
-        <Panel className="p-3">
-          <p className="text-sm text-danger">{importError}</p>
-        </Panel>
+        <div
+          className="flex items-center gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-red)_12%,transparent)] px-4 py-3 text-sm text-[var(--system-red)]"
+          role="alert"
+        >
+          <XCircle size={16} className="shrink-0" />
+          {importError}
+        </div>
       )}
     </div>
-  );
+  )
 }

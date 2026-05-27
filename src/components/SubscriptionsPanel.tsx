@@ -1,20 +1,19 @@
-"use client";
+"use client"
 
-import { useMemo, useState } from "react";
-import clsx from "clsx";
-import { useAppStore } from "@/lib/store";
-import { formatBRL, formatDateBR } from "@/lib/format";
+import { useMemo, useState } from "react"
+import clsx from "clsx"
+import { useAppStore } from "@/lib/store"
+import { formatBRL, formatDateBR } from "@/lib/format"
 import {
   detectSubscriptions,
   suggestionToRecurring,
-} from "@/lib/subscriptions";
-import { Button } from "@/components/ui/Button";
-import { Chip } from "@/components/ui/Chip";
-import { Num } from "@/components/ui/Num";
-import { Panel } from "@/components/ui/Panel";
-import { Sparkles } from "lucide-react";
+} from "@/lib/subscriptions"
+import { Button } from "@/components/ui/Button"
+import { Chip } from "@/components/ui/Chip"
+import { Num } from "@/components/ui/Num"
+import { CheckCircle2, Sparkles } from "lucide-react"
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 8
 
 export function SubscriptionsPanel() {
   const {
@@ -24,11 +23,11 @@ export function SubscriptionsPanel() {
     subscriptionDismissals,
     addRecurring,
     dismissSubscription,
-  } = useAppStore();
+  } = useAppStore()
 
-  const [showAll, setShowAll] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
 
   const suggestions = useMemo(
     () =>
@@ -38,24 +37,26 @@ export function SubscriptionsPanel() {
         subscriptionDismissals,
       ),
     [normalized, recurringRules, subscriptionDismissals],
-  );
+  )
 
-  const visible = showAll ? suggestions : suggestions.slice(0, PAGE_SIZE);
+  const visible = showAll ? suggestions : suggestions.slice(0, PAGE_SIZE)
 
-  if (!hasAnalysis) return null;
+  if (!hasAnalysis) return null
 
   return (
-    <Panel className="p-4 space-y-3">
+    <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-4">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-warning" />
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[var(--system-yellow)] bg-[color-mix(in_oklab,var(--system-yellow)_12%,transparent)]">
+              <Sparkles size={16} />
+            </span>
             <h2 className="text-sm font-semibold">Assinaturas detectadas</h2>
             {suggestions.length > 0 && (
               <Chip>{suggestions.length}</Chip>
             )}
           </div>
-          <p className="text-muted text-xs mt-0.5 max-w-xl">
+          <p className="text-muted text-xs mt-1 max-w-xl pl-11">
             Gastos mensais estáveis nos últimos 6 meses. Converta em despesa fixa
             com um clique.
           </p>
@@ -63,9 +64,14 @@ export function SubscriptionsPanel() {
       </div>
 
       {toast && (
-        <p className="text-xs text-success border border-success/30 rounded-md px-2 py-1.5">
+        <div
+          className="flex items-center gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-green)_12%,transparent)] px-4 py-2 text-xs text-[var(--system-green)]"
+          role="status"
+          aria-live="polite"
+        >
+          <CheckCircle2 size={14} className="shrink-0" />
           {toast}
-        </p>
+        </div>
       )}
 
       {suggestions.length === 0 ? (
@@ -90,11 +96,11 @@ export function SubscriptionsPanel() {
             </span>
           </p>
 
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {visible.map((s) => (
               <li
                 key={s.key}
-                className="border border-border rounded-lg p-3 space-y-2 bg-surface"
+                className="rounded-2xl bg-surface-2/60 px-4 py-3 space-y-2"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-sm">{s.estabelecimento}</span>
@@ -113,16 +119,16 @@ export function SubscriptionsPanel() {
                   <Button
                     variant="primary"
                     size="sm"
-                    className={clsx(busyKey === s.key && "opacity-60")}
+                    className={clsx("rounded-full", busyKey === s.key && "opacity-60")}
                     disabled={busyKey !== null}
                     onClick={async () => {
-                      setBusyKey(s.key);
+                      setBusyKey(s.key)
                       try {
-                        await addRecurring(suggestionToRecurring(s));
-                        setToast("Adicionada a Recorrentes.");
-                        setTimeout(() => setToast(null), 3000);
+                        await addRecurring(suggestionToRecurring(s))
+                        setToast("Adicionada a Recorrentes.")
+                        setTimeout(() => setToast(null), 3000)
                       } finally {
-                        setBusyKey(null);
+                        setBusyKey(null)
                       }
                     }}
                   >
@@ -131,6 +137,7 @@ export function SubscriptionsPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="rounded-full"
                     disabled={busyKey !== null}
                     onClick={() => dismissSubscription(s.key)}
                   >
@@ -142,12 +149,12 @@ export function SubscriptionsPanel() {
           </ul>
 
           {suggestions.length > PAGE_SIZE && (
-            <Button size="sm" onClick={() => setShowAll((v) => !v)}>
+            <Button size="sm" className="rounded-full" onClick={() => setShowAll((v) => !v)}>
               {showAll ? "Mostrar menos" : `Mostrar mais (${suggestions.length - PAGE_SIZE})`}
             </Button>
           )}
         </>
       )}
-    </Panel>
-  );
+    </div>
+  )
 }

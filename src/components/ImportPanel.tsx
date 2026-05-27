@@ -1,48 +1,46 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Dropzone } from "@/components/Dropzone";
-import { KpiCard, KpiStrip } from "@/components/KpiCard";
-import { parseCsvFile, CsvRowError } from "@/lib/csv";
-import { useAppStore } from "@/lib/store";
-import { isProjectionReady } from "@/lib/setupStatus";
-import { formatBRL, formatInt } from "@/lib/format";
-import { Fonte } from "@/lib/types";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Dropzone } from "@/components/Dropzone"
+import { StatTile } from "@/components/ui/StatTile"
+import { parseCsvFile, CsvRowError } from "@/lib/csv"
+import { useAppStore } from "@/lib/store"
+import { isProjectionReady } from "@/lib/setupStatus"
+import { formatBRL, formatInt } from "@/lib/format"
+import { Fonte } from "@/lib/types"
+import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
 import {
   DataTable,
   DataTableCell,
   DataTableHead,
   DataTableRow,
-} from "@/components/ui/DataTable";
-import { Num } from "@/components/ui/Num";
-import { SectionTitle } from "@/components/ui/SectionTitle";
+} from "@/components/ui/DataTable"
 import {
   AlertTriangle,
   ArrowRight,
   Loader2,
   Trash2,
   XCircle,
-} from "lucide-react";
+} from "lucide-react"
 
 const FONTE_LABELS: Record<Fonte, string> = {
   inter: "Inter",
   nubank: "Nubank",
   manual: "Manual",
-};
+}
 
 type Props = {
   /** Após import bem-sucedido, para onde ir */
-  redirectAfterImport?: string;
-  compact?: boolean;
-};
+  redirectAfterImport?: string
+  compact?: boolean
+}
 
 export function ImportPanel({
   redirectAfterImport,
   compact = false,
-}: Props) {
+}: Readonly<Props>) {
   const {
     loaded,
     dataset,
@@ -53,36 +51,36 @@ export function ImportPanel({
     addSource,
     removeSource,
     clearAllSources,
-  } = useAppStore();
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [rowErrors, setRowErrors] = useState<CsvRowError[]>([]);
-  const [lastDetected, setLastDetected] = useState<Fonte | null>(null);
+  } = useAppStore()
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [rowErrors, setRowErrors] = useState<CsvRowError[]>([])
+  const [lastDetected, setLastDetected] = useState<Fonte | null>(null)
 
   async function onFile(file: File) {
-    setBusy(true);
-    setErrorMsg(null);
-    setRowErrors([]);
-    setLastDetected(null);
+    setBusy(true)
+    setErrorMsg(null)
+    setRowErrors([])
+    setLastDetected(null)
     try {
-      const result = await parseCsvFile(file, accounts);
+      const result = await parseCsvFile(file, accounts)
       if (result.missingColumns.length > 0) {
-        setErrorMsg(result.missingColumns.join(" "));
-        setBusy(false);
-        return;
+        setErrorMsg(result.missingColumns.join(" "))
+        setBusy(false)
+        return
       }
       if (!result.source || result.source.raw.length === 0) {
-        setErrorMsg("Nenhuma linha válida encontrada no CSV.");
-        setRowErrors(result.errors);
-        setBusy(false);
-        return;
+        setErrorMsg("Nenhuma linha válida encontrada no CSV.")
+        setRowErrors(result.errors)
+        setBusy(false)
+        return
       }
       if (result.errors.length > 0) {
-        setRowErrors(result.errors);
+        setRowErrors(result.errors)
       }
-      setLastDetected(result.detectedFormat);
-      await addSource(result.source);
+      setLastDetected(result.detectedFormat)
+      await addSource(result.source)
       const target =
         redirectAfterImport ??
         (isProjectionReady(
@@ -91,70 +89,77 @@ export function ImportPanel({
           accounts,
         )
           ? "/saldo"
-          : "/dashboard");
-      router.push(target);
+          : "/dashboard")
+      router.push(target)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha ao ler o arquivo";
-      setErrorMsg(msg);
+      const msg = e instanceof Error ? e.message : "Falha ao ler o arquivo"
+      setErrorMsg(msg)
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
   }
 
-  const gastosOnly = normalized.filter((t) => t.natureza === "Gasto");
-  const totalAnalise = gastosOnly.reduce((acc, t) => acc + t.valorAnalise, 0);
-  const excluidos = normalized.length - gastosOnly.length;
-  const totalRows = dataset.sources.reduce((acc, s) => acc + s.rowsRaw, 0);
+  const gastosOnly = normalized.filter((t) => t.natureza === "Gasto")
+  const totalAnalise = gastosOnly.reduce((acc, t) => acc + t.valorAnalise, 0)
+  const excluidos = normalized.length - gastosOnly.length
+  const totalRows = dataset.sources.reduce((acc, s) => acc + s.rowsRaw, 0)
 
   return (
     <div className="space-y-4">
       <section>
         {!compact && (
           <>
-            <SectionTitle>Importar fatura</SectionTitle>
-            <p className="text-muted text-xs mt-0.5 max-w-xl">
+            <p className="text-[11px] uppercase tracking-wider text-muted">Importar fatura</p>
+            <p className="text-xs text-muted mt-0.5 max-w-xl">
               CSV Inter ou Nubank. Processamento 100% local.
             </p>
           </>
         )}
 
-        <div className={compact ? "mt-0" : "mt-3"}>
+        <div className={compact ? "mt-0" : "mt-3 rounded-2xl ring-1 ring-border/60 bg-surface p-6"}>
           <Dropzone onFile={onFile} disabled={busy} />
         </div>
 
         {lastDetected && (
           <div className="mt-2 flex items-center gap-2 text-xs">
             <span className="text-muted">Formato:</span>
-            <Badge variant="gasto" dot>
+            <Badge variant="gasto" dot className="rounded-full">
               {FONTE_LABELS[lastDetected]}
             </Badge>
           </div>
         )}
 
         {busy && (
-          <div className="mt-2 text-xs text-muted inline-flex items-center gap-1.5">
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-xs text-muted">
             <Loader2 size={12} className="animate-spin" />
             Processando…
           </div>
         )}
 
         {errorMsg && (
-          <div className="mt-3 rounded-md border border-danger/40 bg-[color-mix(in_oklab,var(--danger)_8%,transparent)] p-2.5 text-xs flex gap-2">
-            <XCircle size={14} className="text-danger mt-px shrink-0" />
+          <div
+            className="mt-3 flex gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-red)_12%,transparent)] p-3 text-xs"
+            role="alert"
+          >
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--system-red)] bg-[color-mix(in_oklab,var(--system-red)_12%,transparent)]">
+              <XCircle size={14} />
+            </span>
             <div>
-              <strong className="text-danger">Falha:</strong> {errorMsg}
+              <strong className="text-[var(--system-red)]">Falha:</strong> {errorMsg}
             </div>
           </div>
         )}
 
         {rowErrors.length > 0 && (
-          <div className="mt-3 rounded-md border border-warning/40 bg-[color-mix(in_oklab,var(--warning)_8%,transparent)] p-2.5 text-xs flex gap-2">
-            <AlertTriangle
-              size={14}
-              className="text-warning mt-px shrink-0"
-            />
+          <div
+            className="mt-3 flex gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-yellow)_12%,transparent)] p-3 text-xs"
+            role="alert"
+          >
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--system-yellow)] bg-[color-mix(in_oklab,var(--system-yellow)_12%,transparent)]">
+              <AlertTriangle size={14} />
+            </span>
             <div>
-              <strong className="text-warning">
+              <strong className="text-[var(--system-yellow)]">
                 {rowErrors.length} linha(s) ignorada(s)
               </strong>
               <ul className="mt-1 list-disc pl-4 space-y-0.5 max-h-32 overflow-auto">
@@ -173,7 +178,7 @@ export function ImportPanel({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <SectionTitle>Base consolidada</SectionTitle>
+              <p className="text-[11px] uppercase tracking-wider text-muted">Base consolidada</p>
               <p className="text-xs text-muted mt-0.5">
                 {dataset.sources.length} fonte(s) · {formatInt(totalRows)} linhas
               </p>
@@ -182,11 +187,12 @@ export function ImportPanel({
               <Button
                 variant="danger"
                 size="sm"
+                className="rounded-full"
                 onClick={async () => {
                   if (
                     confirm("Limpar todas as fontes e voltar ao estado inicial?")
                   ) {
-                    await clearAllSources();
+                    await clearAllSources()
                   }
                 }}
               >
@@ -196,6 +202,7 @@ export function ImportPanel({
               <Button
                 variant="primary"
                 size="sm"
+                className="rounded-full"
                 onClick={() =>
                   router.push(
                     isProjectionReady(dataset, settings, accounts)
@@ -210,14 +217,14 @@ export function ImportPanel({
             </div>
           </div>
 
-          <KpiStrip>
-            <KpiCard label="Importadas" value={formatInt(totalRows)} />
-            <KpiCard label="Consumo" value={formatInt(gastosOnly.length)} />
-            <KpiCard label="Excluídos" value={formatInt(excluidos)} />
-            <KpiCard label="Gasto analisado" value={formatBRL(totalAnalise)} />
-          </KpiStrip>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatTile label="Importadas" value={formatInt(totalRows)} />
+            <StatTile label="Consumo" value={formatInt(gastosOnly.length)} />
+            <StatTile label="Excluídos" value={formatInt(excluidos)} />
+            <StatTile label="Gasto analisado" value={formatBRL(totalAnalise)} />
+          </div>
 
-          <div className="border border-border rounded-lg overflow-x-auto">
+          <div className="rounded-2xl ring-1 ring-border/60 overflow-x-auto">
             <DataTable>
               <thead>
                 <tr>
@@ -252,9 +259,10 @@ export function ImportPanel({
                       <Button
                         variant="danger"
                         size="sm"
+                        className="rounded-full"
                         onClick={async () => {
                           if (confirm(`Remover "${s.fileName}" da base?`)) {
-                            await removeSource(s.id);
+                            await removeSource(s.id)
                           }
                         }}
                         aria-label="Remover fonte"
@@ -270,5 +278,5 @@ export function ImportPanel({
         </section>
       )}
     </div>
-  );
+  )
 }

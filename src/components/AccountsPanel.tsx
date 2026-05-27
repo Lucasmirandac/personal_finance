@@ -1,37 +1,43 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import clsx from "clsx";
+import { useEffect, useMemo, useRef, useState } from "react"
+import clsx from "clsx"
 import {
   ACCOUNT_KIND_LABELS,
   countTransactionsForAccount,
   createDefaultAccount,
   defaultAccount,
-} from "@/lib/accounts";
-import { useAppStore } from "@/lib/store";
-import { Account, AccountKind } from "@/lib/types";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { DrawerBackdrop } from "@/components/ui/Drawer";
-import { Input, Select } from "@/components/ui/Input";
-import { Num } from "@/components/ui/Num";
-import { Panel } from "@/components/ui/Panel";
-import { SectionTitle } from "@/components/ui/SectionTitle";
-import { ArrowLeft, Check, Plus, Star, Trash2, Pencil } from "lucide-react";
+} from "@/lib/accounts"
+import { useAppStore } from "@/lib/store"
+import { Account, AccountKind } from "@/lib/types"
+import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
+import { DrawerBackdrop } from "@/components/ui/Drawer"
+import { Input, Select } from "@/components/ui/Input"
+import { SegmentedControl } from "@/components/ui/SegmentedControl"
+import { Num } from "@/components/ui/Num"
+import { ArrowLeft, CheckCircle2, Plus, Star, Trash2, Pencil, XCircle } from "lucide-react"
 
-const KINDS: AccountKind[] = ["cc", "poupanca", "carteira", "cartao"];
+const KINDS: AccountKind[] = ["cc", "poupanca", "carteira", "cartao"]
 
-const HORIZONS = [30, 60, 90, 180] as const;
+const HORIZONS = [30, 60, 90, 180] as const
+
+const KIND_DOT: Record<AccountKind, string> = {
+  cc: "bg-[var(--system-blue)]",
+  poupanca: "bg-[var(--system-green)]",
+  carteira: "bg-[var(--system-orange)]",
+  cartao: "bg-[var(--system-indigo)]",
+}
 
 type FormState = {
-  nome: string;
-  kind: AccountKind;
-  saldoInicial: string;
-  dataReferencia: string;
-  diaFechamento: string;
-  diaPagamento: string;
-  fonteCsv: "inter" | "nubank" | "";
-};
+  nome: string
+  kind: AccountKind
+  saldoInicial: string
+  dataReferencia: string
+  diaFechamento: string
+  diaPagamento: string
+  fonteCsv: "inter" | "nubank" | ""
+}
 
 const emptyForm = (): FormState => ({
   nome: "",
@@ -41,13 +47,13 @@ const emptyForm = (): FormState => ({
   diaFechamento: "10",
   diaPagamento: "20",
   fonteCsv: "",
-});
+})
 
 type Props = {
-  onClose?: () => void;
-};
+  onClose?: () => void
+}
 
-export function AccountsPanel({ onClose }: Props) {
+export function AccountsPanel({ onClose }: Readonly<Props>) {
   const {
     accounts,
     dataset,
@@ -58,45 +64,41 @@ export function AccountsPanel({ onClose }: Props) {
     removeAccount,
     setDefaultAccount,
     updateSettings,
-  } = useAppStore();
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [error, setError] = useState<string | null>(null);
-  const [horizon, setHorizon] = useState(settings.projectionHorizonDays);
-  const [savingHorizon, setSavingHorizon] = useState(false);
-  const [horizonSaved, setHorizonSaved] = useState(false);
-  const horizonResetTimer = useRef<number | null>(null);
-
-  useEffect(() => {
-    setHorizon(settings.projectionHorizonDays);
-  }, [settings.projectionHorizonDays]);
+  } = useAppStore()
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<FormState>(emptyForm)
+  const [error, setError] = useState<string | null>(null)
+  const [savingHorizon, setSavingHorizon] = useState(false)
+  const [horizonSaved, setHorizonSaved] = useState(false)
+  const horizonResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const horizon = settings.projectionHorizonDays
 
   useEffect(() => {
     return () => {
       if (horizonResetTimer.current !== null) {
-        window.clearTimeout(horizonResetTimer.current);
+        clearTimeout(horizonResetTimer.current)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   const cardFontesInDataset = useMemo(() => {
-    const set = new Set<"inter" | "nubank">();
+    const set = new Set<"inter" | "nubank">()
     for (const s of dataset.sources) {
-      if (s.fonte === "inter" || s.fonte === "nubank") set.add(s.fonte);
+      if (s.fonte === "inter" || s.fonte === "nubank") set.add(s.fonte)
     }
-    return set;
-  }, [dataset.sources]);
+    return set
+  }, [dataset.sources])
 
   function openNew() {
-    setEditingId(null);
-    setForm(emptyForm());
-    setError(null);
-    setFormOpen(true);
+    setEditingId(null)
+    setForm(emptyForm())
+    setError(null)
+    setFormOpen(true)
   }
 
   function openEdit(account: Account) {
-    setEditingId(account.id);
+    setEditingId(account.id)
     setForm({
       nome: account.nome,
       kind: account.kind,
@@ -105,22 +107,22 @@ export function AccountsPanel({ onClose }: Props) {
       diaFechamento: String(account.diaFechamento ?? 10),
       diaPagamento: String(account.diaPagamento ?? 20),
       fonteCsv: account.fonteCsv ?? "",
-    });
-    setError(null);
-    setFormOpen(true);
+    })
+    setError(null)
+    setFormOpen(true)
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const saldo = parseFloat(form.saldoInicial.replace(",", "."));
+    e.preventDefault()
+    setError(null)
+    const saldo = parseFloat(form.saldoInicial.replace(",", "."))
     if (Number.isNaN(saldo)) {
-      setError("Saldo inicial inválido.");
-      return;
+      setError("Saldo inicial inválido.")
+      return
     }
     if (!form.nome.trim()) {
-      setError("Informe o nome da conta.");
-      return;
+      setError("Informe o nome da conta.")
+      return
     }
 
     const partial: Partial<Account> = {
@@ -128,99 +130,99 @@ export function AccountsPanel({ onClose }: Props) {
       kind: form.kind,
       saldoInicial: saldo,
       dataReferencia: form.dataReferencia,
-    };
+    }
 
     if (form.kind === "cartao") {
       partial.diaFechamento = Math.min(
         31,
         Math.max(1, Number(form.diaFechamento) || 10),
-      );
+      )
       partial.diaPagamento = Math.min(
         31,
         Math.max(1, Number(form.diaPagamento) || 20),
-      );
+      )
       if (form.fonteCsv === "inter" || form.fonteCsv === "nubank") {
-        partial.fonteCsv = form.fonteCsv;
+        partial.fonteCsv = form.fonteCsv
       }
     }
 
     try {
       if (editingId) {
-        const existing = accounts.find((a) => a.id === editingId);
-        if (!existing) return;
-        await updateAccount({ ...existing, ...partial });
+        const existing = accounts.find((a) => a.id === editingId)
+        if (!existing) return
+        await updateAccount({ ...existing, ...partial })
       } else {
-        const acc = createDefaultAccount(form.kind, form.nome.trim(), partial);
-        if (accounts.length === 0) acc.isDefault = true;
-        await addAccount(acc);
+        const acc = createDefaultAccount(form.kind, form.nome.trim(), partial)
+        if (accounts.length === 0) acc.isDefault = true
+        await addAccount(acc)
       }
-      setFormOpen(false);
+      setFormOpen(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar.");
+      setError(err instanceof Error ? err.message : "Erro ao salvar.")
     }
   }
 
   async function handleRemove(id: string) {
-    const count = countTransactionsForAccount(dataset, manualTransactions, id);
+    const count = countTransactionsForAccount(dataset, manualTransactions, id)
     if (count > 0) {
-      setError(`Conta com ${count} transação(ões) — desative em vez de excluir.`);
-      return;
+      setError(`Conta com ${count} transação(ões) — desative em vez de excluir.`)
+      return
     }
-    if (!window.confirm("Excluir esta conta?")) return;
+    if (!window.confirm("Excluir esta conta?")) return
     try {
-      await removeAccount(id);
+      await removeAccount(id)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao excluir.");
+      setError(err instanceof Error ? err.message : "Erro ao excluir.")
     }
   }
 
   async function toggleActive(account: Account) {
-    await updateAccount({ ...account, ativa: !account.ativa });
+    await updateAccount({ ...account, ativa: !account.ativa })
   }
 
-  async function handleSaveHorizon() {
-    if (savingHorizon) return;
-    setSavingHorizon(true);
+  async function handleHorizonChange(days: string) {
+    const next = Number(days) as (typeof HORIZONS)[number]
+    if (next === settings.projectionHorizonDays) return
+    setSavingHorizon(true)
     try {
       await updateSettings({
         ...settings,
-        projectionHorizonDays: horizon,
-      });
-      setHorizonSaved(true);
+        projectionHorizonDays: next,
+      })
+      setHorizonSaved(true)
       if (horizonResetTimer.current !== null) {
-        window.clearTimeout(horizonResetTimer.current);
+        clearTimeout(horizonResetTimer.current)
       }
-      horizonResetTimer.current = window.setTimeout(() => {
-        setHorizonSaved(false);
-        horizonResetTimer.current = null;
-      }, 2000);
+      horizonResetTimer.current = setTimeout(() => {
+        setHorizonSaved(false)
+        horizonResetTimer.current = null
+      }, 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar horizonte.");
+      setError(err instanceof Error ? err.message : "Erro ao salvar horizonte.")
     } finally {
-      setSavingHorizon(false);
+      setSavingHorizon(false)
     }
   }
 
-  const horizonChanged = horizon !== settings.projectionHorizonDays;
-  const def = defaultAccount(accounts);
+  const def = defaultAccount(accounts)
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <SectionTitle>Contas</SectionTitle>
-          <p className="text-[11px] text-muted mt-0.5">
+          <p className="text-[11px] uppercase tracking-wider text-muted">Contas</p>
+          <p className="text-xs text-muted mt-0.5">
             Contas correntes, poupança, carteira e cartões vinculados ao CSV.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {onClose && (
-            <Button size="sm" onClick={onClose}>
+            <Button size="sm" className="rounded-full" onClick={onClose}>
               <ArrowLeft size={13} />
               Voltar
             </Button>
           )}
-          <Button variant="primary" size="sm" onClick={openNew}>
+          <Button variant="primary" size="sm" className="rounded-full" onClick={openNew}>
             <Plus size={13} />
             Nova conta
           </Button>
@@ -228,29 +230,37 @@ export function AccountsPanel({ onClose }: Props) {
       </div>
 
       {error && (
-        <Panel className="p-2">
-          <p className="text-xs text-danger">{error}</p>
-        </Panel>
+        <div
+          className="flex items-center gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--system-red)_12%,transparent)] px-4 py-2 text-xs text-[var(--system-red)]"
+          role="alert"
+        >
+          <XCircle size={14} className="shrink-0" />
+          {error}
+        </div>
       )}
 
       {accounts.length === 0 ? (
-        <Panel className="p-4">
+        <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-4">
           <p className="text-sm text-muted">
             Nenhuma conta cadastrada. Crie a Conta Principal com seu saldo atual.
           </p>
-        </Panel>
+        </div>
       ) : (
-        <Panel className="divide-y divide-border">
+        <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden divide-y divide-border/60">
           {accounts.map((a) => (
             <div
               key={a.id}
               className={clsx(
-                "flex items-center justify-between gap-3 px-3 py-3 flex-wrap",
+                "flex items-center justify-between gap-3 px-4 py-3 flex-wrap",
                 !a.ativa && "opacity-60",
               )}
             >
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={clsx("h-2.5 w-2.5 shrink-0 rounded-full", KIND_DOT[a.kind])}
+                    aria-hidden
+                  />
                   <span className="font-medium text-sm">{a.nome}</span>
                   <Badge>{ACCOUNT_KIND_LABELS[a.kind]}</Badge>
                   {a.isDefault && (
@@ -261,7 +271,7 @@ export function AccountsPanel({ onClose }: Props) {
                   )}
                   {!a.ativa && <Badge>Inativa</Badge>}
                 </div>
-                <Num className="block text-xs text-muted mt-0.5">
+                <Num className="block text-xs text-muted mt-0.5 pl-[18px] num-display">
                   Saldo {a.saldoInicial.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}{" "}
                   · ref. {a.dataReferencia.split("-").reverse().join("/")}
                   {a.kind === "cartao" && a.fonteCsv && ` · ${a.fonteCsv}`}
@@ -272,22 +282,23 @@ export function AccountsPanel({ onClose }: Props) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="rounded-full"
                     title="Marcar como padrão (Quick Add)"
                     onClick={() => setDefaultAccount(a.id)}
                   >
                     <Star size={13} />
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => openEdit(a)}>
+                <Button variant="ghost" size="sm" className="rounded-full" onClick={() => openEdit(a)}>
                   <Pencil size={13} />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => toggleActive(a)}>
+                <Button variant="ghost" size="sm" className="rounded-full" onClick={() => toggleActive(a)}>
                   {a.ativa ? "Desativar" : "Ativar"}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-danger"
+                  className="rounded-full text-danger"
                   onClick={() => handleRemove(a.id)}
                 >
                   <Trash2 size={13} />
@@ -295,7 +306,7 @@ export function AccountsPanel({ onClose }: Props) {
               </div>
             </div>
           ))}
-        </Panel>
+        </div>
       )}
 
       {formOpen && (
@@ -304,16 +315,16 @@ export function AccountsPanel({ onClose }: Props) {
           onClick={() => setFormOpen(false)}
         >
           <form
-            className="bg-surface border border-border rounded-lg w-full max-w-md mx-4 p-4 space-y-3"
+            className="bg-surface rounded-2xl ring-1 ring-border/60 shadow-[var(--shadow-card)] w-full max-w-md mx-4 p-5 space-y-3"
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSubmit}
           >
             <div className="space-y-3">
-              <SectionTitle>
+              <p className="text-[11px] uppercase tracking-wider text-muted">
                 {editingId ? "Editar conta" : "Nova conta"}
-              </SectionTitle>
+              </p>
               <label className="block space-y-1">
                 <span className="text-xs text-muted">Nome</span>
                 <Input
@@ -417,10 +428,10 @@ export function AccountsPanel({ onClose }: Props) {
                 </>
               )}
               <div className="flex gap-2 pt-1">
-                <Button type="submit" variant="primary" size="sm">
+                <Button type="submit" variant="primary" size="sm" className="rounded-full">
                   Salvar
                 </Button>
-                <Button size="sm" onClick={() => setFormOpen(false)}>
+                <Button size="sm" className="rounded-full" onClick={() => setFormOpen(false)}>
                   Cancelar
                 </Button>
               </div>
@@ -429,46 +440,35 @@ export function AccountsPanel({ onClose }: Props) {
         </DrawerBackdrop>
       )}
 
-      <Panel className="p-4 space-y-2">
-        <SectionTitle>Horizonte de projeção</SectionTitle>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select
-            className="w-auto"
-            value={horizon}
-            onChange={(e) => setHorizon(Number(e.target.value))}
-            disabled={savingHorizon}
-          >
-            {HORIZONS.map((h) => (
-              <option key={h} value={h}>
-                {h} dias
-              </option>
-            ))}
-          </Select>
-          <Button
+      <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
+        <p className="text-[11px] uppercase tracking-wider text-muted">Horizonte de projeção</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <SegmentedControl
+            value={String(horizon)}
+            onChange={handleHorizonChange}
+            options={HORIZONS.map((h) => ({ value: String(h), label: `${h}d` }))}
             size="sm"
-            variant={horizonChanged ? "primary" : "default"}
-            onClick={handleSaveHorizon}
-            disabled={savingHorizon || !horizonChanged}
-          >
-            {savingHorizon ? "Salvando…" : "Salvar horizonte"}
-          </Button>
-          {horizonSaved && (
+          />
+          {savingHorizon && (
+            <span className="text-xs text-muted">Salvando…</span>
+          )}
+          {horizonSaved && !savingHorizon && (
             <span
-              className="inline-flex items-center gap-1 text-[11px] text-success"
+              className="inline-flex items-center gap-1 text-xs text-[var(--system-green)]"
               role="status"
               aria-live="polite"
             >
-              <Check size={12} />
+              <CheckCircle2 size={12} />
               Salvo
             </span>
           )}
         </div>
         {def && (
-          <p className="text-[11px] text-muted">
+          <p className="text-xs text-muted">
             Conta padrão para Quick Add: <strong>{def.nome}</strong>
           </p>
         )}
-      </Panel>
+      </div>
     </div>
-  );
+  )
 }
