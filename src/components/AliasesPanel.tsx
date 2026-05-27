@@ -98,25 +98,39 @@ export function AliasesPanel() {
   function addPattern() {
     const v = patternInput.trim()
     if (!v) return
-    if (form.patterns.some((p) => p.toUpperCase() === v.toUpperCase())) {
-      setPatternInput("")
-      return
-    }
-    setForm({ ...form, patterns: [...form.patterns, v] })
+    setForm((prev) => {
+      if (prev.patterns.some((p) => p.toUpperCase() === v.toUpperCase())) {
+        return prev
+      }
+      return { ...prev, patterns: [...prev.patterns, v] }
+    })
     setPatternInput("")
   }
 
   function removePattern(idx: number) {
-    const next = [...form.patterns]
-    next.splice(idx, 1)
-    setForm({ ...form, patterns: next })
+    setForm((prev) => ({
+      ...prev,
+      patterns: prev.patterns.filter((_, k) => k !== idx),
+    }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     const canonical = form.canonical.trim()
-    const patterns = form.patterns.map((p) => p.trim()).filter(Boolean)
+    const pendingPattern = patternInput.trim()
+    const baseList = pendingPattern
+      ? [...form.patterns, pendingPattern]
+      : form.patterns
+    const trimmed = baseList.map((p) => p.trim()).filter(Boolean)
+    const seen = new Set<string>()
+    const patterns: string[] = []
+    for (const p of trimmed) {
+      const norm = p.toUpperCase()
+      if (seen.has(norm)) continue
+      seen.add(norm)
+      patterns.push(p)
+    }
     if (!canonical) {
       setError("Informe o nome canônico (apelido).")
       return
@@ -145,6 +159,7 @@ export function AliasesPanel() {
           atualizadaEm: now,
         })
       }
+      setPatternInput("")
       setFormOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar.")
@@ -248,7 +263,7 @@ export function AliasesPanel() {
                 placeholder="iFood"
                 value={form.canonical}
                 onChange={(e) =>
-                  setForm({ ...form, canonical: e.target.value })
+                  setForm((prev) => ({ ...prev, canonical: e.target.value }))
                 }
                 autoFocus
               />
@@ -262,9 +277,11 @@ export function AliasesPanel() {
                       className="flex-1"
                       value={p}
                       onChange={(e) => {
-                        const next = [...form.patterns]
-                        next[i] = e.target.value
-                        setForm({ ...form, patterns: next })
+                        const value = e.target.value
+                        setForm((prev) => ({
+                          ...prev,
+                          patterns: prev.patterns.map((q, k) => (k === i ? value : q)),
+                        }))
                       }}
                     />
                     <Button
@@ -326,8 +343,8 @@ export function AliasesPanel() {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-sm">{alias.canonical}</div>
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {alias.patterns.map((p) => (
-                      <Chip key={p} className="text-[10px]">
+                    {alias.patterns.map((p, i) => (
+                      <Chip key={`${alias.id}-${i}-${p}`} className="text-[10px]">
                         {p}
                       </Chip>
                     ))}
@@ -381,8 +398,8 @@ export function AliasesPanel() {
                   className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-4 space-y-3"
                 >
                   <div className="flex flex-wrap gap-1.5">
-                    {s.variantes.map((v) => (
-                      <Chip key={v.estabelecimento} className="text-[10px]">
+                    {s.variantes.map((v, i) => (
+                      <Chip key={`${s.token}-${i}-${v.estabelecimento}`} className="text-[10px]">
                         {v.estabelecimento}
                       </Chip>
                     ))}
