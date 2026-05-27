@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Filters } from "@/lib/aggregations";
 import { Natureza, TransactionNormalized } from "@/lib/types";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { MultiSelect } from "./MultiSelect";
 import { DateRangePicker } from "./DateRangePicker";
 import { FAIXA_LABELS } from "@/lib/normalize";
 import { countActiveFilters } from "@/lib/filters";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Input } from "@/components/ui/Input";
 import { SlidersHorizontal, X } from "lucide-react";
 
 type Props = {
@@ -34,6 +38,7 @@ export function FiltersDrawer({
   onChange,
   onClear,
 }: Props) {
+  const drawerRef = useRef<HTMLElement>(null);
   const { datasetMin, datasetMax } = useMemo(() => {
     let min: string | null = null;
     let max: string | null = null;
@@ -67,39 +72,41 @@ export function FiltersDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  useFocusTrap(open, drawerRef);
+
   if (!open) return null;
 
   return (
     <>
-      <div
-        className="drawer-backdrop"
+      <DrawerBackdrop
         role="presentation"
         onClick={onClose}
         aria-hidden
       />
       <aside
-        className="drawer-panel"
+        ref={drawerRef}
+        className="fixed top-0 right-0 bottom-0 w-[min(100%,20rem)] bg-surface border-l border-border z-50 flex flex-col overflow-hidden"
         role="dialog"
         aria-modal="true"
         aria-label="Filtros"
       >
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
           <div>
             <div className="font-semibold text-sm">Filtros</div>
-            <div className="text-[11px] subtle">
+            <div className="text-[11px] text-muted">
               {activeCount > 0
                 ? `${activeCount} ativo(s)`
                 : "Nenhum filtro aplicado"}
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Fechar"
           >
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -133,11 +140,14 @@ export function FiltersDrawer({
             onChange={(v) => onChange({ ...filters, faixas: v })}
           />
           <div>
-            <label className="section-title block mb-1">
+            <label
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+              htmlFor="filter-search"
+            >
               Buscar lançamento
             </label>
-            <input
-              className="input"
+            <Input
+              id="filter-search"
               type="search"
               placeholder="Uber, supermercado…"
               value={filters.search}
@@ -148,18 +158,21 @@ export function FiltersDrawer({
           </div>
         </div>
 
-        <div className="p-4 border-t border-[var(--border)] flex gap-2">
-          <button
-            type="button"
-            className="btn flex-1"
+        <div className="p-4 border-t border-border flex gap-2">
+          <Button
+            className="flex-1"
             onClick={onClear}
             disabled={activeCount === 0}
           >
             Limpar
-          </button>
-          <button type="button" className="btn btn-primary flex-1" onClick={onClose}>
+          </Button>
+          <Button
+            variant="primary"
+            className="flex-1"
+            onClick={onClose}
+          >
             Aplicar
-          </button>
+          </Button>
         </div>
       </aside>
     </>
@@ -174,14 +187,14 @@ export function FiltersButton({
   onClick: () => void;
 }) {
   return (
-    <button type="button" className="btn btn-sm" onClick={onClick}>
+    <Button size="sm" onClick={onClick}>
       <SlidersHorizontal size={13} />
       Filtros
       {activeCount > 0 && (
-        <span className="inline-flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-[var(--foreground)] text-[var(--surface)] text-[10px] font-semibold px-1">
+        <span className="inline-flex min-w-[1.1rem] h-[1.1rem] items-center justify-center rounded-full bg-foreground text-surface text-[10px] font-semibold px-1">
           {activeCount}
         </span>
       )}
-    </button>
+    </Button>
   );
 }

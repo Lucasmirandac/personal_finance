@@ -8,6 +8,10 @@ import {
   detectSubscriptions,
   suggestionToRecurring,
 } from "@/lib/subscriptions";
+import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
 import { Sparkles } from "lucide-react";
 
 const PAGE_SIZE = 8;
@@ -41,17 +45,17 @@ export function SubscriptionsPanel() {
   if (!hasAnalysis) return null;
 
   return (
-    <section className="panel p-4 space-y-3">
+    <Panel className="p-4 space-y-3">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-[var(--warning)]" />
+            <Sparkles size={14} className="text-warning" />
             <h2 className="text-sm font-semibold">Assinaturas detectadas</h2>
             {suggestions.length > 0 && (
-              <span className="chip">{suggestions.length}</span>
+              <Chip>{suggestions.length}</Chip>
             )}
           </div>
-          <p className="subtle text-xs mt-0.5 max-w-xl">
+          <p className="text-muted text-xs mt-0.5 max-w-xl">
             Gastos mensais estáveis nos últimos 6 meses. Converta em despesa fixa
             com um clique.
           </p>
@@ -59,13 +63,13 @@ export function SubscriptionsPanel() {
       </div>
 
       {toast && (
-        <p className="text-xs text-[var(--success)] border border-[var(--success)]/30 rounded-md px-2 py-1.5">
+        <p className="text-xs text-success border border-success/30 rounded-md px-2 py-1.5">
           {toast}
         </p>
       )}
 
       {suggestions.length === 0 ? (
-        <p className="text-sm subtle">
+        <p className="text-sm text-muted">
           Nada detectado nos últimos 6 meses.
         </p>
       ) : (
@@ -77,7 +81,7 @@ export function SubscriptionsPanel() {
               {suggestions.length > 1 ? "s" : ""}
             </span>{" "}
             que talvez você queira virar Despesa fixa:{" "}
-            <span className="subtle">
+            <span className="text-muted">
               {suggestions
                 .slice(0, 4)
                 .map((s) => s.estabelecimento)
@@ -90,24 +94,26 @@ export function SubscriptionsPanel() {
             {visible.map((s) => (
               <li
                 key={s.key}
-                className="border border-[var(--border)] rounded-lg p-3 space-y-2 bg-[var(--surface)]"
+                className="border border-border rounded-lg p-3 space-y-2 bg-surface"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-sm">{s.estabelecimento}</span>
-                  <span className="chip num">{formatBRL(s.valorMediano)}/mês</span>
-                  <span className="chip text-[10px]">±{s.variacaoPct.toFixed(1)}%</span>
+                  <Chip>
+                    <Num>{formatBRL(s.valorMediano)}</Num>/mês
+                  </Chip>
+                  <Chip className="text-[10px]">
+                    ±{s.variacaoPct.toFixed(1)}%
+                  </Chip>
                 </div>
-                <p className="text-xs subtle">
+                <p className="text-xs text-muted">
                   Visto em {s.meses.length} meses · último em{" "}
                   {formatDateBR(s.ultimaData)} · {s.categoria}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={clsx(
-                      "btn btn-primary btn-sm",
-                      busyKey === s.key && "opacity-60",
-                    )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className={clsx(busyKey === s.key && "opacity-60")}
                     disabled={busyKey !== null}
                     onClick={async () => {
                       setBusyKey(s.key);
@@ -121,31 +127,27 @@ export function SubscriptionsPanel() {
                     }}
                   >
                     Virar despesa fixa
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     disabled={busyKey !== null}
                     onClick={() => dismissSubscription(s.key)}
                   >
                     Dispensar
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
 
           {suggestions.length > PAGE_SIZE && (
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => setShowAll((v) => !v)}
-            >
+            <Button size="sm" onClick={() => setShowAll((v) => !v)}>
               {showAll ? "Mostrar menos" : `Mostrar mais (${suggestions.length - PAGE_SIZE})`}
-            </button>
+            </Button>
           )}
         </>
       )}
-    </section>
+    </Panel>
   );
 }

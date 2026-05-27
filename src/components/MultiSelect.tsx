@@ -46,21 +46,21 @@ export function MultiSelect({
 
   return (
     <div className="flex flex-col gap-1" ref={wrapRef}>
-      <span className="text-xs subtle">{label}</span>
+      <span className="text-xs text-muted">{label}</span>
       <div className="relative">
         <button
           type="button"
-          className="input text-left flex items-center justify-between"
+          className="bg-surface border border-border rounded-md px-2.5 py-1.5 text-[13px] text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong text-left flex items-center justify-between"
           onClick={() => setOpen((v) => !v)}
         >
-          <span className={clsx(values.length === 0 && "subtle")}>{summary}</span>
-          <span className="ml-2 subtle">▾</span>
+          <span className={clsx(values.length === 0 && "text-muted")}>{summary}</span>
+          <span className="ml-2 text-muted">▾</span>
         </button>
         {open && (
-          <div className="absolute z-30 mt-1 w-full max-h-72 overflow-auto card p-1">
+          <div className="absolute z-30 mt-1 w-full max-h-72 overflow-auto bg-surface border border-border rounded-lg p-1">
             <button
               type="button"
-              className="w-full text-left text-xs px-2 py-1 subtle hover:bg-[var(--surface-2)] rounded"
+              className="w-full text-left text-xs px-2 py-1 text-muted hover:bg-surface-2 rounded"
               onClick={() => onChange([])}
             >
               Limpar seleção
@@ -71,8 +71,8 @@ export function MultiSelect({
                 <label
                   key={o.value}
                   className={clsx(
-                    "flex items-center gap-2 px-2 py-1 rounded text-sm hover:bg-[var(--surface-2)] cursor-pointer",
-                    checked && "bg-[var(--surface-2)]",
+                    "flex items-center gap-2 px-2 py-1 rounded text-sm hover:bg-surface-2 cursor-pointer",
+                    checked && "bg-surface-2",
                   )}
                 >
                   <input

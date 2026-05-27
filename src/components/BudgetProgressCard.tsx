@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { BudgetUsage } from "@/lib/budgets";
 import { formatBRL, formatPercent } from "@/lib/format";
+import { Num } from "@/components/ui/Num";
 
 type Props = {
   usage: BudgetUsage;
@@ -27,7 +28,7 @@ export function BudgetProgressCard({ usage, compact = false }: Props) {
   return (
     <div
       className={clsx(
-        "border border-[var(--border)] rounded-md p-3 space-y-2",
+        "border border-border rounded-md p-3 space-y-2",
         usage.status === "danger" && "border-[var(--danger)]/40",
         usage.status === "warning" && "border-[var(--warning)]/40",
       )}
@@ -36,19 +37,19 @@ export function BudgetProgressCard({ usage, compact = false }: Props) {
         <div className="min-w-0">
           <div className="font-medium text-sm truncate">{usage.categoria}</div>
           {!compact && (
-            <div className="text-[10px] subtle">{statusLabel(usage.status)}</div>
+            <div className="text-[10px] text-muted">{statusLabel(usage.status)}</div>
           )}
         </div>
-        <span
+        <Num
           className={clsx(
-            "text-xs num font-medium shrink-0",
-            usage.status === "danger" && "text-[var(--danger)]",
-            usage.status === "warning" && "text-[var(--warning)]",
-            usage.status === "ok" && "text-[var(--success)]",
+            "text-xs font-medium shrink-0",
+            usage.status === "danger" && "text-danger",
+            usage.status === "warning" && "text-warning",
+            usage.status === "ok" && "text-success",
           )}
         >
           {formatPercent(usage.percentual)}
-        </span>
+        </Num>
       </div>
       <div className="h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
         <div
@@ -56,7 +57,7 @@ export function BudgetProgressCard({ usage, compact = false }: Props) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs num subtle">
+      <div className="flex justify-between text-xs font-mono tabular-nums text-muted">
         <span>{formatBRL(usage.gasto)}</span>
         <span>de {formatBRL(usage.limite)}</span>
       </div>

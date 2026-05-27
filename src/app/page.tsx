@@ -21,12 +21,12 @@ export default function Home() {
   }, [loaded, hasAnalysis, dataset, settings, accounts, router]);
 
   if (!loaded) {
-    return <div className="subtle">Carregando…</div>;
+    return <div className="text-muted">Carregando…</div>;
   }
 
   if (!hasAnalysis) {
     return <Onboarding />;
   }
 
-  return <div className="subtle">Redirecionando…</div>;
+  return <div className="text-muted">Redirecionando…</div>;
 }

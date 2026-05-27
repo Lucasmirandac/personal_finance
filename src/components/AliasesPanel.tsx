@@ -12,6 +12,13 @@ import { newAliasId } from "@/lib/ids";
 import { useAppStore } from "@/lib/store";
 import { EstablishmentAlias, TransactionNormalized } from "@/lib/types";
 import { formatBRL, formatInt } from "@/lib/format";
+import { Button } from "@/components/ui/Button";
+import { KpiCard, KpiStrip } from "@/components/KpiCard";
+import { Chip } from "@/components/ui/Chip";
+import { Input } from "@/components/ui/Input";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Link2, Pencil, Plus, Trash2, X } from "lucide-react";
 
 type AliasFormState = {
@@ -186,186 +193,181 @@ export function AliasesPanel() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <div className="section-title">Apelidos de estabelecimentos</div>
-          <p className="text-[11px] subtle mt-0.5 max-w-xl">
+          <SectionTitle>Apelidos de estabelecimentos</SectionTitle>
+          <p className="text-[11px] text-muted mt-0.5 max-w-xl">
             Agrupe variantes do mesmo lugar (ex.: PAG*MERC IFOOD, IFD*REST →
             iFood). Padrões casam por substring, sem diferenciar maiúsculas.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => openNew()}
-        >
+        <Button variant="primary" size="sm" onClick={() => openNew()}>
           <Plus size={13} />
           Novo apelido
-        </button>
+        </Button>
       </div>
 
       {preview && preview.consolidated > 0 && (
-        <div className="panel p-3 kpi-strip">
-          <div className="kpi-cell">
-            <div className="section-title">Antes</div>
-            <div className="num text-base font-semibold mt-0.5">
-              {formatInt(preview.before)}
-            </div>
-            <div className="text-[11px] subtle">nomes únicos</div>
-          </div>
-          <div className="kpi-cell">
-            <div className="section-title">Depois</div>
-            <div className="num text-base font-semibold mt-0.5">
-              {formatInt(preview.after)}
-            </div>
-            <div className="text-[11px] subtle">no ranking</div>
-          </div>
-          <div className="kpi-cell">
-            <div className="section-title">Consolidados</div>
-            <div className="num text-base font-semibold mt-0.5 text-[var(--success)]">
-              {formatInt(preview.consolidated)}
-            </div>
-            <div className="text-[11px] subtle">variantes agrupadas</div>
-          </div>
-        </div>
+        <Panel className="p-3">
+          <KpiStrip>
+            <KpiCard
+              label="Antes"
+              value={formatInt(preview.before)}
+              hint="nomes únicos"
+              compact
+            />
+            <KpiCard
+              label="Depois"
+              value={formatInt(preview.after)}
+              hint="no ranking"
+              compact
+            />
+            <KpiCard
+              label="Consolidados"
+              value={formatInt(preview.consolidated)}
+              hint="variantes agrupadas"
+              tone="success"
+              compact
+            />
+          </KpiStrip>
+        </Panel>
       )}
 
       {error && (
-        <p className="text-xs text-[var(--danger)] panel p-2">{error}</p>
+        <Panel className="p-2">
+          <p className="text-xs text-danger">{error}</p>
+        </Panel>
       )}
 
       {formOpen && (
-        <form
-          className="panel p-4 space-y-3 border border-[var(--border)]"
-          onSubmit={(e) => void handleSubmit(e)}
-        >
-          <div className="section-title">
-            {editingId ? "Editar apelido" : "Novo apelido"}
-          </div>
-          <label className="block space-y-1">
-            <span className="text-xs subtle">Nome canônico</span>
-            <input
-              className="input w-full"
-              placeholder="iFood"
-              value={form.canonical}
-              onChange={(e) =>
-                setForm({ ...form, canonical: e.target.value })
-              }
-              autoFocus
-            />
-          </label>
-          <div className="space-y-2">
-            <span className="text-xs subtle">Padrões (variantes)</span>
-            <ul className="space-y-1">
-              {form.patterns.map((p, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <input
-                    className="input flex-1"
-                    value={p}
-                    onChange={(e) => {
-                      const next = [...form.patterns];
-                      next[i] = e.target.value;
-                      setForm({ ...form, patterns: next });
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm shrink-0"
-                    onClick={() => removePattern(i)}
-                    aria-label="Remover padrão"
-                  >
-                    <X size={13} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="flex gap-2">
-              <input
-                className="input flex-1"
-                placeholder="IFOOD"
-                value={patternInput}
-                onChange={(e) => setPatternInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addPattern();
-                  }
-                }}
+        <Panel className="p-4">
+          <form
+            className="space-y-3"
+            onSubmit={(e) => void handleSubmit(e)}
+          >
+            <SectionTitle>
+              {editingId ? "Editar apelido" : "Novo apelido"}
+            </SectionTitle>
+            <label className="block space-y-1">
+              <span className="text-xs text-muted">Nome canônico</span>
+              <Input
+                placeholder="iFood"
+                value={form.canonical}
+                onChange={(e) =>
+                  setForm({ ...form, canonical: e.target.value })
+                }
+                autoFocus
               />
-              <button
-                type="button"
-                className="btn btn-sm shrink-0"
-                onClick={addPattern}
-              >
-                <Plus size={13} />
-              </button>
+            </label>
+            <div className="space-y-2">
+              <span className="text-xs text-muted">Padrões (variantes)</span>
+              <ul className="space-y-1">
+                {form.patterns.map((p, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <Input
+                      className="flex-1"
+                      value={p}
+                      onChange={(e) => {
+                        const next = [...form.patterns];
+                        next[i] = e.target.value;
+                        setForm({ ...form, patterns: next });
+                      }}
+                    />
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => removePattern(i)}
+                      aria-label="Remover padrão"
+                    >
+                      <X size={13} />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-2">
+                <Input
+                  className="flex-1"
+                  placeholder="IFOOD"
+                  value={patternInput}
+                  onChange={(e) => setPatternInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addPattern();
+                    }
+                  }}
+                />
+                <Button size="sm" className="shrink-0" onClick={addPattern}>
+                  <Plus size={13} />
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button type="submit" className="btn btn-primary btn-sm">
-              Salvar
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => setFormOpen(false)}
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+            <div className="flex gap-2 flex-wrap">
+              <Button type="submit" variant="primary" size="sm">
+                Salvar
+              </Button>
+              <Button size="sm" onClick={() => setFormOpen(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </Panel>
       )}
 
       {establishmentAliases.length === 0 ? (
-        <p className="text-sm subtle panel p-4">
-          Nenhum apelido cadastrado. Use uma sugestão abaixo ou crie manualmente.
-        </p>
+        <Panel className="p-4">
+          <p className="text-sm text-muted">
+            Nenhum apelido cadastrado. Use uma sugestão abaixo ou crie manualmente.
+          </p>
+        </Panel>
       ) : (
-        <ul className="panel divide-y divide-[var(--border)] overflow-hidden">
-          {establishmentAliases.map((alias) => (
-            <li
-              key={alias.id}
-              className="px-3 py-3 flex items-start justify-between gap-3 flex-wrap"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-sm">{alias.canonical}</div>
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {alias.patterns.map((p) => (
-                    <code key={p} className="chip text-[10px]">
-                      {p}
-                    </code>
-                  ))}
+        <Panel className="divide-y divide-border overflow-hidden">
+          <ul>
+            {establishmentAliases.map((alias) => (
+              <li
+                key={alias.id}
+                className="px-3 py-3 flex items-start justify-between gap-3 flex-wrap"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm">{alias.canonical}</div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {alias.patterns.map((p) => (
+                      <Chip key={p} className="text-[10px]">
+                        {p}
+                      </Chip>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={() => openEdit(alias)}
-                  aria-label={`Editar ${alias.canonical}`}
-                >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  onClick={() => void handleRemove(alias.id)}
-                  aria-label={`Excluir ${alias.canonical}`}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+                <div className="flex gap-1 shrink-0">
+                  <Button
+                    size="sm"
+                    onClick={() => openEdit(alias)}
+                    aria-label={`Editar ${alias.canonical}`}
+                  >
+                    <Pencil size={13} />
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => void handleRemove(alias.id)}
+                    aria-label={`Excluir ${alias.canonical}`}
+                  >
+                    <Trash2 size={13} />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
       )}
 
       {hasAnalysis && suggestions.length > 0 && (
         <section className="space-y-3">
           <div>
-            <div className="section-title flex items-center gap-2">
+            <SectionTitle className="flex items-center gap-2">
               <Link2 size={14} />
               Sugestões de agrupamento
-            </div>
-            <p className="text-[11px] subtle mt-0.5">
+            </SectionTitle>
+            <p className="text-[11px] text-muted mt-0.5">
               Variantes parecidas detectadas nos seus gastos. Agrupe com um clique.
             </p>
           </div>
@@ -375,23 +377,22 @@ export function AliasesPanel() {
                 suggestionCanonicals[s.token] ??
                 formatSuggestionCanonical(s.token);
               return (
-                <div key={s.token} className="panel p-3 space-y-2">
+                <Panel key={s.token} className="p-3 space-y-2">
                   <div className="flex flex-wrap gap-1">
                     {s.variantes.map((v) => (
-                      <code key={v.estabelecimento} className="chip text-[10px]">
+                      <Chip key={v.estabelecimento} className="text-[10px]">
                         {v.estabelecimento}
-                      </code>
+                      </Chip>
                     ))}
                   </div>
-                  <div className="text-[11px] subtle">
+                  <div className="text-[11px] text-muted">
                     {formatInt(s.variantes.length)} variantes ·{" "}
                     {formatBRL(s.totalGasto)} no total
                   </div>
                   <div className="flex gap-2 items-end flex-wrap">
                     <label className="flex-1 min-w-[120px] space-y-1">
-                      <span className="text-[11px] subtle">Apelido</span>
-                      <input
-                        className="input w-full"
+                      <span className="text-[11px] text-muted">Apelido</span>
+                      <Input
                         value={canonicalDefault}
                         onChange={(e) =>
                           setSuggestionCanonicals((prev) => ({
@@ -401,19 +402,20 @@ export function AliasesPanel() {
                         }
                       />
                     </label>
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      size="sm"
                       className={clsx(
-                        "btn btn-primary btn-sm shrink-0",
+                        "shrink-0",
                         busyToken === s.token && "opacity-70",
                       )}
                       disabled={busyToken === s.token}
                       onClick={() => void handleGroupSuggestion(s.token)}
                     >
                       {busyToken === s.token ? "Agrupando…" : "Agrupar"}
-                    </button>
+                    </Button>
                   </div>
-                </div>
+                </Panel>
               );
             })}
           </div>
@@ -421,7 +423,7 @@ export function AliasesPanel() {
       )}
 
       {hasAnalysis && suggestions.length === 0 && establishmentAliases.length > 0 && (
-        <p className="text-sm subtle">
+        <p className="text-sm text-muted">
           Nenhuma sugestão pendente — variantes restantes já estão cobertas.
         </p>
       )}

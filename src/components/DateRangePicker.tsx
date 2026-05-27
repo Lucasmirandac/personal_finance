@@ -9,6 +9,7 @@ import {
   DatePresetId,
   normalizeDateRange,
 } from "@/lib/datePresets";
+import { Input } from "@/components/ui/Input";
 
 type Props = {
   dateFrom: string | null;
@@ -55,28 +56,28 @@ export function DateRangePicker({
 
   return (
     <div className="flex flex-col gap-1" ref={wrapRef}>
-      <span className="text-xs subtle">Período</span>
+      <span className="text-xs text-muted">Período</span>
       <div className="flex flex-col gap-2">
         <div className="flex gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[120px]">
             <button
               type="button"
-              className="input text-left flex items-center justify-between w-full"
+              className="bg-surface border border-border rounded-md px-2.5 py-1.5 text-[13px] text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setOpen((v) => !v)}
               disabled={!datasetMax}
             >
-              <span className={clsx(!caption && "subtle")}>
+              <span className={clsx(!caption && "text-muted")}>
                 {caption ?? "Todo o período"}
               </span>
-              <span className="ml-2 subtle">▾</span>
+              <span className="ml-2 text-muted">▾</span>
             </button>
             {open && datasetMax && (
-              <div className="absolute z-30 mt-1 w-full min-w-[200px] card p-1">
+              <div className="absolute z-30 mt-1 w-full min-w-[200px] bg-surface border border-border rounded-lg p-1">
                 {DATE_PRESETS.map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-[var(--surface-2)]"
+                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-surface-2"
                     onClick={() => applyPreset(p.id)}
                   >
                     {p.label}
@@ -88,12 +89,16 @@ export function DateRangePicker({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] subtle uppercase tracking-wide">
+            <label
+              className="text-[10px] text-muted uppercase tracking-wide"
+              htmlFor="date-range-from"
+            >
               De
             </label>
-            <input
+            <Input
+              id="date-range-from"
               type="date"
-              className="input mt-0.5"
+              className="mt-0.5"
               min={min}
               max={max}
               value={dateFrom ?? ""}
@@ -103,12 +108,16 @@ export function DateRangePicker({
             />
           </div>
           <div>
-            <label className="text-[10px] subtle uppercase tracking-wide">
+            <label
+              className="text-[10px] text-muted uppercase tracking-wide"
+              htmlFor="date-range-to"
+            >
               Até
             </label>
-            <input
+            <Input
+              id="date-range-to"
               type="date"
-              className="input mt-0.5"
+              className="mt-0.5"
               min={min}
               max={max}
               value={dateTo ?? ""}

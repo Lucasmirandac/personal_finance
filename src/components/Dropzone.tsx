@@ -28,7 +28,10 @@ export function Dropzone({ onFile, disabled }: Props) {
 
   return (
     <div
-      className={clsx("dropzone", drag && "drag-active")}
+      className={clsx(
+        "border border-dashed border-border-strong rounded-lg bg-surface px-4 py-5 text-center transition-[border-color,background] cursor-pointer hover:border-foreground hover:bg-surface-2 data-[drag=true]:border-foreground data-[drag=true]:bg-surface-2",
+      )}
+      data-drag={drag || undefined}
       role="button"
       tabIndex={0}
       onClick={() => !disabled && inputRef.current?.click()}
@@ -58,11 +61,11 @@ export function Dropzone({ onFile, disabled }: Props) {
         onChange={(e) => handleFiles(e.target.files)}
       />
       <div className="flex flex-col items-center gap-2">
-        <UploadCloud size={22} className="text-[var(--muted)]" strokeWidth={1.75} />
+        <UploadCloud size={22} className="text-muted" strokeWidth={1.75} />
         <div className="text-sm font-medium">
           Arraste um CSV ou clique para selecionar
         </div>
-        <div className="text-[11px] subtle">
+        <div className="text-[11px] text-muted">
           Inter · Nubank — formato detectado automaticamente
         </div>
       </div>

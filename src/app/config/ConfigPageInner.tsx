@@ -55,13 +55,13 @@ export default function ConfigPageInner() {
     router.replace(`/config?tab=${next}`, { scroll: false });
   }
 
-  if (!loaded) return <div className="subtle">Carregando…</div>;
+  if (!loaded) return <div className="text-muted">Carregando…</div>;
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-lg font-semibold tracking-tight">Configurações</h1>
-        <p className="subtle text-xs mt-0.5">
+        <p className="text-muted text-xs mt-0.5">
           Importação, classificação de lançamentos e contas.
         </p>
       </div>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
+import { Panel } from "@/components/ui/Panel";
 
 export const MAIN_NAV = [
   { href: "/saldo", label: "Saldo" },
@@ -46,7 +47,7 @@ function NavLink({ href, label, active, onClick }: NavLinkProps) {
         "px-3 py-1 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap",
         active
           ? "border-[var(--foreground)] text-[var(--foreground)] font-medium"
-          : "border-transparent subtle hover:text-[var(--foreground)]",
+          : "border-transparent text-muted hover:text-[var(--foreground)]",
       )}
     >
       {label}
@@ -84,7 +85,7 @@ function ConfigMenu({ active }: { active: boolean }) {
           "px-3 py-1 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap inline-flex items-center gap-1",
           active
             ? "border-[var(--foreground)] text-[var(--foreground)] font-medium"
-            : "border-transparent subtle hover:text-[var(--foreground)]",
+            : "border-transparent text-muted hover:text-[var(--foreground)]",
         )}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -94,9 +95,9 @@ function ConfigMenu({ active }: { active: boolean }) {
         <ChevronDown size={14} />
       </button>
       {open && (
-        <div
+        <Panel
           role="menu"
-          className="absolute right-0 top-full mt-1 py-1 min-w-[200px] panel shadow-lg z-40"
+          className="absolute right-0 top-full mt-1 py-1 min-w-[200px] shadow-lg z-40"
         >
           {CONFIG_LINKS.map((l) => (
             <Link
@@ -112,12 +113,12 @@ function ConfigMenu({ active }: { active: boolean }) {
           <Link
             href="/config"
             role="menuitem"
-            className="block px-3 py-2 text-xs subtle border-t border-[var(--border)] hover:bg-[var(--surface-2)]"
+            className="block px-3 py-2 text-xs text-muted border-t border-border hover:bg-[var(--surface-2)]"
             onClick={() => setOpen(false)}
           >
             Ver todas…
           </Link>
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -145,7 +146,7 @@ export function MobileNav() {
   const { isActive, configActive } = useActiveMatcher();
 
   return (
-    <nav className="no-scrollbar sm:hidden flex items-center gap-0 px-4 overflow-x-auto overflow-y-hidden border-t border-[var(--border)]">
+    <nav className="no-scrollbar sm:hidden flex items-center gap-0 px-4 overflow-x-auto overflow-y-hidden border-t border-border">
       {MAIN_NAV.map((n) => (
         <NavLink
           key={n.href}

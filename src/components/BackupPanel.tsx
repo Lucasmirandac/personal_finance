@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import clsx from "clsx";
 import {
   BackupFile,
   BackupImportMode,
@@ -12,6 +11,10 @@ import {
 } from "@/lib/backup";
 import { useAppStore } from "@/lib/store";
 import { formatInt } from "@/lib/format";
+import { Button } from "@/components/ui/Button";
+import { Textarea } from "@/components/ui/Input";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Download, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export function BackupPanel() {
@@ -177,10 +180,10 @@ export function BackupPanel() {
 
   return (
     <div className="space-y-6">
-      <section className="panel p-4 space-y-3">
+      <Panel className="p-4 space-y-3">
         <div>
-          <div className="section-title">Exportar tudo</div>
-          <p className="text-[11px] subtle mt-0.5">
+          <SectionTitle>Exportar tudo</SectionTitle>
+          <p className="text-[11px] text-muted mt-0.5">
             Salva dataset, contas, transações manuais, recorrentes, regras,
             configurações e edições em um único arquivo JSON.
           </p>
@@ -190,7 +193,7 @@ export function BackupPanel() {
           {formatInt(currentSummary.transactions)} transações ·{" "}
           {formatInt(currentSummary.accounts)} contas
           {lastBackupAt && backupDays !== null && (
-            <span className="subtle">
+            <span className="text-muted">
               {" "}
               · última exportação{" "}
               {backupDays === 0
@@ -201,27 +204,22 @@ export function BackupPanel() {
             </span>
           )}
         </p>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={busy}
-          onClick={handleExport}
-        >
+        <Button variant="primary" disabled={busy} onClick={handleExport}>
           <Download size={14} />
           Exportar tudo (JSON)
-        </button>
-      </section>
+        </Button>
+      </Panel>
 
-      <section className="panel p-4 space-y-3">
+      <Panel className="p-4 space-y-3">
         <div>
-          <div className="section-title">Restaurar backup</div>
-          <p className="text-[11px] subtle mt-0.5">
+          <SectionTitle>Restaurar backup</SectionTitle>
+          <p className="text-[11px] text-muted mt-0.5">
             Cole o JSON ou arraste um arquivo de backup exportado anteriormente.
           </p>
         </div>
 
         <div
-          className="border border-dashed border-[var(--border)] rounded-md p-4 text-center"
+          className="border border-dashed border-border rounded-md p-4 text-center"
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -232,8 +230,8 @@ export function BackupPanel() {
             if (file) void onFile(file);
           }}
         >
-          <p className="text-xs subtle mb-2">Arraste o arquivo .json aqui</p>
-          <label className="btn btn-sm cursor-pointer">
+          <p className="text-xs text-muted mb-2">Arraste o arquivo .json aqui</p>
+          <label className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1 cursor-pointer">
             <Upload size={13} />
             Escolher arquivo
             <input
@@ -250,9 +248,9 @@ export function BackupPanel() {
         </div>
 
         <label className="block space-y-1">
-          <span className="text-xs subtle">Ou cole o JSON</span>
-          <textarea
-            className="input w-full min-h-[120px] font-mono text-xs"
+          <span className="text-xs text-muted">Ou cole o JSON</span>
+          <Textarea
+            className="min-h-[120px] font-mono text-xs"
             placeholder='{"version":1,"app":"personal-finance",...}'
             value={jsonText}
             onChange={(e) => handleParse(e.target.value)}
@@ -260,15 +258,15 @@ export function BackupPanel() {
         </label>
 
         {parseError && (
-          <p className="text-xs text-[var(--danger)] flex items-start gap-1.5">
+          <p className="text-xs text-danger flex items-start gap-1.5">
             <AlertTriangle size={14} className="shrink-0 mt-0.5" />
             {parseError}
           </p>
         )}
 
         {parsed && parsedSummary && (
-          <div className="border border-[var(--border)] rounded-md p-3 space-y-3 bg-[var(--surface-2)]/50">
-            <p className="text-xs flex items-center gap-1.5 text-[var(--success)]">
+          <div className="border border-border rounded-md p-3 space-y-3 bg-surface-2/50">
+            <p className="text-xs flex items-center gap-1.5 text-success">
               <CheckCircle2 size={14} />
               Backup válido · exportado em{" "}
               {new Date(parsed.exportedAt).toLocaleString("pt-BR")}
@@ -284,7 +282,7 @@ export function BackupPanel() {
             </p>
 
             <fieldset className="space-y-2">
-              <legend className="text-xs subtle">Modo de restauração</legend>
+              <legend className="text-xs text-muted">Modo de restauração</legend>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
@@ -306,7 +304,7 @@ export function BackupPanel() {
             </fieldset>
 
             {mergePreview && (
-              <p className="text-xs subtle">
+              <p className="text-xs text-muted">
                 Serão adicionados: {formatInt(mergePreview.sourcesToAdd)} fontes,{" "}
                 {formatInt(mergePreview.transactionsToAdd)} transações,{" "}
                 {formatInt(mergePreview.accountsToAdd)} contas,{" "}
@@ -318,34 +316,32 @@ export function BackupPanel() {
             )}
 
             {mode === "replace" && (
-              <p className="text-xs text-[var(--warning)]">
+              <p className="text-xs text-warning">
                 Substituir apaga todos os dados atuais antes de aplicar o backup.
               </p>
             )}
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
+            <Button
+              variant="primary"
+              size="sm"
               disabled={busy}
               onClick={() => void handleImport()}
             >
               Confirmar restauração
-            </button>
+            </Button>
           </div>
         )}
-      </section>
+      </Panel>
 
       {successMsg && (
-        <p
-          className={clsx(
-            "text-sm panel p-3 border-[var(--success)]/30 text-[var(--success)]",
-          )}
-        >
-          {successMsg}
-        </p>
+        <Panel className="p-3 border-success/30">
+          <p className="text-sm text-success">{successMsg}</p>
+        </Panel>
       )}
       {importError && (
-        <p className="text-sm panel p-3 text-[var(--danger)]">{importError}</p>
+        <Panel className="p-3">
+          <p className="text-sm text-danger">{importError}</p>
+        </Panel>
       )}
     </div>
   );

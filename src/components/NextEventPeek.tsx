@@ -6,7 +6,11 @@ import { useAppStore } from "@/lib/store";
 import { isProjectionReady } from "@/lib/setupStatus";
 import { projectDailyBalance } from "@/lib/projection";
 import { formatBRL, formatDateBR } from "@/lib/format";
+import { Panel } from "@/components/ui/Panel";
 import { ArrowRight } from "lucide-react";
+
+const linkBtnSm =
+  "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap text-xs px-2 py-1 border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong";
 
 export function NextEventPeek() {
   const { dataset, normalized, recurringRules, settings, accounts } =
@@ -41,27 +45,27 @@ export function NextEventPeek() {
   if (!next) return null;
 
   return (
-    <div className="panel px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm">
+    <Panel className="px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm">
       <div className="min-w-0">
-        <span className="text-[11px] subtle">Próximo evento · </span>
+        <span className="text-[11px] text-muted">Próximo evento · </span>
         <span className="font-medium truncate">{next.description}</span>
-        <span className="text-[11px] subtle ml-1">
+        <span className="text-[11px] text-muted ml-1">
           {formatDateBR(next.date)} ·{" "}
           <span
             className={
               next.amount >= 0
-                ? "text-[var(--success)]"
-                : "text-[var(--danger)]"
+                ? "text-success"
+                : "text-danger"
             }
           >
             {formatBRL(next.amount)}
           </span>
         </span>
       </div>
-      <Link href="/saldo" className="btn btn-sm shrink-0">
+      <Link href="/saldo" className={`${linkBtnSm} shrink-0`}>
         Ver Saldo
         <ArrowRight size={13} />
       </Link>
-    </div>
+    </Panel>
   );
 }

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { isoToBr } from "@/lib/csv";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { useAppStore } from "@/lib/store";
 import { Account, TransactionNormalized } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Input } from "@/components/ui/Input";
+import { Num } from "@/components/ui/Num";
 import { X } from "lucide-react";
 
 type Props = {
@@ -35,6 +40,7 @@ function projectedBalanceForAccount(
 }
 
 export function AdjustBalanceModal({ open, onClose }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const {
     accounts,
     normalized,
@@ -88,6 +94,8 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  useFocusTrap(open, dialogRef);
 
   if (!open) return null;
 
@@ -145,27 +153,43 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
   }
 
   return (
-    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
+    <DrawerBackdrop
+      className="flex items-center justify-center"
+      role="presentation"
+      onClick={onClose}
+    >
       <div
-        className="panel w-full max-w-lg mx-4 p-4 space-y-4 max-h-[90dvh] overflow-auto"
+        ref={dialogRef}
+        className="bg-surface border border-border rounded-lg w-full max-w-lg mx-4 p-4 space-y-4 max-h-[90dvh] overflow-auto"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="adjust-balance-title"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="section-title">Ajustar saldo</h2>
-            <p className="subtle text-xs mt-0.5">
+            <h2
+              id="adjust-balance-title"
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+            >
+              Ajustar saldo
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
               Informe quanto você tem hoje em cada conta.
             </p>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <fieldset className="space-y-2">
-          <legend className="text-xs subtle">Como aplicar a diferença</legend>
+          <legend className="text-xs text-muted">Como aplicar a diferença</legend>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="radio"
@@ -187,7 +211,7 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
         </fieldset>
 
         {cashAccounts.length === 0 ? (
-          <p className="text-sm subtle">
+          <p className="text-sm text-muted">
             Cadastre uma conta corrente, poupança ou carteira em Configurações.
           </p>
         ) : (
@@ -197,17 +221,17 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
               return (
                 <div
                   key={a.id}
-                  className="border border-[var(--border)] rounded-md p-3 space-y-2"
+                  className="border border-border rounded-md p-3 space-y-2"
                 >
                   <div className="font-medium text-sm">{a.nome}</div>
-                  <p className="text-xs subtle">
+                  <p className="text-xs text-muted">
                     Projetado hoje:{" "}
-                    <span className="num">{formatBRL(p?.projected ?? 0)}</span>
+                    <Num>{formatBRL(p?.projected ?? 0)}</Num>
                   </p>
                   <label className="block space-y-1">
-                    <span className="text-xs subtle">Tenho hoje (R$)</span>
-                    <input
-                      className="input w-full num"
+                    <span className="text-xs text-muted">Tenho hoje (R$)</span>
+                    <Input
+                      className="font-mono tabular-nums"
                       inputMode="decimal"
                       placeholder={String(p?.projected ?? 0)}
                       value={values[a.id] ?? ""}
@@ -217,16 +241,14 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
                     />
                   </label>
                   {p?.delta !== null && p?.delta !== 0 && (
-                    <p
+                    <Num
                       className={clsx(
-                        "text-xs num",
-                        (p.delta ?? 0) >= 0
-                          ? "text-[var(--success)]"
-                          : "text-[var(--danger)]",
+                        "block text-xs",
+                        (p.delta ?? 0) >= 0 ? "text-success" : "text-danger",
                       )}
                     >
                       Diferença: {formatBRL(p.delta ?? 0)}
-                    </p>
+                    </Num>
                   )}
                 </div>
               );
@@ -234,22 +256,22 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
           </div>
         )}
 
-        {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
 
         <div className="flex gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
+          <Button
+            variant="primary"
+            size="sm"
             disabled={saving}
             onClick={handleSave}
           >
             Confirmar
-          </button>
-          <button type="button" className="btn btn-sm" onClick={onClose}>
+          </Button>
+          <Button size="sm" onClick={onClose}>
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </DrawerBackdrop>
   );
 }

@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useCallback, useRef } from "react";
+import { TabList, TabTrigger } from "@/components/ui/TabList";
 
 export type TabItem = {
   id: string;
@@ -43,29 +44,22 @@ export function Tabs({ tabs, active, onChange, children }: Props) {
 
   return (
     <div>
-      <div
-        ref={listRef}
-        className="tab-list"
-        role="tablist"
-        aria-label="Seções do dashboard"
-      >
+      <TabList ref={listRef} role="tablist" aria-label="Seções do dashboard">
         {tabs.map((tab) => (
-          <button
+          <TabTrigger
             key={tab.id}
-            type="button"
             role="tab"
             aria-selected={active === tab.id}
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
-            data-active={active === tab.id}
-            className="tab-trigger"
+            active={active === tab.id}
             onClick={() => onChange(tab.id)}
             onKeyDown={(e) => onKeyDown(e, tab.id)}
           >
             {tab.label}
-          </button>
+          </TabTrigger>
         ))}
-      </div>
+      </TabList>
       <div
         role="tabpanel"
         id={`panel-${active}`}
@@ -77,3 +71,5 @@ export function Tabs({ tabs, active, onChange, children }: Props) {
     </div>
   );
 }
+
+export { TabList, TabTrigger } from "@/components/ui/TabList";

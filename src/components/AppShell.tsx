@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
 import {
   BackupReminder,
@@ -12,12 +13,15 @@ import { DesktopNav, MobileNav } from "@/components/NavBar";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import { Database, Wallet } from "lucide-react";
 
+const chipBase =
+  "inline-flex items-center px-2 py-0.5 rounded-sm font-mono bg-surface-2 border border-border text-muted";
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { dataset, hasAnalysis, normalized } = useAppStore();
 
   return (
     <div className="min-h-dvh flex flex-col">
-      <header className="border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur sticky top-0 z-20">
+      <header className="border-b border-border bg-[var(--surface)]/95 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
           <Link href="/saldo" className="flex items-center gap-2 shrink-0">
             <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-[var(--foreground)] text-[var(--surface)]">
@@ -36,7 +40,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <BackupReminder />
             <Saldo30Widget />
             {hasAnalysis && (
-              <span className="chip hidden lg:inline-flex items-center gap-1">
+              <span
+                className={clsx(chipBase, "hidden lg:inline-flex gap-1")}
+              >
                 <Database size={11} />
                 {dataset.sources.length}f · {normalized.length}L
               </span>
@@ -51,7 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-[11px] subtle border-t border-[var(--border)]">
+      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-[11px] text-muted border-t border-border">
         Dados processados no navegador. Nada é enviado para servidores.
       </footer>
       <QuickAddFab />

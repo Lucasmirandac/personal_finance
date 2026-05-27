@@ -80,8 +80,10 @@ export function computePreset(
       const year = max.split("-")[0];
       return { from: `${year}-01-01`, to: max };
     }
-    default:
-      return { from: null, to: null };
+    default: {
+      const _exhaustive: never = preset;
+      throw new Error(`Unexpected preset: ${_exhaustive}`);
+    }
   }
 }
 

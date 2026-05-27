@@ -3,16 +3,28 @@
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import {
   CashEvent,
   DailyBalancePoint,
 } from "@/lib/projection";
 import { formatBRL, formatBRLCompact, formatDateBR } from "@/lib/format";
 import {
+  addMonthsYyyyMm,
+  isoFromParts,
+  parseIso,
+  todayIso,
+  yyyyMmFromIso,
+} from "@/lib/dates";
+import {
   EventFilter,
   EventIcon,
   EVENT_LABELS,
-  eventBadgeClass,
+  eventBadgeVariantFor,
   eventLegendDotClass,
 } from "@/components/saldoEventVisual";
 
@@ -38,38 +50,12 @@ type GridCell = {
   inMonth: boolean;
 };
 
-function todayIso(): string {
-  const t = new Date();
-  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
-}
-
-function parseIso(iso: string): [number, number, number] {
-  const [y, m, d] = iso.split("-").map(Number);
-  return [y, m, d];
-}
-
-function isoFromParts(year: number, month: number, day: number): string {
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function addMonthsYyyyMm(yyyyMm: string, delta: number): string {
-  const [y, m] = yyyyMm.split("-").map(Number);
-  let month = m + delta;
-  let year = y;
-  while (month > 12) {
-    month -= 12;
-    year += 1;
-  }
-  while (month < 1) {
-    month += 12;
-    year -= 1;
-  }
-  return `${year}-${String(month).padStart(2, "0")}`;
-}
-
-function yyyyMmFromIso(iso: string): string {
-  return iso.slice(0, 7);
-}
+const eventChipToneClasses: Record<CashEvent["type"], string> = {
+  fatura: "text-warning border-[var(--border-warning-soft)]",
+  fixa: "text-warning border-[var(--border-warning-soft)]",
+  receita: "text-success border-[var(--border-success-soft)]",
+  ancora: "text-muted",
+};
 
 function monthOverlapsRange(
   yyyyMm: string,
@@ -143,8 +129,23 @@ function balanceByDate(series: DailyBalancePoint[]): Map<string, number> {
   return map;
 }
 
-function eventChipClass(type: CashEvent["type"]): string {
-  return `calendar-event-chip calendar-event-chip--${type}`;
+function calendarCellLabel(
+  date: string,
+  events: CashEvent[],
+  balance?: number,
+): string {
+  const parts = [formatDateBR(date)];
+  if (events.length > 0) {
+    parts.push(
+      `${events.length} evento${events.length === 1 ? "" : "s"}`,
+    );
+  } else {
+    parts.push("nenhum evento");
+  }
+  if (balance != null) {
+    parts.push(`saldo ${formatBRLCompact(balance)}`);
+  }
+  return parts.join(", ");
 }
 
 type Props = {
@@ -200,56 +201,60 @@ export function SaldoCalendarView({
 
   return (
     <div className="space-y-3">
-      <div className="calendar-nav">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            className="btn btn-sm"
+          <Button
+            size="sm"
             disabled={!canPrev}
             onClick={() => setViewMonth(addMonthsYyyyMm(viewMonth, -1))}
             aria-label="Mês anterior"
           >
             <ChevronLeft size={14} />
-          </button>
-          <span className="calendar-nav-month">{monthLabel}</span>
-          <button
-            type="button"
-            className="btn btn-sm"
+          </Button>
+          <span className="text-[15px] font-semibold min-w-40 text-center">
+            {monthLabel}
+          </span>
+          <Button
+            size="sm"
             disabled={!canNext}
             onClick={() => setViewMonth(addMonthsYyyyMm(viewMonth, 1))}
             aria-label="Próximo mês"
           >
             <ChevronRight size={14} />
-          </button>
+          </Button>
         </div>
-        <button
-          type="button"
-          className="btn btn-sm"
+        <Button
+          size="sm"
           onClick={() => {
             setViewMonth(yyyyMmFromIso(today));
             setSelectedDate(today);
           }}
         >
           Hoje
-        </button>
+        </Button>
       </div>
 
-      <div className="calendar-legend">
+      <div className="flex flex-wrap gap-x-4 gap-y-3 text-[11px] text-muted">
         {(["fatura", "fixa", "receita"] as const).map((type) => (
-          <span key={type} className="calendar-legend-item">
+          <span key={type} className="inline-flex items-center gap-1.5">
             <span className={eventLegendDotClass(type)} />
             {EVENT_LABELS[type]}
           </span>
         ))}
       </div>
 
-      <div className="calendar-week-header">
+      <div className="grid grid-cols-7 gap-px mb-px">
         {WEEKDAYS.map((d) => (
-          <span key={d}>{d}</span>
+          <span
+            key={d}
+            className="text-center text-[10px] font-medium text-muted uppercase tracking-wide py-1"
+          >
+            {d}
+          </span>
         ))}
       </div>
 
-      <div className="calendar-grid">
+      <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-md overflow-hidden">
         {grid.map((cell) => {
           const events = eventsByDate.get(cell.date) ?? [];
           const balance = balances.get(cell.date);
@@ -262,46 +267,57 @@ export function SaldoCalendarView({
               key={cell.date}
               type="button"
               className={clsx(
-                "calendar-cell",
-                !cell.inMonth && "is-outside",
-                !inHorizon && "is-disabled",
-                isToday && "is-today",
-                isSelected && "is-selected",
+                "flex flex-col gap-0.5 min-h-[5.5rem] sm:min-h-[4.25rem] p-1 sm:p-1.5 bg-surface text-left cursor-pointer border-0 hover:bg-surface-2 disabled:cursor-default disabled:opacity-45",
+                "data-[selected=true]:outline data-[selected=true]:outline-2 data-[selected=true]:outline-accent data-[selected=true]:-outline-offset-2 data-[selected=true]:z-[1]",
+                "data-[outside=true]:bg-[var(--bg-surface-alt)] data-[outside=true]:[&_.calendar-day-num]:text-muted data-[outside=true]:[&_.calendar-day-num]:opacity-55",
+                "data-[today=true]:[&_.calendar-day-num]:font-bold data-[today=true]:[&_.calendar-day-num]:text-accent",
               )}
+              data-outside={!cell.inMonth || undefined}
+              data-today={isToday || undefined}
+              data-selected={isSelected || undefined}
               disabled={!inHorizon}
+              aria-label={calendarCellLabel(cell.date, events, balance)}
+              aria-pressed={isSelected}
               onClick={() =>
                 setSelectedDate((prev) =>
                   prev === cell.date ? null : cell.date,
                 )
               }
             >
-              <span className="calendar-day-num">
+              <span className="calendar-day-num text-[11px] leading-none">
                 {parseIso(cell.date)[2]}
               </span>
-              <div className="calendar-events">
+              <div className="flex flex-col gap-px flex-1 min-h-0 overflow-hidden">
                 {events.slice(0, 3).map((e, i) => (
                   <div
                     key={`${e.type}-${e.description}-${i}`}
-                    className={eventChipClass(e.type)}
+                    className={clsx(
+                      "flex items-center gap-0.5 px-0.5 py-px rounded-sm text-[9px] leading-tight whitespace-nowrap overflow-hidden text-ellipsis border bg-surface-2",
+                      eventChipToneClasses[e.type],
+                    )}
                     title={e.description}
                   >
                     <EventIcon type={e.type} />
-                    <span className="num">{formatBRLCompact(e.amount)}</span>
+                    <Num className="ml-auto shrink-0 font-semibold">
+                      {formatBRLCompact(e.amount)}
+                    </Num>
                   </div>
                 ))}
                 {events.length > 3 && (
-                  <span className="calendar-more">+{events.length - 3}</span>
+                  <span className="text-[9px] text-muted pl-0.5">
+                    +{events.length - 3}
+                  </span>
                 )}
               </div>
               {inHorizon && balance != null && (
-                <span
+                <Num
                   className={clsx(
-                    "calendar-balance num",
-                    balance >= 0 ? "calendar-balance--pos" : "calendar-balance--neg",
+                    "mt-auto text-[9px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis",
+                    balance >= 0 ? "text-success" : "text-danger",
                   )}
                 >
                   {formatBRLCompact(balance)}
-                </span>
+                </Num>
               )}
             </button>
           );
@@ -309,19 +325,19 @@ export function SaldoCalendarView({
       </div>
 
       {selectedDate && (
-        <div className="calendar-day-detail panel p-3">
-          <div className="calendar-day-detail-header">
-            <span className="section-title text-sm">
+        <Panel className="mt-3 p-3">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <SectionTitle className="text-sm">
               Eventos de {formatDateBR(selectedDate)}
-            </span>
-            <button
-              type="button"
-              className="btn btn-sm"
+            </SectionTitle>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setSelectedDate(null)}
               aria-label="Fechar"
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
           {selectedEvents.length > 0 ? (
             <div className="divide-y">
@@ -331,46 +347,45 @@ export function SaldoCalendarView({
                   className="flex items-center justify-between gap-2 py-2 text-sm"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={clsx(eventBadgeClass(e.type), "gap-1 shrink-0")}
+                    <Badge
+                      variant={eventBadgeVariantFor(e.type)}
+                      className="gap-1 shrink-0"
                     >
                       <EventIcon type={e.type} />
                       {EVENT_LABELS[e.type]}
-                    </span>
+                    </Badge>
                     <span className="truncate text-xs">{e.description}</span>
                   </div>
-                  <span
+                  <Num
                     className={clsx(
-                      "num text-xs font-medium shrink-0",
-                      e.amount >= 0
-                        ? "text-[var(--success)]"
-                        : "text-[var(--danger)]",
+                      "text-xs font-medium shrink-0",
+                      e.amount >= 0 ? "text-success" : "text-danger",
                     )}
                   >
                     {formatBRL(e.amount)}
-                  </span>
+                  </Num>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs subtle">Nenhum evento neste dia.</p>
+            <p className="text-xs text-muted">Nenhum evento neste dia.</p>
           )}
           {balances.has(selectedDate) && (
-            <p className="text-xs subtle mt-2 pt-2 border-t border-[var(--border)]">
+            <p className="text-xs text-muted mt-2 pt-2 border-t border-border">
               Saldo projetado:{" "}
-              <span
+              <Num
                 className={clsx(
-                  "num font-medium",
+                  "font-medium",
                   (balances.get(selectedDate) ?? 0) >= 0
-                    ? "text-[var(--success)]"
-                    : "text-[var(--danger)]",
+                    ? "text-success"
+                    : "text-danger",
                 )}
               >
                 {formatBRL(balances.get(selectedDate))}
-              </span>
+              </Num>
             </p>
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );

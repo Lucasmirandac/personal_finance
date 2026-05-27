@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import clsx from "clsx";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CategorySuggestion } from "@/lib/autoCategorize";
 import { isEdited } from "@/lib/edits";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { EditsState, TransactionNormalized } from "@/lib/types";
 import { formatBRL, formatInt } from "@/lib/format";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Num } from "@/components/ui/Num";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 
 type Props = {
@@ -55,6 +59,7 @@ export function AutoCategorizeModal({
   onClose,
   onApply,
 }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const groups = useMemo(() => groupSuggestions(suggestions), [suggestions]);
   const allIds = useMemo(
     () => suggestions.map((s) => s.rawId),
@@ -79,6 +84,8 @@ export function AutoCategorizeModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  useFocusTrap(open, dialogRef);
 
   if (!open) return null;
 
@@ -129,9 +136,14 @@ export function AutoCategorizeModal({
   }
 
   return (
-    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
+    <DrawerBackdrop
+      className="flex items-center justify-center"
+      role="presentation"
+      onClick={onClose}
+    >
       <div
-        className="panel w-full max-w-2xl mx-4 p-4 space-y-4 max-h-[90dvh] flex flex-col"
+        ref={dialogRef}
+        className="bg-surface border border-border rounded-lg w-full max-w-2xl mx-4 p-4 space-y-4 max-h-[90dvh] flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="auto-categorize-title"
@@ -139,44 +151,39 @@ export function AutoCategorizeModal({
       >
         <div className="flex items-start justify-between gap-2 shrink-0">
           <div>
-            <h2 id="auto-categorize-title" className="section-title">
+            <h2
+              id="auto-categorize-title"
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+            >
               Auto-categorizar {formatInt(suggestions.length)} linhas
             </h2>
-            <p className="subtle text-xs mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               em {formatInt(groups.length)} estabelecimento
               {groups.length === 1 ? "" : "s"} · categoria sugerida pelo
               histórico
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Fechar"
           >
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-wrap gap-2 shrink-0">
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => setSelected(new Set(allIds))}
-          >
+          <Button size="sm" onClick={() => setSelected(new Set(allIds))}>
             Selecionar todos
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => setSelected(new Set())}
-          >
+          </Button>
+          <Button size="sm" onClick={() => setSelected(new Set())}>
             Limpar seleção
-          </button>
+          </Button>
         </div>
 
         {editedSelectedCount > 0 && (
-          <p className="text-xs text-[var(--warning)] border border-[var(--warning)]/30 rounded-md px-2 py-1.5 shrink-0">
+          <p className="text-xs text-warning border border-warning/30 rounded-md px-2 py-1.5 shrink-0">
             {formatInt(editedSelectedCount)} linha
             {editedSelectedCount === 1 ? "" : "s"} selecionada
             {editedSelectedCount === 1 ? "" : "s"} já tem edição manual — a
@@ -184,7 +191,7 @@ export function AutoCategorizeModal({
           </p>
         )}
 
-        <div className="overflow-auto flex-1 min-h-0 space-y-2 border border-[var(--border)] rounded-lg">
+        <div className="overflow-auto flex-1 min-h-0 space-y-2 border border-border rounded-lg">
           {groups.map((group) => {
             const groupKey = `${group.estabelecimento}\0${group.suggestion}`;
             const ids = group.items.map((i) => i.rawId);
@@ -195,7 +202,7 @@ export function AutoCategorizeModal({
             return (
               <div
                 key={groupKey}
-                className="border-b border-[var(--border)] last:border-b-0"
+                className="border-b border-border last:border-b-0"
               >
                 <div className="flex items-start gap-2 px-3 py-2">
                   <input
@@ -213,10 +220,8 @@ export function AutoCategorizeModal({
                       {group.estabelecimento}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                      <span className="badge">
-                        Sugerido: {group.suggestion}
-                      </span>
-                      <span className="subtle">
+                      <Badge>Sugerido: {group.suggestion}</Badge>
+                      <span className="text-muted">
                         {formatInt(group.items.length)} linha
                         {group.items.length === 1 ? "" : "s"} ·{" "}
                         {formatInt(group.votes)} voto
@@ -225,9 +230,10 @@ export function AutoCategorizeModal({
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm shrink-0"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
                     onClick={() => toggleExpanded(groupKey)}
                     aria-expanded={isExpanded}
                   >
@@ -237,11 +243,11 @@ export function AutoCategorizeModal({
                       <ChevronRight size={14} />
                     )}
                     Ver linhas
-                  </button>
+                  </Button>
                 </div>
 
                 {isExpanded && (
-                  <ul className="divide-y divide-[var(--border)] bg-[var(--surface-2)]/40">
+                  <ul className="divide-y divide-border bg-surface-2/40">
                     {group.items.map((item) => {
                       const tx = transactionsById.get(item.rawId);
                       return (
@@ -256,19 +262,19 @@ export function AutoCategorizeModal({
                             aria-label={`Selecionar transação ${item.rawId}`}
                           />
                           <div className="flex-1 min-w-0 flex items-center gap-3 text-xs">
-                            <span className="subtle whitespace-nowrap shrink-0">
+                            <span className="text-muted whitespace-nowrap shrink-0">
                               {tx?.data ?? "—"}
                             </span>
                             <span className="truncate">
                               {tx?.lancamento ?? item.estabelecimento}
                             </span>
-                            <span className="subtle whitespace-nowrap shrink-0">
+                            <span className="text-muted whitespace-nowrap shrink-0">
                               {item.currentCategoria}
                             </span>
                             {tx && (
-                              <span className="num whitespace-nowrap shrink-0">
+                              <Num className="whitespace-nowrap shrink-0">
                                 {formatBRL(tx.valorOriginal)}
-                              </span>
+                              </Num>
                             )}
                           </div>
                         </li>
@@ -281,31 +287,30 @@ export function AutoCategorizeModal({
           })}
         </div>
 
-        <div className="flex items-center justify-between gap-3 flex-wrap shrink-0 pt-1 border-t border-[var(--border)]">
-          <span className="text-xs subtle">
+        <div className="flex items-center justify-between gap-3 flex-wrap shrink-0 pt-1 border-t border-border">
+          <span className="text-xs text-muted">
             Selecionados: {formatInt(selectedCount)} de{" "}
             {formatInt(suggestions.length)}
           </span>
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="btn btn-sm"
+            <Button
+              size="sm"
               onClick={onClose}
               disabled={applying}
             >
               Cancelar
-            </button>
-            <button
-              type="button"
-              className={clsx("btn btn-sm btn-primary")}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleApply}
               disabled={applying || selectedCount === 0}
             >
               {applying ? "Aplicando…" : "Aplicar"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </DrawerBackdrop>
   );
 }

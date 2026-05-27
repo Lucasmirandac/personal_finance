@@ -7,7 +7,7 @@ import { useAppStore } from "@/lib/store";
 export default function SaldoPage() {
   const { loaded, hasAnalysis } = useAppStore();
 
-  if (!loaded) return <div className="subtle">Carregando…</div>;
+  if (!loaded) return <div className="text-muted">Carregando…</div>;
   if (!hasAnalysis) {
     return (
       <EmptyState

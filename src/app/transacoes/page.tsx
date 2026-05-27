@@ -24,6 +24,18 @@ import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
 import { NatureBadge } from "@/components/NatureBadge";
 import { QuickAddModal } from "@/components/QuickAddModal";
 import { TransactionEditModal } from "@/components/TransactionEditModal";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import {
+  DataTable,
+  DataTableCell,
+  DataTableHead,
+  DataTableRow,
+  DataTableRowTone,
+} from "@/components/ui/DataTable";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { Select } from "@/components/ui/Input";
 import { useAppStore, QuickAddDraft } from "@/lib/store";
 import { formatBRL, formatDateRangeCaption, formatInt } from "@/lib/format";
 import { exportTreatedCsv } from "@/lib/exporters";
@@ -163,9 +175,9 @@ export default function TransacoesPage() {
         accessorKey: "fonte",
         header: "Origem",
         cell: ({ row }) => (
-          <span className="badge badge-dot badge-gasto">
+          <Badge variant="gasto" dot>
             {FONTE_LABELS[row.original.fonte]}
-          </span>
+          </Badge>
         ),
       },
       {
@@ -175,7 +187,7 @@ export default function TransacoesPage() {
           <span className="inline-flex items-center gap-1.5 flex-wrap">
             <NatureBadge natureza={row.original.natureza} />
             {isEdited(row.original.id, edits) && (
-              <span className="badge text-[10px]">editado</span>
+              <Badge className="text-[10px]">editado</Badge>
             )}
           </span>
         ),
@@ -184,28 +196,26 @@ export default function TransacoesPage() {
         accessorKey: "valorOriginal",
         header: "Valor orig.",
         cell: ({ getValue, row }) => (
-          <span
+          <Num
             className={clsx(
-              "num",
               row.original._isDeleted && "line-through opacity-60",
             )}
           >
             {formatBRL(getValue<number>())}
-          </span>
+          </Num>
         ),
       },
       {
         accessorKey: "valorAnalise",
         header: "Valor análise",
         cell: ({ getValue, row }) => (
-          <span
+          <Num
             className={clsx(
-              "num",
               row.original._isDeleted && "line-through opacity-60",
             )}
           >
             {formatBRL(getValue<number>())}
-          </span>
+          </Num>
         ),
       },
       { accessorKey: "diaSemana", header: "Dia" },
@@ -220,7 +230,7 @@ export default function TransacoesPage() {
           if (recurring) {
             return (
               <span
-                className="subtle text-[10px]"
+                className="text-muted text-[10px]"
                 title="Editar regra em Recorrentes"
               >
                 —
@@ -229,22 +239,22 @@ export default function TransacoesPage() {
           }
           if (tx._isDeleted) {
             return (
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-label="Restaurar transação"
                 title="Restaurar"
                 onClick={() => restoreTransaction(tx.id)}
               >
                 <Undo2 size={13} />
-              </button>
+              </Button>
             );
           }
           return (
             <span className="inline-flex items-center gap-0.5">
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-label="Repetir esta transação"
                 title="Repetir esta"
                 onClick={() => {
@@ -260,30 +270,30 @@ export default function TransacoesPage() {
                 }}
               >
                 <Copy size={13} />
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-label="Editar transação"
                 title="Editar"
                 onClick={() => setEditRow(tx)}
               >
                 <Pencil size={13} />
-              </button>
+              </Button>
               {isEdited(tx.id, edits) && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   aria-label="Reverter edição"
                   title="Reverter para original"
                   onClick={() => revertTransaction(tx.id)}
                 >
                   <RotateCcw size={13} />
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-label="Excluir transação"
                 title="Excluir"
                 onClick={() => {
@@ -297,7 +307,7 @@ export default function TransacoesPage() {
                 }}
               >
                 <Trash2 size={13} />
-              </button>
+              </Button>
             </span>
           );
         },
@@ -338,7 +348,7 @@ export default function TransacoesPage() {
     }
   }
 
-  if (!loaded) return <div className="subtle">Carregando…</div>;
+  if (!loaded) return <div className="text-muted">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;
 
   return (
@@ -346,7 +356,7 @@ export default function TransacoesPage() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Transações</h1>
-          <p className="subtle text-xs mt-0.5">
+          <p className="text-muted text-xs mt-0.5">
             {formatInt(filteredActive.length)} visíveis ·{" "}
             {formatInt(normalized.length)} total
             {deletedCount > 0 && (
@@ -357,37 +367,37 @@ export default function TransacoesPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           {deletedCount > 0 && (
-            <button
-              type="button"
-              className={clsx("btn btn-sm", showDeleted && "btn-primary")}
+            <Button
+              size="sm"
+              variant={showDeleted ? "primary" : "default"}
               onClick={() => setShowDeleted((v) => !v)}
               aria-pressed={showDeleted}
             >
               {showDeleted ? <Eye size={13} /> : <EyeOff size={13} />}
               {showDeleted ? "Ocultar excluídas" : "Mostrar excluídas"}
-            </button>
+            </Button>
           )}
           <FiltersButton
             activeCount={activeCount}
             onClick={() => setDrawerOpen(true)}
           />
           {autoSuggestions.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setAutoCategorizeOpen(true)}
             >
               <Wand2 size={13} />
               Auto-categorizar {formatInt(autoSuggestions.length)} linhas
-            </button>
+            </Button>
           )}
-          <button
-            className="btn btn-sm"
+          <Button
+            size="sm"
             onClick={() => exportTreatedCsv(filteredActive, "fatura_tratada_filtrada.csv")}
           >
             <Download size={13} />
             Exportar CSV
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -430,9 +440,9 @@ export default function TransacoesPage() {
         onApply={applyAutoCategorize}
       />
 
-      <div className="panel overflow-hidden">
-        <div className="table-wrap max-h-[calc(100dvh-14rem)] overflow-auto">
-          <table className="dt">
+      <Panel className="overflow-hidden">
+        <div className="max-h-[calc(100dvh-14rem)] overflow-auto">
+          <DataTable>
             <thead>
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>
@@ -441,9 +451,9 @@ export default function TransacoesPage() {
                     const sort = h.column.getIsSorted();
                     const isNum = NUM_COLUMNS.has(h.column.id);
                     return (
-                      <th
+                      <DataTableHead
                         key={h.id}
-                        className={isNum ? "num" : undefined}
+                        className={clsx(isNum && "font-mono tabular-nums")}
                         onClick={
                           canSort ? h.column.getToggleSortingHandler() : undefined
                         }
@@ -453,7 +463,7 @@ export default function TransacoesPage() {
                           {sort === "asc" && <ArrowUp size={10} />}
                           {sort === "desc" && <ArrowDown size={10} />}
                         </span>
-                      </th>
+                      </DataTableHead>
                     );
                   })}
                 </tr>
@@ -463,49 +473,57 @@ export default function TransacoesPage() {
               {table.getRowModel().rows.map((row) => {
                 const n = row.original.natureza;
                 const deleted = row.original._isDeleted;
+                let tone: DataTableRowTone | undefined;
+                if (!deleted) {
+                  if (n === "Pagamento de fatura") tone = "pay";
+                  else if (n === "Estorno / crédito") tone = "est";
+                  else if (n === "Despesa fixa") tone = "fixa";
+                  else if (n === "Receita") tone = "receita";
+                }
                 return (
-                  <tr
+                  <DataTableRow
                     key={row.id}
-                    className={clsx(
-                      deleted && "opacity-50",
-                      !deleted && n === "Pagamento de fatura" && "row-pay",
-                      !deleted && n === "Estorno / crédito" && "row-est",
-                      !deleted && n === "Despesa fixa" && "row-fixa",
-                      !deleted && n === "Receita" && "row-receita",
-                    )}
+                    tone={tone}
+                    className={clsx(deleted && "opacity-50")}
                   >
                     {row.getVisibleCells().map((cell) => {
                       const isNum = NUM_COLUMNS.has(cell.column.id);
                       return (
-                        <td key={cell.id} className={isNum ? "num" : undefined}>
+                        <DataTableCell
+                          key={cell.id}
+                          className={clsx(isNum && "font-mono tabular-nums")}
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext(),
                           )}
-                        </td>
+                        </DataTableCell>
                       );
                     })}
-                  </tr>
+                  </DataTableRow>
                 );
               })}
               {table.getRowModel().rows.length === 0 && (
                 <tr>
-                  <td colSpan={columns.length} className="subtle text-center py-6">
+                  <DataTableCell
+                    colSpan={columns.length}
+                    className="text-muted text-center py-6"
+                  >
                     Nenhuma transação corresponde aos filtros.
-                  </td>
+                  </DataTableCell>
                 </tr>
               )}
             </tbody>
-          </table>
+          </DataTable>
         </div>
-        <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--border)]">
-          <div className="text-[11px] subtle">
+        <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-border">
+          <div className="text-[11px] text-muted">
             Pág. {table.getState().pagination.pageIndex + 1} /{" "}
             {table.getPageCount() || 1}
           </div>
           <div className="flex items-center gap-2">
-            <select
-              className="select w-auto text-xs py-1"
+            <Select
+              className="w-auto text-xs py-1"
               value={table.getState().pagination.pageSize}
               onChange={(e) => table.setPageSize(Number(e.target.value))}
             >
@@ -514,26 +532,26 @@ export default function TransacoesPage() {
                   {s}/pág
                 </option>
               ))}
-            </select>
-            <button
-              className="btn btn-sm"
+            </Select>
+            <Button
+              size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
               aria-label="Página anterior"
             >
               <ChevronLeft size={14} />
-            </button>
-            <button
-              className="btn btn-sm"
+            </Button>
+            <Button
+              size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
               aria-label="Próxima página"
             >
               <ChevronRight size={14} />
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Panel>
     </div>
   );
 }

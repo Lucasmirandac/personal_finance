@@ -2,13 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import clsx from "clsx";
 import { Dropzone } from "@/components/Dropzone";
+import { KpiCard, KpiStrip } from "@/components/KpiCard";
 import { parseCsvFile, CsvRowError } from "@/lib/csv";
 import { useAppStore } from "@/lib/store";
 import { isProjectionReady } from "@/lib/setupStatus";
 import { formatBRL, formatInt } from "@/lib/format";
 import { Fonte } from "@/lib/types";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import {
+  DataTable,
+  DataTableCell,
+  DataTableHead,
+  DataTableRow,
+} from "@/components/ui/DataTable";
+import { Num } from "@/components/ui/Num";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import {
   AlertTriangle,
   ArrowRight,
@@ -101,8 +111,8 @@ export function ImportPanel({
       <section>
         {!compact && (
           <>
-            <h2 className="section-title">Importar fatura</h2>
-            <p className="subtle text-xs mt-0.5 max-w-xl">
+            <SectionTitle>Importar fatura</SectionTitle>
+            <p className="text-muted text-xs mt-0.5 max-w-xl">
               CSV Inter ou Nubank. Processamento 100% local.
             </p>
           </>
@@ -114,37 +124,37 @@ export function ImportPanel({
 
         {lastDetected && (
           <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="subtle">Formato:</span>
-            <span className="badge badge-dot badge-gasto">
+            <span className="text-muted">Formato:</span>
+            <Badge variant="gasto" dot>
               {FONTE_LABELS[lastDetected]}
-            </span>
+            </Badge>
           </div>
         )}
 
         {busy && (
-          <div className="mt-2 text-xs subtle inline-flex items-center gap-1.5">
+          <div className="mt-2 text-xs text-muted inline-flex items-center gap-1.5">
             <Loader2 size={12} className="animate-spin" />
             Processando…
           </div>
         )}
 
         {errorMsg && (
-          <div className="mt-3 rounded-md border border-[var(--danger)]/40 bg-[color-mix(in_oklab,var(--danger)_8%,transparent)] p-2.5 text-xs flex gap-2">
-            <XCircle size={14} className="text-[var(--danger)] mt-px shrink-0" />
+          <div className="mt-3 rounded-md border border-danger/40 bg-[color-mix(in_oklab,var(--danger)_8%,transparent)] p-2.5 text-xs flex gap-2">
+            <XCircle size={14} className="text-danger mt-px shrink-0" />
             <div>
-              <strong className="text-[var(--danger)]">Falha:</strong> {errorMsg}
+              <strong className="text-danger">Falha:</strong> {errorMsg}
             </div>
           </div>
         )}
 
         {rowErrors.length > 0 && (
-          <div className="mt-3 rounded-md border border-[var(--warning)]/40 bg-[color-mix(in_oklab,var(--warning)_8%,transparent)] p-2.5 text-xs flex gap-2">
+          <div className="mt-3 rounded-md border border-warning/40 bg-[color-mix(in_oklab,var(--warning)_8%,transparent)] p-2.5 text-xs flex gap-2">
             <AlertTriangle
               size={14}
-              className="text-[var(--warning)] mt-px shrink-0"
+              className="text-warning mt-px shrink-0"
             />
             <div>
-              <strong className="text-[var(--warning)]">
+              <strong className="text-warning">
                 {rowErrors.length} linha(s) ignorada(s)
               </strong>
               <ul className="mt-1 list-disc pl-4 space-y-0.5 max-h-32 overflow-auto">
@@ -163,14 +173,15 @@ export function ImportPanel({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <h3 className="section-title">Base consolidada</h3>
-              <p className="text-xs subtle mt-0.5">
+              <SectionTitle>Base consolidada</SectionTitle>
+              <p className="text-xs text-muted mt-0.5">
                 {dataset.sources.length} fonte(s) · {formatInt(totalRows)} linhas
               </p>
             </div>
             <div className="flex gap-2">
-              <button
-                className="btn btn-danger btn-sm"
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={async () => {
                   if (
                     confirm("Limpar todas as fontes e voltar ao estado inicial?")
@@ -181,9 +192,10 @@ export function ImportPanel({
               >
                 <Trash2 size={13} />
                 Limpar tudo
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() =>
                   router.push(
                     isProjectionReady(dataset, settings, accounts)
@@ -194,74 +206,52 @@ export function ImportPanel({
               >
                 Continuar
                 <ArrowRight size={13} />
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="kpi-strip">
-            <div className="kpi-cell">
-              <div className="section-title">Importadas</div>
-              <div className="num text-lg font-semibold mt-0.5">
-                {formatInt(totalRows)}
-              </div>
-            </div>
-            <div className="kpi-cell">
-              <div className="section-title">Consumo</div>
-              <div className="num text-lg font-semibold mt-0.5">
-                {formatInt(gastosOnly.length)}
-              </div>
-            </div>
-            <div className="kpi-cell">
-              <div className="section-title">Excluídos</div>
-              <div className="num text-lg font-semibold mt-0.5">
-                {formatInt(excluidos)}
-              </div>
-            </div>
-            <div className="kpi-cell">
-              <div className="section-title">Gasto analisado</div>
-              <div className="num text-lg font-semibold mt-0.5">
-                {formatBRL(totalAnalise)}
-              </div>
-            </div>
-          </div>
+          <KpiStrip>
+            <KpiCard label="Importadas" value={formatInt(totalRows)} />
+            <KpiCard label="Consumo" value={formatInt(gastosOnly.length)} />
+            <KpiCard label="Excluídos" value={formatInt(excluidos)} />
+            <KpiCard label="Gasto analisado" value={formatBRL(totalAnalise)} />
+          </KpiStrip>
 
-          <div className="table-wrap border border-[var(--border)] rounded-lg">
-            <table className="dt">
+          <div className="border border-border rounded-lg overflow-x-auto">
+            <DataTable>
               <thead>
                 <tr>
-                  <th>Arquivo</th>
-                  <th>Fonte</th>
-                  <th className="num">Linhas</th>
-                  <th>Importado</th>
-                  <th />
+                  <DataTableHead>Arquivo</DataTableHead>
+                  <DataTableHead>Fonte</DataTableHead>
+                  <DataTableHead align="right">Linhas</DataTableHead>
+                  <DataTableHead>Importado</DataTableHead>
+                  <DataTableHead />
                 </tr>
               </thead>
               <tbody>
                 {dataset.sources.map((s) => (
-                  <tr key={s.id}>
-                    <td className="max-w-[200px] truncate font-medium">
+                  <DataTableRow key={s.id}>
+                    <DataTableCell className="max-w-[200px] truncate font-medium">
                       {s.fileName}
-                    </td>
-                    <td>
-                      <span
-                        className={clsx(
-                          "badge badge-dot",
-                          s.fonte === "inter" ? "badge-gasto" : "badge-est",
-                        )}
-                      >
+                    </DataTableCell>
+                    <DataTableCell>
+                      <Badge variant={s.fonte === "inter" ? "gasto" : "est"} dot>
                         {FONTE_LABELS[s.fonte]}
-                      </span>
-                    </td>
-                    <td className="num">{formatInt(s.rowsRaw)}</td>
-                    <td className="text-[11px] subtle">
+                      </Badge>
+                    </DataTableCell>
+                    <DataTableCell align="right" className="font-mono tabular-nums">
+                      {formatInt(s.rowsRaw)}
+                    </DataTableCell>
+                    <DataTableCell className="text-[11px] text-muted">
                       {new Date(s.importedAt).toLocaleString("pt-BR", {
                         dateStyle: "short",
                         timeStyle: "short",
                       })}
-                    </td>
-                    <td className="text-right">
-                      <button
-                        className="btn btn-danger btn-sm"
+                    </DataTableCell>
+                    <DataTableCell align="right">
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={async () => {
                           if (confirm(`Remover "${s.fileName}" da base?`)) {
                             await removeSource(s.id);
@@ -270,12 +260,12 @@ export function ImportPanel({
                         aria-label="Remover fonte"
                       >
                         <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </DataTableCell>
+                  </DataTableRow>
                 ))}
               </tbody>
-            </table>
+            </DataTable>
           </div>
         </section>
       )}

@@ -5,6 +5,8 @@ import { z } from "zod";
 import { formatBRL } from "@/lib/format";
 import { previewRecurringRule } from "@/lib/recurring";
 import { RecurringKind, RecurringRule } from "@/lib/types";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 const schema = z.object({
   kind: z.enum(["despesa_fixa", "receita"]),
@@ -86,27 +88,36 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="sm:col-span-2">
-          <label className="text-xs subtle">Descrição</label>
-          <input
-            className="input mt-1"
+          <label className="text-xs text-muted" htmlFor="recurring-descricao">
+            Descrição
+          </label>
+          <Input
+            id="recurring-descricao"
+            className="mt-1"
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             placeholder={kind === "receita" ? "Salário" : "Aluguel"}
           />
         </div>
         <div>
-          <label className="text-xs subtle">Categoria</label>
-          <input
-            className="input mt-1"
+          <label className="text-xs text-muted" htmlFor="recurring-categoria">
+            Categoria
+          </label>
+          <Input
+            id="recurring-categoria"
+            className="mt-1"
             value={categoria}
             onChange={(e) => setCategoria(e.target.value)}
             placeholder={kind === "receita" ? "SALARIO" : "MORADIA"}
           />
         </div>
         <div>
-          <label className="text-xs subtle">Valor (R$)</label>
-          <input
-            className="input mt-1"
+          <label className="text-xs text-muted" htmlFor="recurring-valor">
+            Valor (R$)
+          </label>
+          <Input
+            id="recurring-valor"
+            className="mt-1"
             type="number"
             min="0"
             step="0.01"
@@ -115,9 +126,12 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
           />
         </div>
         <div>
-          <label className="text-xs subtle">Dia do mês</label>
-          <input
-            className="input mt-1"
+          <label className="text-xs text-muted" htmlFor="recurring-dia-mes">
+            Dia do mês
+          </label>
+          <Input
+            id="recurring-dia-mes"
+            className="mt-1"
             type="number"
             min={1}
             max={31}
@@ -126,18 +140,24 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
           />
         </div>
         <div>
-          <label className="text-xs subtle">Início</label>
-          <input
-            className="input mt-1"
+          <label className="text-xs text-muted" htmlFor="recurring-inicio">
+            Início
+          </label>
+          <Input
+            id="recurring-inicio"
+            className="mt-1"
             type="date"
             value={inicio}
             onChange={(e) => setInicio(e.target.value)}
           />
         </div>
         <div>
-          <label className="text-xs subtle">Fim (opcional)</label>
-          <input
-            className="input mt-1"
+          <label className="text-xs text-muted" htmlFor="recurring-fim">
+            Fim (opcional)
+          </label>
+          <Input
+            id="recurring-fim"
+            className="mt-1"
             type="date"
             value={fim}
             onChange={(e) => setFim(e.target.value)}
@@ -146,23 +166,19 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
       </div>
 
       {preview && (
-        <div className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] p-3 text-sm">
+        <div className="rounded-lg bg-surface-2 border border-border p-3 text-sm">
           Vai gerar <strong>{preview.count}</strong> ocorrência(s) · total{" "}
           <strong>{formatBRL(preview.total)}</strong>
         </div>
       )}
 
-      {error && (
-        <div className="text-sm text-[var(--danger)]">{error}</div>
-      )}
+      {error && <div className="text-sm text-danger">{error}</div>}
 
       <div className="flex gap-2 justify-end">
-        <button type="button" className="btn" onClick={onCancel}>
-          Cancelar
-        </button>
-        <button type="submit" className="btn btn-primary">
+        <Button onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" variant="primary">
           {initial ? "Salvar" : "Adicionar"}
-        </button>
+        </Button>
       </div>
     </form>
   );

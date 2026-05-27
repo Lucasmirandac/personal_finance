@@ -3,6 +3,7 @@ import {
   accountsToCardConfigs,
   hasProjectionSetup,
 } from "./accounts";
+import { isoFromParts, parseIso, todayIso } from "./dates";
 import { monthsBetween } from "./recurring";
 import {
   Account,
@@ -45,10 +46,6 @@ function clampDay(year: number, month: number, day: number): number {
   return Math.min(Math.max(1, day), daysInMonth(year, month));
 }
 
-function isoFromParts(year: number, month: number, day: number): string {
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
 function addMonths(year: number, month: number, delta: number): [number, number] {
   let m = month + delta;
   let y = year;
@@ -61,20 +58,6 @@ function addMonths(year: number, month: number, delta: number): [number, number]
     y -= 1;
   }
   return [y, m];
-}
-
-function todayIso(): string {
-  const t = new Date();
-  return isoFromParts(
-    t.getUTCFullYear(),
-    t.getUTCMonth() + 1,
-    t.getUTCDate(),
-  );
-}
-
-function parseIso(iso: string): [number, number, number] {
-  const [y, m, d] = iso.split("-").map(Number);
-  return [y, m, d];
 }
 
 /** Payment date for a purchase given card closing/payment days. */

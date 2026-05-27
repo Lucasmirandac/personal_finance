@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { establishmentAggregation } from "@/lib/aggregations";
 import { isoToBr, parseBrlValue, parseBrDate } from "@/lib/csv";
+import { todayIso, yesterdayIso } from "@/lib/dates";
 import { defaultAccount } from "@/lib/accounts";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import {
   budgetUsageForMonth,
   currentMonthIso,
@@ -12,6 +14,9 @@ import {
 } from "@/lib/budgets";
 import { useAppStore, QuickAddDraft } from "@/lib/store";
 import clsx from "clsx";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Input, Select } from "@/components/ui/Input";
 import { X } from "lucide-react";
 
 type Props = {
@@ -20,17 +25,8 @@ type Props = {
   onClose: () => void;
 };
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function yesterdayIso(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
 export function QuickAddModal({ open, draft, onClose }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const { accounts, normalized, budgets, addManualTransaction } = useAppStore();
   const valorRef = useRef<HTMLInputElement>(null);
 
@@ -153,6 +149,8 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  useFocusTrap(open, dialogRef);
+
   if (!open) return null;
 
   async function save(keepOpen: boolean) {
@@ -204,9 +202,14 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
   }
 
   return (
-    <div className="drawer-backdrop" role="presentation" onClick={onClose}>
+    <DrawerBackdrop
+      className="flex items-center justify-center"
+      role="presentation"
+      onClick={onClose}
+    >
       <div
-        className="panel w-full max-w-md mx-4 p-4 space-y-4"
+        ref={dialogRef}
+        className="bg-surface border border-border rounded-lg w-full max-w-md mx-4 p-4 space-y-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="quick-add-title"
@@ -214,29 +217,32 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 id="quick-add-title" className="section-title">
+            <h2
+              id="quick-add-title"
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+            >
               Adicionar gasto
             </h2>
-            <p className="subtle text-xs mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Pix, dinheiro, débito — aparece na análise na hora.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Fechar"
           >
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-xs subtle">Valor (R$)</span>
-            <input
+            <span className="text-xs text-muted">Valor (R$)</span>
+            <Input
               ref={valorRef}
-              className="input w-full num text-lg"
+              className="font-mono tabular-nums text-lg"
               inputMode="decimal"
               placeholder="48,50"
               value={valorStr}
@@ -251,9 +257,8 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs subtle">Descrição</span>
-            <input
-              className="input w-full"
+            <span className="text-xs text-muted">Descrição</span>
+            <Input
               list="quick-add-establishments"
               value={lancamento}
               onChange={(e) => setLancamento(e.target.value)}
@@ -267,9 +272,8 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs subtle">Conta</span>
-            <select
-              className="select w-full"
+            <span className="text-xs text-muted">Conta</span>
+            <Select
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
             >
@@ -278,29 +282,24 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
                   {a.nome}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <div className="space-y-1">
-            <span className="text-xs subtle">Data</span>
+            <label className="text-xs text-muted" htmlFor="quick-add-date">
+              Data
+            </label>
             <div className="flex gap-2 flex-wrap items-center">
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setDataIso(todayIso())}
-              >
+              <Button size="sm" onClick={() => setDataIso(todayIso())}>
                 Hoje
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setDataIso(yesterdayIso())}
-              >
+              </Button>
+              <Button size="sm" onClick={() => setDataIso(yesterdayIso())}>
                 Ontem
-              </button>
-              <input
+              </Button>
+              <Input
+                id="quick-add-date"
                 type="date"
-                className="input flex-1 min-w-[140px]"
+                className="flex-1 min-w-[140px]"
                 value={dataIso}
                 onChange={(e) => setDataIso(e.target.value)}
               />
@@ -308,7 +307,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           </div>
 
           {budgetNotice?.kind === "need-category" && (
-            <p className="text-xs text-[var(--warning)] border border-[var(--warning)]/30 rounded-md px-2 py-1.5">
+            <p className="text-xs text-warning border border-warning/30 rounded-md px-2 py-1.5">
               Adicione categoria para acompanhar orçamento.
             </p>
           )}
@@ -316,25 +315,23 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           {!showMore ? (
             <button
               type="button"
-              className="text-xs subtle underline"
+              className="text-xs text-muted underline"
               onClick={() => setShowMore(true)}
             >
               Mais campos…
             </button>
           ) : (
-            <div className="space-y-2 border-t border-[var(--border)] pt-2">
+            <div className="space-y-2 border-t border-border pt-2">
               <label className="block space-y-1">
-                <span className="text-xs subtle">Categoria</span>
-                <input
-                  className="input w-full"
+                <span className="text-xs text-muted">Categoria</span>
+                <Input
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
                 />
               </label>
               <label className="block space-y-1">
-                <span className="text-xs subtle">Tipo</span>
-                <select
-                  className="select w-full"
+                <span className="text-xs text-muted">Tipo</span>
+                <Select
                   value={tipo}
                   onChange={(e) =>
                     setTipo(e.target.value as "Avulso" | "Receita")
@@ -342,7 +339,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
                 >
                   <option value="Avulso">Gasto avulso</option>
                   <option value="Receita">Receita</option>
-                </select>
+                </Select>
               </label>
             </div>
           )}
@@ -352,10 +349,10 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
               className={clsx(
                 "text-xs rounded-md px-2 py-1.5 border",
                 budgetNoticeTone === "danger"
-                  ? "text-[var(--danger)] border-[var(--danger)]/30"
+                  ? "text-danger border-danger/30"
                   : budgetNoticeTone === "warning"
-                    ? "text-[var(--warning)] border-[var(--warning)]/30"
-                    : "subtle border-[var(--border)]",
+                    ? "text-warning border-warning/30"
+                    : "text-muted border-border",
               )}
             >
               {budgetNotice.kind === "current" && (
@@ -376,31 +373,30 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
             </p>
           )}
 
-          {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
 
           <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
+            <Button
+              variant="primary"
+              size="sm"
               disabled={saving}
               onClick={() => save(false)}
             >
               Salvar
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm"
+            </Button>
+            <Button
+              size="sm"
               disabled={saving}
               onClick={() => save(true)}
             >
               Salvar e adicionar outra
-            </button>
-            <button type="button" className="btn btn-sm btn-ghost" onClick={onClose}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </DrawerBackdrop>
   );
 }

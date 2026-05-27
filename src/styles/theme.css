@@ -23,6 +23,13 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+  --border-warning-soft: color-mix(in oklab, var(--warning) 25%, var(--border));
+  --border-success-soft: color-mix(in oklab, var(--success) 25%, var(--border));
+  --border-danger-soft: color-mix(in oklab, var(--danger) 40%, var(--border));
+  --bg-warning-soft: color-mix(in oklab, var(--warning) 6%, transparent);
+  --bg-success-soft: color-mix(in oklab, var(--success) 6%, transparent);
+  --bg-danger-soft: color-mix(in oklab, var(--danger) 8%, transparent);
+  --bg-surface-alt: color-mix(in oklab, var(--surface) 70%, var(--surface-2));
 }
 
 @theme inline {
@@ -47,8 +54,18 @@
   --color-cat-6: var(--cat-6);
   --color-cat-7: var(--cat-7);
   --color-cat-8: var(--cat-8);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,5 +91,12 @@
     --cat-6: #22d3ee;
     --cat-7: #e879f9;
     --cat-8: #94a3b8;
+    --border-warning-soft: color-mix(in oklab, var(--warning) 25%, var(--border));
+    --border-success-soft: color-mix(in oklab, var(--success) 25%, var(--border));
+    --border-danger-soft: color-mix(in oklab, var(--danger) 40%, var(--border));
+    --bg-warning-soft: color-mix(in oklab, var(--warning) 6%, transparent);
+    --bg-success-soft: color-mix(in oklab, var(--success) 6%, transparent);
+    --bg-danger-soft: color-mix(in oklab, var(--danger) 8%, transparent);
+    --bg-surface-alt: color-mix(in oklab, var(--surface) 70%, var(--surface-2));
   }
 }

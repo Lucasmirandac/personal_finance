@@ -12,6 +12,9 @@ import {
   budgetUsageForMonth,
 } from "@/lib/budgets";
 
+const chipLinkBase =
+  "inline-flex items-center px-2 py-0.5 rounded-sm font-mono bg-surface-2 border border-border text-muted hover:border-border-strong";
+
 export function BudgetAlertWidget() {
   const { normalized, budgets, hasAnalysis } = useAppStore();
 
@@ -33,10 +36,11 @@ export function BudgetAlertWidget() {
     <Link
       href="/dashboard?tab=orcamentos"
       className={clsx(
-        "hidden sm:inline-flex items-center gap-1 chip hover:border-[var(--border-strong)] text-[10px]",
+        chipLinkBase,
+        "hidden sm:inline-flex gap-1 text-[10px]",
         alerts.danger > 0
-          ? "text-[var(--danger)] border-[var(--danger)]/40"
-          : "text-[var(--warning)] border-[var(--warning)]/40",
+          ? "text-danger border-[var(--danger)]/40"
+          : "text-warning border-[var(--warning)]/40",
       )}
       title="Ver orçamentos do mês"
     >
@@ -58,10 +62,11 @@ export function BackupReminder() {
     <Link
       href="/config?tab=backup"
       className={clsx(
-        "hidden sm:inline-flex items-center gap-1 chip hover:border-[var(--border-strong)] text-[10px]",
+        chipLinkBase,
+        "hidden sm:inline-flex gap-1 text-[10px]",
         urgent
-          ? "text-[var(--danger)] border-[var(--danger)]/40"
-          : "subtle",
+          ? "text-danger border-[var(--danger)]/40"
+          : "text-muted",
       )}
       title="Faça backup dos seus dados locais"
     >
@@ -80,7 +85,7 @@ export function SetupIndicator() {
   return (
     <Link
       href="/config"
-      className="hidden sm:inline-flex items-center gap-1.5 chip hover:border-[var(--border-strong)]"
+      className={clsx(chipLinkBase, "hidden sm:inline-flex gap-1.5")}
       title={steps.map((s) => `${s.label}: ${s.done ? "ok" : "pendente"}`).join("\n")}
     >
       {steps.map((s) => (
@@ -93,7 +98,7 @@ export function SetupIndicator() {
           aria-hidden
         />
       ))}
-      <span className="text-[10px] subtle">Setup</span>
+      <span className="text-[10px] text-muted">Setup</span>
     </Link>
   );
 }
@@ -127,16 +132,19 @@ export function Saldo30Widget() {
   return (
     <Link
       href="/saldo"
-      className="hidden md:inline-flex items-center gap-2 chip hover:border-[var(--border-strong)] num text-xs"
+      className={clsx(
+        chipLinkBase,
+        "hidden md:inline-flex gap-2 tabular-nums text-xs",
+      )}
       title={`Saldo em ${saldo30.date}`}
     >
-      <span className="subtle text-[10px]">30d</span>
+      <span className="text-muted text-[10px]">30d</span>
       <span
         className={clsx(
           "font-medium",
           saldo30.balance >= 0
-            ? "text-[var(--success)]"
-            : "text-[var(--danger)]",
+            ? "text-success"
+            : "text-danger",
         )}
       >
         {saldo30.balance.toLocaleString("pt-BR", {

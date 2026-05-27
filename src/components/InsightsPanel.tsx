@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { Insight } from "@/lib/aggregations";
+import { Panel } from "@/components/ui/Panel";
 
 export function InsightsPanel({ insights, max = 4 }: { insights: Insight[]; max?: number }) {
   const items = insights.slice(0, max);
@@ -8,12 +9,12 @@ export function InsightsPanel({ insights, max = 4 }: { insights: Insight[]; max?
 
   if (items.length === 0) {
     return (
-      <p className="text-sm subtle py-2">Sem dados suficientes para insights.</p>
+      <p className="text-sm text-muted py-2">Sem dados suficientes para insights.</p>
     );
   }
   return (
     <div className="space-y-2">
-      <div className="panel divide-y">
+      <Panel className="divide-y">
         {items.map((i) => (
           <div key={i.id} className="px-3 py-2 flex gap-3 text-sm">
             <span
@@ -26,11 +27,11 @@ export function InsightsPanel({ insights, max = 4 }: { insights: Insight[]; max?
             />
             <div className="min-w-0">
               <span className="font-medium">{i.title}</span>
-              <span className="subtle"> — {i.detail}</span>
+              <span className="text-muted"> — {i.detail}</span>
             </div>
           </div>
         ))}
-      </div>
+      </Panel>
       {hasRitmoMes && (
         <Link
           href="/dashboard?tab=comparar"

@@ -1,5 +1,7 @@
 import clsx from "clsx";
 import { Children } from "react";
+import { Num } from "@/components/ui/Num";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 
 type Delta = {
   label: string;
@@ -25,42 +27,44 @@ export function KpiCard({
 }: Props) {
   const valueColor =
     tone === "accent"
-      ? "text-[var(--accent)]"
+      ? "text-accent"
       : tone === "warning"
-        ? "text-[var(--warning)]"
+        ? "text-warning"
         : tone === "success"
-          ? "text-[var(--success)]"
+          ? "text-success"
           : tone === "danger"
-            ? "text-[var(--danger)]"
-            : "text-[var(--foreground)]";
+            ? "text-danger"
+            : "text-foreground";
 
   return (
     <div className={clsx(compact ? "py-2" : "")}>
       <div className="flex items-center justify-between gap-2">
-        <span className="section-title">{label}</span>
+        <SectionTitle>{label}</SectionTitle>
         {delta && (
-          <span
+          <Num
             className={clsx(
-              "text-[10px] font-medium num",
-              delta.tone === "up" && "text-[var(--success)]",
-              delta.tone === "down" && "text-[var(--danger)]",
-              (!delta.tone || delta.tone === "neutral") && "subtle",
+              "text-[10px] font-medium",
+              delta.tone === "up" && "text-success",
+              delta.tone === "down" && "text-danger",
+              (!delta.tone || delta.tone === "neutral") && "text-muted",
             )}
           >
             {delta.label}
-          </span>
+          </Num>
         )}
       </div>
-      <div
+      <Num
         className={clsx(
-          "num font-semibold tracking-tight mt-0.5",
+          "font-semibold tracking-tight mt-0.5",
           compact ? "text-base" : "text-xl",
           valueColor,
         )}
       >
         {value}
-      </div>
-      {hint && <div className="text-[11px] subtle mt-0.5 leading-snug">{hint}</div>}
+      </Num>
+      {hint && (
+        <div className="text-[11px] text-muted mt-0.5 leading-snug">{hint}</div>
+      )}
     </div>
   );
 }
@@ -68,9 +72,12 @@ export function KpiCard({
 export function KpiStrip({ children }: { children: React.ReactNode }) {
   const items = Children.toArray(children);
   return (
-    <div className="kpi-strip">
+    <div className="grid grid-cols-2 md:grid-cols-4 border border-border rounded-lg bg-surface overflow-hidden">
       {items.map((child, i) => (
-        <div key={i} className="kpi-cell">
+        <div
+          key={i}
+          className="p-3 md:p-4 border-r border-b border-border [&:nth-child(2n)]:border-r-0 md:[&:nth-child(2n)]:border-r md:border-b-0 md:[&:last-child]:border-r-0"
+        >
           {child}
         </div>
       ))}

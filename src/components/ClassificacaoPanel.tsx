@@ -4,7 +4,20 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { DEFAULT_RULES, Rules } from "@/lib/types";
 import { NatureBadge } from "@/components/NatureBadge";
+import { KpiCard, KpiStrip } from "@/components/KpiCard";
 import { formatBRL, formatInt } from "@/lib/format";
+import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
+import {
+  DataTable,
+  DataTableCell,
+  DataTableHead,
+  DataTableRow,
+} from "@/components/ui/DataTable";
+import { Input } from "@/components/ui/Input";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Plus, RotateCcw, Save, Undo2, X } from "lucide-react";
 import { normalizeTransactions } from "@/lib/normalize";
 
@@ -57,13 +70,14 @@ export function ClassificacaoPanel() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="subtle text-xs mt-0.5 max-w-xl">
+          <p className="text-muted text-xs mt-0.5 max-w-xl">
             Padrões de classificação. Salvar recalcula todo o dataset.
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button
-            className="btn btn-danger btn-sm"
+          <Button
+            variant="danger"
+            size="sm"
             onClick={async () => {
               if (confirm("Restaurar padrões originais?")) {
                 await resetRules();
@@ -72,9 +86,9 @@ export function ClassificacaoPanel() {
           >
             <RotateCcw size={13} />
             Restaurar padrões
-          </button>
-          <button
-            className="btn btn-sm"
+          </Button>
+          <Button
+            size="sm"
             onClick={() => {
               setDraft(rules);
               setDirty(false);
@@ -83,9 +97,10 @@ export function ClassificacaoPanel() {
           >
             <Undo2 size={13} />
             Descartar
-          </button>
-          <button
-            className="btn btn-primary btn-sm"
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={async () => {
               await updateRules({
                 pagamentoPatterns: draft.pagamentoPatterns.filter((p) => p.trim()),
@@ -100,7 +115,7 @@ export function ClassificacaoPanel() {
           >
             <Save size={13} />
             Salvar e recalcular
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -132,64 +147,60 @@ export function ClassificacaoPanel() {
       </div>
 
       {preview && (
-        <div className="panel p-3 space-y-3">
+        <Panel className="p-3 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="section-title">Pré-visualização</span>
-            <span className="text-[11px] subtle">Salve para aplicar</span>
+            <SectionTitle>Pré-visualização</SectionTitle>
+            <span className="text-[11px] text-muted">Salve para aplicar</span>
           </div>
-          <div className="kpi-strip">
-            <div className="kpi-cell">
-              <div className="section-title">Gasto</div>
-              <div className="num text-base font-semibold mt-0.5">
-                {formatBRL(preview.total)}
-              </div>
-            </div>
-            <div className="kpi-cell">
-              <div className="section-title">Consumo</div>
-              <div className="num text-base font-semibold mt-0.5">
-                {formatInt(preview.countGasto)}
-              </div>
-            </div>
-            <div className="kpi-cell">
-              <div className="section-title">Pagamentos</div>
-              <div className="num text-base font-semibold mt-0.5">
-                {formatInt(preview.countPag)}
-              </div>
-            </div>
-            <div className="kpi-cell">
-              <div className="section-title">Estornos</div>
-              <div className="num text-base font-semibold mt-0.5">
-                {formatInt(preview.countEst)}
-              </div>
-            </div>
-          </div>
+          <KpiStrip>
+            <KpiCard label="Gasto" value={formatBRL(preview.total)} compact />
+            <KpiCard
+              label="Consumo"
+              value={formatInt(preview.countGasto)}
+              compact
+            />
+            <KpiCard
+              label="Pagamentos"
+              value={formatInt(preview.countPag)}
+              compact
+            />
+            <KpiCard
+              label="Estornos"
+              value={formatInt(preview.countEst)}
+              compact
+            />
+          </KpiStrip>
           {preview.excludedSamples.length > 0 && (
-            <div className="table-wrap border border-[var(--border)] rounded-lg">
-              <table className="dt">
+            <div className="border border-border rounded-lg overflow-x-auto">
+              <DataTable>
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Lançamento</th>
-                    <th>Natureza</th>
-                    <th className="num">Valor</th>
+                    <DataTableHead>Data</DataTableHead>
+                    <DataTableHead>Lançamento</DataTableHead>
+                    <DataTableHead>Natureza</DataTableHead>
+                    <DataTableHead align="right">Valor</DataTableHead>
                   </tr>
                 </thead>
                 <tbody>
                   {preview.excludedSamples.map((t) => (
-                    <tr key={t.id}>
-                      <td>{t.data}</td>
-                      <td className="max-w-[280px] truncate">{t.lancamento}</td>
-                      <td>
+                    <DataTableRow key={t.id}>
+                      <DataTableCell>{t.data}</DataTableCell>
+                      <DataTableCell className="max-w-[280px] truncate">
+                        {t.lancamento}
+                      </DataTableCell>
+                      <DataTableCell>
                         <NatureBadge natureza={t.natureza} />
-                      </td>
-                      <td className="num">{formatBRL(t.valorOriginal)}</td>
-                    </tr>
+                      </DataTableCell>
+                      <DataTableCell align="right" className="font-mono tabular-nums">
+                        {formatBRL(t.valorOriginal)}
+                      </DataTableCell>
+                    </DataTableRow>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -236,32 +247,29 @@ function PatternEditor({
   }
 
   return (
-    <div className="panel flex flex-col overflow-hidden">
-      <div className="px-3 py-2 border-b border-[var(--border)]">
-        <div className="section-title">{title}</div>
-        <p className="text-[11px] subtle mt-0.5">{description}</p>
+    <Panel className="flex flex-col overflow-hidden">
+      <div className="px-3 py-2 border-b border-border">
+        <SectionTitle>{title}</SectionTitle>
+        <p className="text-[11px] text-muted mt-0.5">{description}</p>
       </div>
-      <ul className="divide-y divide-[var(--border)]">
+      <ul className="divide-y divide-border">
         {values.map((v, i) => (
           <li key={i} className="flex items-center gap-2 px-3 py-2">
-            <input
-              className="input"
-              value={v}
-              onChange={(e) => setIdx(i, e.target.value)}
-            />
-            <button
-              className="btn btn-danger btn-sm shrink-0"
+            <Input value={v} onChange={(e) => setIdx(i, e.target.value)} />
+            <Button
+              variant="danger"
+              size="sm"
+              className="shrink-0"
               onClick={() => remove(i)}
               aria-label="Remover padrão"
             >
               <X size={13} />
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
-      <div className="flex gap-2 p-3 border-t border-[var(--border)]">
-        <input
-          className="input"
+      <div className="flex gap-2 p-3 border-t border-border">
+        <Input
           placeholder={placeholderItem}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -272,22 +280,24 @@ function PatternEditor({
             }
           }}
         />
-        <button
-          className="btn btn-primary btn-sm shrink-0"
+        <Button
+          variant="primary"
+          size="sm"
+          className="shrink-0"
           onClick={add}
           aria-label="Adicionar padrão"
         >
           <Plus size={13} />
-        </button>
+        </Button>
       </div>
-      <div className="text-[11px] subtle px-3 pb-3">
+      <div className="text-[11px] text-muted px-3 pb-3">
         Padrões originais:{" "}
         {defaults.map((d) => (
-          <code key={d} className="chip mr-1">
+          <Chip key={d} className="mr-1">
             {d}
-          </code>
+          </Chip>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }

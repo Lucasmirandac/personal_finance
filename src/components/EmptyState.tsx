@@ -1,4 +1,10 @@
 import Link from "next/link";
+import { Card } from "@/components/ui/Panel";
+
+const linkBtnBase =
+  "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap text-[13px] px-3 py-1.5";
+const linkBtnDefault = `${linkBtnBase} border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong`;
+const linkBtnPrimary = `${linkBtnBase} border-foreground bg-foreground text-surface hover:opacity-90`;
 
 export function EmptyState({
   title = "Nenhum dado para analisar",
@@ -8,17 +14,17 @@ export function EmptyState({
   description?: string;
 }) {
   return (
-    <div className="card p-10 text-center max-w-xl mx-auto">
+    <Card className="p-10 text-center max-w-xl mx-auto">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="subtle mt-1">{description}</p>
+      <p className="text-muted mt-1">{description}</p>
       <div className="flex flex-wrap gap-2 justify-center mt-4">
-        <Link href="/" className="btn btn-primary">
+        <Link href="/" className={linkBtnPrimary}>
           Começar
         </Link>
-        <Link href="/config?tab=importar" className="btn">
+        <Link href="/config?tab=importar" className={linkBtnDefault}>
           Importar CSV
         </Link>
       </div>
-    </div>
+    </Card>
   );
 }

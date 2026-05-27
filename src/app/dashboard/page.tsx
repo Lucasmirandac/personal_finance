@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
 import { useFilters } from "@/lib/filtersContext";
 import { isProjectionReady } from "@/lib/setupStatus";
@@ -29,6 +28,17 @@ import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { ComparisonPanel } from "@/components/ComparisonPanel";
 import { Tabs } from "@/components/Tabs";
+import { Button } from "@/components/ui/Button";
+import {
+  DataTable,
+  DataTableCell,
+  DataTableHead,
+  DataTableRow,
+} from "@/components/ui/DataTable";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import {
   formatBRL,
   formatDateRangeCaption,
@@ -72,7 +82,7 @@ function parseDashTab(v: string | null): DashTab {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="subtle p-4">Carregando…</div>}>
+    <Suspense fallback={<div className="text-muted p-4">Carregando…</div>}>
       <DashboardPageInner />
     </Suspense>
   );
@@ -148,7 +158,7 @@ function DashboardPageInner() {
     [budgetUsages],
   );
 
-  if (!loaded) return <div className="subtle">Carregando…</div>;
+  if (!loaded) return <div className="text-muted">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;
 
   return (
@@ -156,13 +166,16 @@ function DashboardPageInner() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Análise</h1>
-          <p className="subtle text-xs mt-0.5">
+          <p className="text-muted text-xs mt-0.5">
             {dataset.sources.length} fonte(s) · {formatInt(normalized.length)} linhas
             {windowCaption && <> · {windowCaption}</>}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
-          <Link href="/transacoes" className="btn btn-sm">
+          <Link
+            href="/transacoes"
+            className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1"
+          >
             <List size={13} />
             Transações
           </Link>
@@ -170,17 +183,18 @@ function DashboardPageInner() {
             activeCount={activeCount}
             onClick={() => setDrawerOpen(true)}
           />
-          <button className="btn btn-sm" onClick={() => exportTreatedCsv(filtered)}>
+          <Button size="sm" onClick={() => exportTreatedCsv(filtered)}>
             <FileDown size={13} />
             CSV
-          </button>
-          <button
-            className="btn btn-primary btn-sm"
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => exportWorkbook(filtered, budgets, budgetUsages)}
           >
             <FileSpreadsheet size={13} />
             Excel
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -194,25 +208,28 @@ function DashboardPageInner() {
       />
 
       {!projectionReady && (
-        <div className="panel px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-[var(--warning)]/30">
+        <Panel className="px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-warning/30">
           <p className="text-xs">
             Configure cartões e saldo inicial para ver sua{" "}
             <strong>projeção de saldo</strong>.
           </p>
-          <Link href="/config?tab=cartoes" className="btn btn-primary btn-sm shrink-0">
+          <Link
+            href="/config?tab=cartoes"
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-foreground bg-foreground text-surface hover:opacity-90 text-xs px-2 py-1"
+          >
             Configurar
             <ArrowRight size={13} />
           </Link>
-        </div>
+        </Panel>
       )}
 
       {projectionReady && <NextEventPeek />}
 
       {budgetAlerts.warning + budgetAlerts.danger > 0 && (
-        <div className="panel px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-[var(--warning)]/30">
+        <Panel className="px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-warning/30">
           <p className="text-xs">
             {budgetAlerts.danger > 0 && (
-              <span className="text-[var(--danger)] font-medium">
+              <span className="text-danger font-medium">
                 {budgetAlerts.danger} categoria
                 {budgetAlerts.danger > 1 ? "s" : ""} estourada
                 {budgetAlerts.danger > 1 ? "s" : ""}
@@ -220,20 +237,20 @@ function DashboardPageInner() {
             )}
             {budgetAlerts.danger > 0 && budgetAlerts.warning > 0 && " · "}
             {budgetAlerts.warning > 0 && (
-              <span className="text-[var(--warning)]">
+              <span className="text-warning">
                 {budgetAlerts.warning} perto do limite
               </span>
             )}
           </p>
-          <button
-            type="button"
-            className="btn btn-sm shrink-0"
+          <Button
+            size="sm"
+            className="shrink-0"
             onClick={() => onTabChange("orcamentos")}
           >
             Ver orçamentos
             <ArrowRight size={13} />
-          </button>
-        </div>
+          </Button>
+        </Panel>
       )}
 
       <KpiStrip>
@@ -266,7 +283,7 @@ function DashboardPageInner() {
               <MonthlyChart data={months} />
             </ChartCard>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--border)] border border-[var(--border)] rounded-lg overflow-hidden">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-lg overflow-hidden">
               {[
                 { label: "Ticket médio", value: formatBRL(kpis.ticketMedio) },
                 {
@@ -280,14 +297,14 @@ function DashboardPageInner() {
                 },
                 { label: "Total bruto", value: formatBRL(kpis.totalBruto) },
               ].map((k) => (
-                <div key={k.label} className="bg-[var(--surface)] p-3">
+                <div key={k.label} className="bg-surface p-3">
                   <KpiCard label={k.label} value={k.value} hint={k.hint} compact />
                 </div>
               ))}
             </div>
 
             <div>
-              <div className="section-title mb-2">Insights</div>
+              <SectionTitle className="block mb-2">Insights</SectionTitle>
               <InsightsPanel insights={insights} max={4} />
             </div>
           </div>
@@ -298,14 +315,17 @@ function DashboardPageInner() {
         {tab === "orcamentos" && (
           <div className="space-y-4">
             {budgetUsages.length === 0 ? (
-              <div className="panel p-4 space-y-2">
-                <p className="text-sm subtle">
+              <Panel className="p-4 space-y-2">
+                <p className="text-sm text-muted">
                   Nenhum orçamento ativo. Crie limites em Configurações.
                 </p>
-                <Link href="/config?tab=orcamentos" className="btn btn-sm btn-primary">
+                <Link
+                  href="/config?tab=orcamentos"
+                  className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-foreground bg-foreground text-surface hover:opacity-90 text-xs px-2 py-1"
+                >
                   Configurar orçamentos
                 </Link>
-              </div>
+              </Panel>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {budgetUsages.map((u) => (
@@ -329,30 +349,34 @@ function DashboardPageInner() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="section-title">Maiores compras</span>
-                <span className="text-[11px] subtle">Top 10</span>
+                <SectionTitle>Maiores compras</SectionTitle>
+                <span className="text-[11px] text-muted">Top 10</span>
               </div>
-              <div className="table-wrap border border-[var(--border)] rounded-lg">
-                <table className="dt">
+              <div className="border border-border rounded-lg overflow-x-auto">
+                <DataTable>
                   <thead>
                     <tr>
-                      <th>Data</th>
-                      <th>Estabelecimento</th>
-                      <th>Categoria</th>
-                      <th className="num">Valor</th>
+                      <DataTableHead>Data</DataTableHead>
+                      <DataTableHead>Estabelecimento</DataTableHead>
+                      <DataTableHead>Categoria</DataTableHead>
+                      <DataTableHead align="right">Valor</DataTableHead>
                     </tr>
                   </thead>
                   <tbody>
                     {topPurchases.map((t) => (
-                      <tr key={t.id}>
-                        <td>{t.data}</td>
-                        <td className="max-w-[220px] truncate">{t.estabelecimento}</td>
-                        <td>{t.categoria}</td>
-                        <td className="num">{formatBRL(t.valorAnalise)}</td>
-                      </tr>
+                      <DataTableRow key={t.id}>
+                        <DataTableCell>{t.data}</DataTableCell>
+                        <DataTableCell className="max-w-[220px] truncate">
+                          {t.estabelecimento}
+                        </DataTableCell>
+                        <DataTableCell>{t.categoria}</DataTableCell>
+                        <DataTableCell align="right" className="font-mono tabular-nums">
+                          {formatBRL(t.valorAnalise)}
+                        </DataTableCell>
+                      </DataTableRow>
                     ))}
                   </tbody>
-                </table>
+                </DataTable>
               </div>
             </div>
           </div>
@@ -364,39 +388,41 @@ function DashboardPageInner() {
               <CategoryChart data={cats} />
             </ChartCard>
 
-            <div className="table-wrap border border-[var(--border)] rounded-lg">
-              <table className="dt">
+            <div className="border border-border rounded-lg overflow-x-auto">
+              <DataTable>
                 <thead>
                   <tr>
-                    <th>Categoria</th>
-                    <th className="num">Total</th>
-                    <th className="num">Tx</th>
-                    <th>%</th>
+                    <DataTableHead>Categoria</DataTableHead>
+                    <DataTableHead align="right">Total</DataTableHead>
+                    <DataTableHead align="right">Tx</DataTableHead>
+                    <DataTableHead>%</DataTableHead>
                   </tr>
                 </thead>
                 <tbody>
                   {cats.slice(0, 15).map((c) => (
-                    <tr key={c.categoria}>
-                      <td>{c.categoria}</td>
-                      <td className="num">{formatBRL(c.total)}</td>
-                      <td className="num">{formatInt(c.count)}</td>
-                      <td>
+                    <DataTableRow key={c.categoria}>
+                      <DataTableCell>{c.categoria}</DataTableCell>
+                      <DataTableCell align="right" className="font-mono tabular-nums">
+                        {formatBRL(c.total)}
+                      </DataTableCell>
+                      <DataTableCell align="right" className="font-mono tabular-nums">
+                        {formatInt(c.count)}
+                      </DataTableCell>
+                      <DataTableCell>
                         <div className="flex items-center gap-2 min-w-[100px]">
-                          <div className="progress-bar flex-1">
-                            <div
-                              className="progress-bar-fill"
-                              style={{ width: `${(c.total / maxCatTotal) * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-[11px] num w-10 text-right">
+                          <ProgressBar
+                            value={(c.total / maxCatTotal) * 100}
+                            className="flex-1"
+                          />
+                          <Num className="text-[11px] w-10 text-right">
                             {formatPercent(c.share)}
-                          </span>
+                          </Num>
                         </div>
-                      </td>
-                    </tr>
+                      </DataTableCell>
+                    </DataTableRow>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
         )}
@@ -404,42 +430,36 @@ function DashboardPageInner() {
         {tab === "estabelecimentos" && (
           <div className="space-y-3">
             <div className="flex gap-1">
-              <button
-                type="button"
-                className={clsx(
-                  "btn btn-sm",
-                  estView === "top" && "btn-primary",
-                )}
+              <Button
+                size="sm"
+                variant={estView === "top" ? "primary" : "default"}
                 onClick={() => setEstView("top")}
               >
                 Top por valor
-              </button>
-              <button
-                type="button"
-                className={clsx(
-                  "btn btn-sm",
-                  estView === "recurring" && "btn-primary",
-                )}
+              </Button>
+              <Button
+                size="sm"
+                variant={estView === "recurring" ? "primary" : "default"}
                 onClick={() => setEstView("recurring")}
               >
                 Recorrentes (3+)
-              </button>
+              </Button>
             </div>
 
-            <div className="table-wrap border border-[var(--border)] rounded-lg">
-              <table className="dt">
+            <div className="border border-border rounded-lg overflow-x-auto">
+              <DataTable>
                 <thead>
                   <tr>
-                    <th>Estabelecimento</th>
+                    <DataTableHead>Estabelecimento</DataTableHead>
                     {estView === "recurring" ? (
                       <>
-                        <th className="num">Tx</th>
-                        <th className="num">Total</th>
+                        <DataTableHead align="right">Tx</DataTableHead>
+                        <DataTableHead align="right">Total</DataTableHead>
                       </>
                     ) : (
                       <>
-                        <th className="num">Total</th>
-                        <th className="num">Tx</th>
+                        <DataTableHead align="right">Total</DataTableHead>
+                        <DataTableHead align="right">Tx</DataTableHead>
                       </>
                     )}
                   </tr>
@@ -447,33 +467,41 @@ function DashboardPageInner() {
                 <tbody>
                   {(estView === "top" ? ests.slice(0, 15) : recurringEsts).map(
                     (e) => (
-                      <tr key={e.estabelecimento}>
-                        <td className="max-w-[280px] truncate">
+                      <DataTableRow key={e.estabelecimento}>
+                        <DataTableCell className="max-w-[280px] truncate">
                           {e.estabelecimento}
-                        </td>
+                        </DataTableCell>
                         {estView === "recurring" ? (
                           <>
-                            <td className="num">{formatInt(e.count)}</td>
-                            <td className="num">{formatBRL(e.total)}</td>
+                            <DataTableCell align="right" className="font-mono tabular-nums">
+                              {formatInt(e.count)}
+                            </DataTableCell>
+                            <DataTableCell align="right" className="font-mono tabular-nums">
+                              {formatBRL(e.total)}
+                            </DataTableCell>
                           </>
                         ) : (
                           <>
-                            <td className="num">{formatBRL(e.total)}</td>
-                            <td className="num">{formatInt(e.count)}</td>
+                            <DataTableCell align="right" className="font-mono tabular-nums">
+                              {formatBRL(e.total)}
+                            </DataTableCell>
+                            <DataTableCell align="right" className="font-mono tabular-nums">
+                              {formatInt(e.count)}
+                            </DataTableCell>
                           </>
                         )}
-                      </tr>
+                      </DataTableRow>
                     ),
                   )}
                   {estView === "recurring" && recurringEsts.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="subtle py-4 text-center">
+                      <DataTableCell colSpan={3} className="text-muted py-4 text-center">
                         Nenhum estabelecimento com 3+ compras nos filtros atuais.
-                      </td>
+                      </DataTableCell>
                     </tr>
                   )}
                 </tbody>
-              </table>
+              </DataTable>
             </div>
           </div>
         )}

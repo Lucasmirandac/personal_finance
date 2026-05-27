@@ -8,6 +8,9 @@ import {
   Settings,
 } from "@/lib/types";
 import { defaultCardsForSources } from "@/lib/projection";
+import { Button } from "@/components/ui/Button";
+import { Input, Select } from "@/components/ui/Input";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 
 const FONTE_LABELS: Record<Fonte, string> = {
   inter: "Inter",
@@ -97,20 +100,26 @@ export function SettingsPanel({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="panel p-4 space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-surface border border-border rounded-lg p-4 space-y-4"
+    >
       <div>
-        <div className="section-title">Saldo inicial</div>
-        <p className="text-[11px] subtle mt-0.5 mb-2">
+        <SectionTitle>Saldo inicial</SectionTitle>
+        <p className="text-[11px] text-muted mt-0.5 mb-2">
           Saldo em conta na data de referência (âncora da projeção).
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="section-title block mb-1" htmlFor="anchor-valor">
+            <label
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+              htmlFor="anchor-valor"
+            >
               Valor (R$)
             </label>
-            <input
+            <Input
               id="anchor-valor"
-              className="input num"
+              className="font-mono tabular-nums"
               type="text"
               inputMode="decimal"
               placeholder="5000,00"
@@ -120,12 +129,14 @@ export function SettingsPanel({
             />
           </div>
           <div>
-            <label className="section-title block mb-1" htmlFor="anchor-data">
+            <label
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+              htmlFor="anchor-data"
+            >
               Data
             </label>
-            <input
+            <Input
               id="anchor-data"
-              className="input"
               type="date"
               value={anchorDate}
               onChange={(e) => setAnchorDate(e.target.value)}
@@ -137,23 +148,27 @@ export function SettingsPanel({
 
       {sources.length > 0 && (
         <div>
-          <div className="section-title">Cartões</div>
-          <p className="text-[11px] subtle mt-0.5 mb-2">
+          <SectionTitle>Cartões</SectionTitle>
+          <p className="text-[11px] text-muted mt-0.5 mb-2">
             Fechamento = último dia da fatura; pagamento = débito na conta.
           </p>
           <div className="space-y-3">
             {cards.map((c) => (
               <div
                 key={c.fonte}
-                className="grid grid-cols-3 gap-2 items-end border border-[var(--border)] rounded-md p-2"
+                className="grid grid-cols-3 gap-2 items-end border border-border rounded-md p-2"
               >
                 <div className="font-medium text-sm">{FONTE_LABELS[c.fonte]}</div>
                 <div>
-                  <label className="text-[10px] subtle uppercase tracking-wide">
+                  <label
+                    className="text-[10px] text-muted uppercase tracking-wide"
+                    htmlFor={`card-fechamento-${c.fonte}`}
+                  >
                     Fechamento
                   </label>
-                  <input
-                    className="input mt-0.5"
+                  <Input
+                    id={`card-fechamento-${c.fonte}`}
+                    className="mt-0.5"
                     type="number"
                     min={1}
                     max={31}
@@ -164,11 +179,15 @@ export function SettingsPanel({
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] subtle uppercase tracking-wide">
+                  <label
+                    className="text-[10px] text-muted uppercase tracking-wide"
+                    htmlFor={`card-pagamento-${c.fonte}`}
+                  >
                     Pagamento
                   </label>
-                  <input
-                    className="input mt-0.5"
+                  <Input
+                    id={`card-pagamento-${c.fonte}`}
+                    className="mt-0.5"
                     type="number"
                     min={1}
                     max={31}
@@ -185,12 +204,15 @@ export function SettingsPanel({
       )}
 
       <div>
-        <label className="section-title block mb-1" htmlFor="horizon">
+        <label
+          className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+          htmlFor="horizon"
+        >
           Horizonte (dias à frente)
         </label>
-        <select
+        <Select
           id="horizon"
-          className="select w-auto"
+          className="w-auto"
           value={horizon}
           onChange={(e) => setHorizon(Number(e.target.value))}
         >
@@ -199,18 +221,14 @@ export function SettingsPanel({
               {h} dias
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex gap-2 pt-1">
-        <button type="submit" className="btn btn-primary">
+        <Button type="submit" variant="primary">
           Salvar
-        </button>
-        {onCancel && (
-          <button type="button" className="btn" onClick={onCancel}>
-            Cancelar
-          </button>
-        )}
+        </Button>
+        {onCancel && <Button onClick={onCancel}>Cancelar</Button>}
       </div>
     </form>
   );

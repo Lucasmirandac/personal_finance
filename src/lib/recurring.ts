@@ -1,4 +1,5 @@
-import { isoToBr, parseIsoDate } from "./csv";
+import { isoToBr } from "./csv";
+import { isoFromParts } from "./dates";
 import { RecurringRule, TransactionRaw } from "./types";
 
 export function newRecurringId(): string {
@@ -14,10 +15,6 @@ function daysInMonth(year: number, month: number): number {
 
 function clampDay(year: number, month: number, diaMes: number): number {
   return Math.min(diaMes, daysInMonth(year, month));
-}
-
-function isoFromParts(year: number, month: number, day: number): string {
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export function monthsBetween(fromIso: string, toIso: string): string[] {

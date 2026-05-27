@@ -6,6 +6,12 @@ import { createBudget, uniqueCategoriesFromTransactions } from "@/lib/budgets";
 import { useAppStore } from "@/lib/store";
 import { CategoryBudget } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Input } from "@/components/ui/Input";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 type FormState = {
@@ -103,27 +109,31 @@ export function BudgetsPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <div className="section-title">Orçamentos por categoria</div>
-          <p className="text-[11px] subtle mt-0.5">
+          <SectionTitle>Orçamentos por categoria</SectionTitle>
+          <p className="text-[11px] text-muted mt-0.5">
             Defina limites mensais e receba alertas em 80% e 100%.
           </p>
         </div>
-        <button type="button" className="btn btn-primary btn-sm" onClick={openNew}>
+        <Button variant="primary" size="sm" onClick={openNew}>
           <Plus size={13} />
           Novo orçamento
-        </button>
+        </Button>
       </div>
 
       {error && !formOpen && (
-        <p className="text-xs text-[var(--danger)] panel p-2">{error}</p>
+        <Panel className="p-2">
+          <p className="text-xs text-danger">{error}</p>
+        </Panel>
       )}
 
       {budgets.length === 0 ? (
-        <p className="text-sm subtle panel p-4">
-          Crie limites para as categorias que você quer controlar de perto.
-        </p>
+        <Panel className="p-4">
+          <p className="text-sm text-muted">
+            Crie limites para as categorias que você quer controlar de perto.
+          </p>
+        </Panel>
       ) : (
-        <div className="panel divide-y">
+        <Panel className="divide-y divide-border">
           {budgets.map((b) => (
             <div
               key={b.id}
@@ -134,59 +144,50 @@ export function BudgetsPanel() {
             >
               <div>
                 <div className="font-medium text-sm">{b.categoria}</div>
-                <div className="text-xs subtle num">
+                <Num className="block text-xs text-muted">
                   {formatBRL(b.valorMensal)}/mês
                   {!b.ativa && " · inativo"}
-                </div>
+                </Num>
               </div>
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => openEdit(b)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => openEdit(b)}>
                   <Pencil size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => toggleBudget(b.id)}
-                >
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => toggleBudget(b.id)}>
                   {b.ativa ? "Desativar" : "Ativar"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost text-[var(--danger)]"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger"
                   onClick={() => handleRemove(b.id)}
                 >
                   <Trash2 size={13} />
-                </button>
+                </Button>
               </div>
             </div>
           ))}
-        </div>
+        </Panel>
       )}
 
       {formOpen && (
-        <div
-          className="drawer-backdrop"
+        <DrawerBackdrop
           role="presentation"
           onClick={() => setFormOpen(false)}
         >
           <form
-            className="panel w-full max-w-md mx-4 p-4 space-y-3"
+            className="bg-surface border border-border rounded-lg w-full max-w-md mx-4 p-4 space-y-3"
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSubmit}
           >
-            <div className="section-title">
+            <SectionTitle>
               {editingId ? "Editar orçamento" : "Novo orçamento"}
-            </div>
+            </SectionTitle>
             <label className="block space-y-1">
-              <span className="text-xs subtle">Categoria</span>
-              <input
-                className="input w-full"
+              <span className="text-xs text-muted">Categoria</span>
+              <Input
                 list="budget-category-suggestions"
                 value={form.categoria}
                 onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
@@ -199,9 +200,9 @@ export function BudgetsPanel() {
               </datalist>
             </label>
             <label className="block space-y-1">
-              <span className="text-xs subtle">Valor mensal (R$)</span>
-              <input
-                className="input w-full num"
+              <span className="text-xs text-muted">Valor mensal (R$)</span>
+              <Input
+                className="font-mono tabular-nums"
                 inputMode="decimal"
                 value={form.valorMensal}
                 onChange={(e) =>
@@ -218,21 +219,17 @@ export function BudgetsPanel() {
               />
               Ativo
             </label>
-            {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
+            {error && <p className="text-xs text-danger">{error}</p>}
             <div className="flex gap-2">
-              <button type="submit" className="btn btn-primary btn-sm">
+              <Button type="submit" variant="primary" size="sm">
                 Salvar
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setFormOpen(false)}
-              >
+              </Button>
+              <Button size="sm" onClick={() => setFormOpen(false)}>
                 Cancelar
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </DrawerBackdrop>
       )}
     </div>
   );

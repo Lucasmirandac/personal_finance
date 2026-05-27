@@ -23,6 +23,16 @@ import { TransactionNormalized } from "@/lib/types";
 import { formatBRL, formatBRLAxis, formatMonthLabel, formatPercent } from "@/lib/format";
 import { KpiCard, KpiStrip } from "@/components/KpiCard";
 import { ChartCard } from "@/components/charts/ChartCard";
+import {
+  DataTable,
+  DataTableCell,
+  DataTableHead,
+  DataTableRow,
+} from "@/components/ui/DataTable";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
+import { Select } from "@/components/ui/Input";
 
 type Props = {
   data: TransactionNormalized[];
@@ -37,12 +47,12 @@ function DeltaBadge({
 }) {
   if (delta.direction === "new") {
     return (
-      <span className="text-[11px] font-medium text-[var(--info)]">novo</span>
+      <span className="text-[11px] font-medium text-info">novo</span>
     );
   }
   if (delta.direction === "flat" && delta.pct === 0) {
     return (
-      <span className="text-[11px] subtle inline-flex items-center gap-0.5">
+      <span className="text-[11px] text-muted inline-flex items-center gap-0.5">
         <Minus size={compact ? 11 : 12} />
         0%
       </span>
@@ -52,10 +62,10 @@ function DeltaBadge({
   const isUp = delta.direction === "up";
   const Icon = isUp ? ArrowUp : delta.direction === "down" ? ArrowDown : Minus;
   const color = isUp
-    ? "text-[var(--danger)]"
+    ? "text-danger"
     : delta.direction === "down"
-      ? "text-[var(--success)]"
-      : "subtle";
+      ? "text-success"
+      : "text-muted";
 
   const label =
     delta.pct != null
@@ -63,16 +73,16 @@ function DeltaBadge({
       : "—";
 
   return (
-    <span
+    <Num
       className={clsx(
-        "inline-flex items-center gap-0.5 font-medium num",
+        "inline-flex items-center gap-0.5 font-medium",
         compact ? "text-[11px]" : "text-xs",
         color,
       )}
     >
       <Icon size={compact ? 11 : 12} />
       {label}
-    </span>
+    </Num>
   );
 }
 
@@ -92,11 +102,11 @@ export function ComparisonPanel({ data }: Props) {
 
   if (months.length === 0 || !comparison || !anchor) {
     return (
-      <div className="panel p-4">
-        <p className="text-sm subtle">
+      <Panel className="p-4">
+        <p className="text-sm text-muted">
           Sem dados suficientes para comparar. Importe transações com despesas.
         </p>
-      </div>
+      </Panel>
     );
   }
 
@@ -118,12 +128,15 @@ export function ComparisonPanel({ data }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <label htmlFor="comparison-anchor" className="section-title block mb-1">
+          <label
+            htmlFor="comparison-anchor"
+            className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+          >
             Mês de referência
           </label>
-          <select
+          <Select
             id="comparison-anchor"
-            className="select w-auto min-w-[140px]"
+            className="w-auto min-w-[140px]"
             value={anchor}
             onChange={(e) => setAnchor(e.target.value)}
           >
@@ -132,8 +145,8 @@ export function ComparisonPanel({ data }: Props) {
                 {formatMonthLabel(m)}
               </option>
             ))}
-          </select>
-          <p className="text-[11px] subtle mt-1">
+          </Select>
+          <p className="text-[11px] text-muted mt-1">
             Comparando {anchorLabel}
             {hasPrev && <> vs {prevLabel}</>}
             {hasPrevYear && <> vs {prevYearLabel}</>}
@@ -142,10 +155,12 @@ export function ComparisonPanel({ data }: Props) {
       </div>
 
       {showPartialWarning && (
-        <div className="panel px-3 py-2 text-xs subtle border-[var(--warning)]/30">
-          Sem despesas no mês anterior nem no mesmo mês do ano passado. Mostrando
-          apenas o período de referência.
-        </div>
+        <Panel className="px-3 py-2 border-warning/30">
+          <p className="text-xs text-muted">
+            Sem despesas no mês anterior nem no mesmo mês do ano passado. Mostrando
+            apenas o período de referência.
+          </p>
+        </Panel>
       )}
 
       <KpiStrip>
@@ -234,40 +249,58 @@ export function ComparisonPanel({ data }: Props) {
       )}
 
       <div>
-        <div className="section-title mb-2">Por categoria</div>
-        <div className="table-wrap border border-[var(--border)] rounded-lg overflow-x-auto">
-          <table className="dt">
+        <SectionTitle className="block mb-2">Por categoria</SectionTitle>
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <DataTable>
             <thead>
               <tr>
-                <th>Categoria</th>
-                <th className="num">{anchorLabel}</th>
-                {hasPrev && <th className="num">{prevLabel}</th>}
-                {hasPrev && <th className="num">Δ anterior</th>}
-                {hasPrevYear && <th className="num">{prevYearLabel}</th>}
-                {hasPrevYear && <th className="num">Δ ano passado</th>}
+                <DataTableHead>Categoria</DataTableHead>
+                <DataTableHead align="right">{anchorLabel}</DataTableHead>
+                {hasPrev && (
+                  <DataTableHead align="right">{prevLabel}</DataTableHead>
+                )}
+                {hasPrev && (
+                  <DataTableHead align="right">Δ anterior</DataTableHead>
+                )}
+                {hasPrevYear && (
+                  <DataTableHead align="right">{prevYearLabel}</DataTableHead>
+                )}
+                {hasPrevYear && (
+                  <DataTableHead align="right">Δ ano passado</DataTableHead>
+                )}
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.categoria}>
-                  <td>{r.categoria}</td>
-                  <td className="num">{formatBRL(r.current)}</td>
-                  {hasPrev && <td className="num">{formatBRL(r.prev)}</td>}
+                <DataTableRow key={r.categoria}>
+                  <DataTableCell>{r.categoria}</DataTableCell>
+                  <DataTableCell align="right" className="font-mono tabular-nums">
+                    {formatBRL(r.current)}
+                  </DataTableCell>
                   {hasPrev && (
-                    <td className="num">
+                    <DataTableCell align="right" className="font-mono tabular-nums">
+                      {formatBRL(r.prev)}
+                    </DataTableCell>
+                  )}
+                  {hasPrev && (
+                    <DataTableCell align="right" className="font-mono tabular-nums">
                       <DeltaBadge delta={r.deltaPrev} />
-                    </td>
+                    </DataTableCell>
                   )}
-                  {hasPrevYear && <td className="num">{formatBRL(r.prevYear)}</td>}
                   {hasPrevYear && (
-                    <td className="num">
-                      <DeltaBadge delta={r.deltaPrevYear} />
-                    </td>
+                    <DataTableCell align="right" className="font-mono tabular-nums">
+                      {formatBRL(r.prevYear)}
+                    </DataTableCell>
                   )}
-                </tr>
+                  {hasPrevYear && (
+                    <DataTableCell align="right" className="font-mono tabular-nums">
+                      <DeltaBadge delta={r.deltaPrevYear} />
+                    </DataTableCell>
+                  )}
+                </DataTableRow>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
       </div>
     </div>

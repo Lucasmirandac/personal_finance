@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isoToBr, parseBrDate, parseIsoDate } from "@/lib/csv";
+import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { TransactionEditPatch } from "@/lib/edits";
 import { TransactionRaw } from "@/lib/types";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Input } from "@/components/ui/Input";
 import { X } from "lucide-react";
 
 type Props = {
@@ -35,6 +39,7 @@ export function TransactionEditModal({
   onRevert,
   onClose,
 }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [dataIso, setDataIso] = useState("");
   const [lancamento, setLancamento] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -60,6 +65,8 @@ export function TransactionEditModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  useFocusTrap(open, dialogRef);
 
   if (!open) return null;
 
@@ -101,13 +108,14 @@ export function TransactionEditModal({
   };
 
   return (
-    <div
-      className="drawer-backdrop"
+    <DrawerBackdrop
+      className="flex items-center justify-center"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="panel w-full max-w-md mx-4 p-4 space-y-4"
+        ref={dialogRef}
+        className="bg-surface border border-border rounded-lg w-full max-w-md mx-4 p-4 space-y-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-tx-title"
@@ -115,67 +123,66 @@ export function TransactionEditModal({
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 id="edit-tx-title" className="section-title">
+            <h2
+              id="edit-tx-title"
+              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+            >
               Editar transação
             </h2>
-            <p className="subtle text-xs mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Alterações não modificam o CSV original.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Fechar"
           >
             <X size={14} />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-xs subtle">Data</span>
-            <input
+            <span className="text-xs text-muted">Data</span>
+            <Input
               type="date"
-              className="input w-full"
               value={dataIso}
               onChange={(e) => setDataIso(e.target.value)}
               required
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs subtle">Lançamento</span>
-            <input
+            <span className="text-xs text-muted">Lançamento</span>
+            <Input
               type="text"
-              className="input w-full"
               value={lancamento}
               onChange={(e) => setLancamento(e.target.value)}
               required
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs subtle">Categoria</span>
-            <input
+            <span className="text-xs text-muted">Categoria</span>
+            <Input
               type="text"
-              className="input w-full"
               value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs subtle">Tipo</span>
-            <input
+            <span className="text-xs text-muted">Tipo</span>
+            <Input
               type="text"
-              className="input w-full"
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-xs subtle">Valor original (R$)</span>
-            <input
+            <span className="text-xs text-muted">Valor original (R$)</span>
+            <Input
               type="text"
-              className="input w-full num"
+              className="font-mono tabular-nums"
               value={valorStr}
               onChange={(e) => setValorStr(e.target.value)}
               inputMode="decimal"
@@ -183,32 +190,30 @@ export function TransactionEditModal({
             />
           </label>
 
-          {error && (
-            <p className="text-xs text-[var(--danger)]">{error}</p>
-          )}
+          {error && <p className="text-xs text-danger">{error}</p>}
 
           <div className="flex flex-wrap gap-2 pt-1">
-            <button type="submit" className="btn btn-primary btn-sm">
+            <Button type="submit" variant="primary" size="sm">
               Salvar
-            </button>
-            <button type="button" className="btn btn-sm" onClick={onClose}>
+            </Button>
+            <Button size="sm" onClick={onClose}>
               Cancelar
-            </button>
+            </Button>
             {canRevert && (
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   onRevert();
                   onClose();
                 }}
               >
                 Reverter para original
-              </button>
+              </Button>
             )}
           </div>
         </form>
       </div>
-    </div>
+    </DrawerBackdrop>
   );
 }

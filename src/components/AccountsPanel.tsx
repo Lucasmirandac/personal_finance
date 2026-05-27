@@ -10,6 +10,13 @@ import {
 } from "@/lib/accounts";
 import { useAppStore } from "@/lib/store";
 import { Account, AccountKind, Settings } from "@/lib/types";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { DrawerBackdrop } from "@/components/ui/Drawer";
+import { Input, Select } from "@/components/ui/Input";
+import { Num } from "@/components/ui/Num";
+import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Plus, Star, Trash2, Pencil } from "lucide-react";
 
 const KINDS: AccountKind[] = ["cc", "poupanca", "carteira", "cartao"];
@@ -172,27 +179,31 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <div className="section-title">Contas</div>
-          <p className="text-[11px] subtle mt-0.5">
+          <SectionTitle>Contas</SectionTitle>
+          <p className="text-[11px] text-muted mt-0.5">
             Contas correntes, poupança, carteira e cartões vinculados ao CSV.
           </p>
         </div>
-        <button type="button" className="btn btn-primary btn-sm" onClick={openNew}>
+        <Button variant="primary" size="sm" onClick={openNew}>
           <Plus size={13} />
           Nova conta
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <p className="text-xs text-[var(--danger)] panel p-2">{error}</p>
+        <Panel className="p-2">
+          <p className="text-xs text-danger">{error}</p>
+        </Panel>
       )}
 
       {accounts.length === 0 ? (
-        <p className="text-sm subtle panel p-4">
-          Nenhuma conta cadastrada. Crie a Conta Principal com seu saldo atual.
-        </p>
+        <Panel className="p-4">
+          <p className="text-sm text-muted">
+            Nenhuma conta cadastrada. Crie a Conta Principal com seu saldo atual.
+          </p>
+        </Panel>
       ) : (
-        <div className="panel divide-y">
+        <Panel className="divide-y divide-border">
           {accounts.map((a) => (
             <div
               key={a.id}
@@ -204,200 +215,188 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{a.nome}</span>
-                  <span className="badge">{ACCOUNT_KIND_LABELS[a.kind]}</span>
+                  <Badge>{ACCOUNT_KIND_LABELS[a.kind]}</Badge>
                   {a.isDefault && (
-                    <span className="badge badge-receita gap-1">
+                    <Badge variant="receita">
                       <Star size={10} />
                       Padrão
-                    </span>
+                    </Badge>
                   )}
-                  {!a.ativa && <span className="badge">Inativa</span>}
+                  {!a.ativa && <Badge>Inativa</Badge>}
                 </div>
-                <p className="text-xs subtle mt-0.5 num">
+                <Num className="block text-xs text-muted mt-0.5">
                   Saldo {a.saldoInicial.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}{" "}
                   · ref. {a.dataReferencia.split("-").reverse().join("/")}
                   {a.kind === "cartao" && a.fonteCsv && ` · ${a.fonteCsv}`}
-                </p>
+                </Num>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!a.isDefault && a.ativa && (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-ghost"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     title="Marcar como padrão (Quick Add)"
                     onClick={() => setDefaultAccount(a.id)}
                   >
                     <Star size={13} />
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => openEdit(a)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => openEdit(a)}>
                   <Pencil size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={() => toggleActive(a)}
-                >
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => toggleActive(a)}>
                   {a.ativa ? "Desativar" : "Ativar"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost text-[var(--danger)]"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger"
                   onClick={() => handleRemove(a.id)}
                 >
                   <Trash2 size={13} />
-                </button>
+                </Button>
               </div>
             </div>
           ))}
-        </div>
+        </Panel>
       )}
 
       {formOpen && (
-        <div className="drawer-backdrop" role="presentation" onClick={() => setFormOpen(false)}>
+        <DrawerBackdrop
+          role="presentation"
+          onClick={() => setFormOpen(false)}
+        >
           <form
-            className="panel w-full max-w-md mx-4 p-4 space-y-3"
+            className="bg-surface border border-border rounded-lg w-full max-w-md mx-4 p-4 space-y-3"
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSubmit}
           >
-            <div className="section-title">
-              {editingId ? "Editar conta" : "Nova conta"}
-            </div>
-            <label className="block space-y-1">
-              <span className="text-xs subtle">Nome</span>
-              <input
-                className="input w-full"
-                value={form.nome}
-                onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
-                required
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs subtle">Tipo</span>
-              <select
-                className="select w-full"
-                value={form.kind}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, kind: e.target.value as AccountKind }))
-                }
-              >
-                {KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {ACCOUNT_KIND_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3">
+              <SectionTitle>
+                {editingId ? "Editar conta" : "Nova conta"}
+              </SectionTitle>
               <label className="block space-y-1">
-                <span className="text-xs subtle">Saldo inicial (R$)</span>
-                <input
-                  className="input w-full num"
-                  inputMode="decimal"
-                  value={form.saldoInicial}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, saldoInicial: e.target.value }))
-                  }
+                <span className="text-xs text-muted">Nome</span>
+                <Input
+                  value={form.nome}
+                  onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
+                  required
                 />
               </label>
               <label className="block space-y-1">
-                <span className="text-xs subtle">Data referência</span>
-                <input
-                  type="date"
-                  className="input w-full"
-                  value={form.dataReferencia}
+                <span className="text-xs text-muted">Tipo</span>
+                <Select
+                  value={form.kind}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, dataReferencia: e.target.value }))
+                    setForm((f) => ({ ...f, kind: e.target.value as AccountKind }))
                   }
-                />
+                >
+                  {KINDS.map((k) => (
+                    <option key={k} value={k}>
+                      {ACCOUNT_KIND_LABELS[k]}
+                    </option>
+                  ))}
+                </Select>
               </label>
-            </div>
-            {form.kind === "cartao" && (
-              <>
+              <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
-                  <span className="text-xs subtle">Vincular ao CSV</span>
-                  <select
-                    className="select w-full"
-                    value={form.fonteCsv}
+                  <span className="text-xs text-muted">Saldo inicial (R$)</span>
+                  <Input
+                    className="font-mono tabular-nums"
+                    inputMode="decimal"
+                    value={form.saldoInicial}
                     onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        fonteCsv: e.target.value as FormState["fonteCsv"],
-                      }))
+                      setForm((f) => ({ ...f, saldoInicial: e.target.value }))
                     }
-                  >
-                    <option value="">Nenhum</option>
-                    {cardFontesInDataset.has("inter") && (
-                      <option value="inter">Inter</option>
-                    )}
-                    {cardFontesInDataset.has("nubank") && (
-                      <option value="nubank">Nubank</option>
-                    )}
-                    {!cardFontesInDataset.size && (
-                      <>
-                        <option value="inter">Inter</option>
-                        <option value="nubank">Nubank</option>
-                      </>
-                    )}
-                  </select>
+                  />
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted">Data referência</span>
+                  <Input
+                    type="date"
+                    value={form.dataReferencia}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, dataReferencia: e.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              {form.kind === "cartao" && (
+                <>
                   <label className="block space-y-1">
-                    <span className="text-xs subtle">Dia fechamento</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={31}
-                      className="input w-full"
-                      value={form.diaFechamento}
+                    <span className="text-xs text-muted">Vincular ao CSV</span>
+                    <Select
+                      value={form.fonteCsv}
                       onChange={(e) =>
-                        setForm((f) => ({ ...f, diaFechamento: e.target.value }))
+                        setForm((f) => ({
+                          ...f,
+                          fonteCsv: e.target.value as FormState["fonteCsv"],
+                        }))
                       }
-                    />
+                    >
+                      <option value="">Nenhum</option>
+                      {cardFontesInDataset.has("inter") && (
+                        <option value="inter">Inter</option>
+                      )}
+                      {cardFontesInDataset.has("nubank") && (
+                        <option value="nubank">Nubank</option>
+                      )}
+                      {!cardFontesInDataset.size && (
+                        <>
+                          <option value="inter">Inter</option>
+                          <option value="nubank">Nubank</option>
+                        </>
+                      )}
+                    </Select>
                   </label>
-                  <label className="block space-y-1">
-                    <span className="text-xs subtle">Dia pagamento</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={31}
-                      className="input w-full"
-                      value={form.diaPagamento}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, diaPagamento: e.target.value }))
-                      }
-                    />
-                  </label>
-                </div>
-              </>
-            )}
-            <div className="flex gap-2 pt-1">
-              <button type="submit" className="btn btn-primary btn-sm">
-                Salvar
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setFormOpen(false)}
-              >
-                Cancelar
-              </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block space-y-1">
+                      <span className="text-xs text-muted">Dia fechamento</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={form.diaFechamento}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, diaFechamento: e.target.value }))
+                        }
+                      />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs text-muted">Dia pagamento</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={form.diaPagamento}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, diaPagamento: e.target.value }))
+                        }
+                      />
+                    </label>
+                  </div>
+                </>
+              )}
+              <div className="flex gap-2 pt-1">
+                <Button type="submit" variant="primary" size="sm">
+                  Salvar
+                </Button>
+                <Button size="sm" onClick={() => setFormOpen(false)}>
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </form>
-        </div>
+        </DrawerBackdrop>
       )}
 
-      <div className="panel p-4 space-y-2">
-        <div className="section-title">Horizonte de projeção</div>
+      <Panel className="p-4 space-y-2">
+        <SectionTitle>Horizonte de projeção</SectionTitle>
         <div className="flex items-center gap-2 flex-wrap">
-          <select
-            className="select w-auto"
+          <Select
+            className="w-auto"
             value={horizon}
             onChange={(e) => setHorizon(Number(e.target.value))}
           >
@@ -406,17 +405,17 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
                 {h} dias
               </option>
             ))}
-          </select>
-          <button type="button" className="btn btn-sm" onClick={saveHorizon}>
+          </Select>
+          <Button size="sm" onClick={saveHorizon}>
             Salvar horizonte
-          </button>
+          </Button>
         </div>
         {def && (
-          <p className="text-[11px] subtle">
+          <p className="text-[11px] text-muted">
             Conta padrão para Quick Add: <strong>{def.nome}</strong>
           </p>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }
