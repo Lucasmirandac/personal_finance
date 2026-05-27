@@ -15,6 +15,7 @@ import {
   expenseComposition,
   monthlySeries,
   weekdayAggregation,
+  weekdayCategoryAggregation,
 } from "@/lib/aggregations";
 import { EmptyState } from "@/components/EmptyState";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
@@ -23,6 +24,7 @@ import { ChartCard } from "@/components/charts/ChartCard";
 import { MonthlyChart } from "@/components/charts/MonthlyChart";
 import { CategoryChart } from "@/components/charts/CategoryChart";
 import { WeekdayChart } from "@/components/charts/WeekdayChart";
+import { WeekdayCategoryChart } from "@/components/charts/WeekdayCategoryChart";
 import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { ComparisonPanel } from "@/components/ComparisonPanel";
@@ -59,6 +61,7 @@ const DASH_TABS = [
   { id: "comparar", label: "Comparar" },
   { id: "orcamentos", label: "Orçamentos" },
   { id: "cartao", label: "Cartão" },
+  { id: "habitos", label: "Hábitos" },
   { id: "categorias", label: "Categorias" },
   { id: "estabelecimentos", label: "Estabelecimentos" },
 ] as const;
@@ -69,6 +72,7 @@ function parseDashTab(v: string | null): DashTab {
   if (
     v === "orcamentos" ||
     v === "cartao" ||
+    v === "habitos" ||
     v === "categorias" ||
     v === "estabelecimentos" ||
     v === "comparar" ||
@@ -111,6 +115,10 @@ function DashboardPageInner() {
   const months = useMemo(() => monthlySeries(filtered), [filtered]);
   const cats = useMemo(() => categoryAggregation(filtered), [filtered]);
   const weekdays = useMemo(() => weekdayAggregation(filtered), [filtered]);
+  const weekdayCategories = useMemo(
+    () => weekdayCategoryAggregation(filtered, 5),
+    [filtered],
+  );
   const ests = useMemo(() => establishmentAggregation(filtered), [filtered]);
   const insights = useMemo(() => buildInsights(filtered), [filtered]);
   const expenseComp = useMemo(() => expenseComposition(filtered), [filtered]);
@@ -136,6 +144,39 @@ function DashboardPageInner() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 15),
     [ests],
+  );
+  const weekdaysWithData = useMemo(
+    () => weekdays.filter((day) => day.count > 0),
+    [weekdays],
+  );
+  const mostExpensiveWeekday = useMemo(
+    () =>
+      weekdaysWithData.reduce<(typeof weekdaysWithData)[number] | null>(
+        (best, day) => (best === null || day.total > best.total ? day : best),
+        null,
+      ),
+    [weekdaysWithData],
+  );
+  const lightestWeekday = useMemo(
+    () =>
+      weekdaysWithData.reduce<(typeof weekdaysWithData)[number] | null>(
+        (best, day) => (best === null || day.total < best.total ? day : best),
+        null,
+      ),
+    [weekdaysWithData],
+  );
+  const highestAverageTicketWeekday = useMemo(
+    () =>
+      weekdaysWithData.reduce<(typeof weekdaysWithData)[number] | null>(
+        (best, day) => {
+          if (best === null) return day;
+          const dayAverage = day.total / day.count;
+          const bestAverage = best.total / best.count;
+          return dayAverage > bestAverage ? day : best;
+        },
+        null,
+      ),
+    [weekdaysWithData],
   );
 
   const maxCatTotal = cats[0]?.total ?? 1;
@@ -338,6 +379,71 @@ function DashboardPageInner() {
                 </DataTable>
               </div>
             </div>
+          </div>
+        )}
+
+        {tab === "habitos" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <StatTile
+                label="Dia mais caro"
+                value={mostExpensiveWeekday?.diaSemana ?? "—"}
+                hint={
+                  mostExpensiveWeekday
+                    ? formatBRL(mostExpensiveWeekday.total)
+                    : "Sem dados no período"
+                }
+              />
+              <StatTile
+                label="Dia mais leve"
+                value={lightestWeekday?.diaSemana ?? "—"}
+                hint={
+                  lightestWeekday
+                    ? formatBRL(lightestWeekday.total)
+                    : "Sem dados no período"
+                }
+              />
+              <StatTile
+                label="Ticket médio mais alto"
+                value={highestAverageTicketWeekday?.diaSemana ?? "—"}
+                hint={
+                  highestAverageTicketWeekday
+                    ? formatBRL(
+                        highestAverageTicketWeekday.total /
+                          highestAverageTicketWeekday.count,
+                      )
+                    : "Sem dados no período"
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <ChartCard
+                title="Gastos por dia da semana"
+                subtitle="Total no período filtrado"
+              >
+                <WeekdayChart data={weekdays} />
+              </ChartCard>
+              <ChartCard
+                title="Transações por dia da semana"
+                subtitle="Contagem de saídas"
+              >
+                <WeekdayChart data={weekdays} metric="count" />
+              </ChartCard>
+            </div>
+
+            <ChartCard
+              title="Categoria por dia da semana"
+              subtitle="Top 5 categorias + Outros, empilhadas por dia"
+            >
+              {weekdayCategories.categories.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted">
+                  Sem dados no período
+                </div>
+              ) : (
+                <WeekdayCategoryChart data={weekdayCategories} />
+              )}
+            </ChartCard>
           </div>
         )}
 

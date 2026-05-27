@@ -227,6 +227,101 @@ export function weekdayAggregation(
   return arr;
 }
 
+export type WeekdayCategoryRow = {
+  diaSemana: string
+  diaSemanaIndex: number
+  total: number
+} & Record<string, number | string>
+
+export type WeekdayCategoryResult = {
+  rows: WeekdayCategoryRow[]
+  categories: string[]
+}
+
+const OTHERS_CATEGORY_LABEL = "Outros"
+
+function rankExpenseCategories(
+  data: TransactionNormalized[],
+): { categoria: string; total: number }[] {
+  const totals = new Map<string, number>()
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida") continue
+    totals.set(t.categoria, (totals.get(t.categoria) ?? 0) + t.valorFluxo)
+  }
+  return [...totals.entries()]
+    .map(([categoria, total]) => ({ categoria, total }))
+    .sort((a, b) => b.total - a.total)
+}
+
+function seedWeekdayRows(
+  data: TransactionNormalized[],
+  categories: string[],
+): Map<number, WeekdayCategoryRow> {
+  const rows = new Map<number, WeekdayCategoryRow>()
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida") continue
+    if (rows.has(t.diaSemanaIndex)) continue
+    const row: WeekdayCategoryRow = {
+      diaSemana: t.diaSemana,
+      diaSemanaIndex: t.diaSemanaIndex,
+      total: 0,
+    }
+    for (const c of categories) row[c] = 0
+    rows.set(t.diaSemanaIndex, row)
+  }
+  return rows
+}
+
+function accumulateWeekdayCategoryTotals(
+  data: TransactionNormalized[],
+  rows: Map<number, WeekdayCategoryRow>,
+  topSet: Set<string>,
+): void {
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida") continue
+    const row = rows.get(t.diaSemanaIndex)
+    if (!row) continue
+    const bucket = topSet.has(t.categoria) ? t.categoria : OTHERS_CATEGORY_LABEL
+    row[bucket] = ((row[bucket] as number | undefined) ?? 0) + t.valorFluxo
+    row.total += t.valorFluxo
+  }
+}
+
+function roundWeekdayCategoryRows(
+  rows: Iterable<WeekdayCategoryRow>,
+  categories: string[],
+): WeekdayCategoryRow[] {
+  const list: WeekdayCategoryRow[] = []
+  for (const row of rows) {
+    const rounded: WeekdayCategoryRow = {
+      diaSemana: row.diaSemana,
+      diaSemanaIndex: row.diaSemanaIndex,
+      total: round2(row.total),
+    }
+    for (const c of categories) rounded[c] = round2(row[c] as number)
+    list.push(rounded)
+  }
+  return list.sort((a, b) => a.diaSemanaIndex - b.diaSemanaIndex)
+}
+
+export function weekdayCategoryAggregation(
+  data: TransactionNormalized[],
+  topN = 5,
+): WeekdayCategoryResult {
+  const ranked = rankExpenseCategories(data)
+  const topCategories = ranked.slice(0, topN).map((r) => r.categoria)
+  const categories =
+    ranked.length > topN
+      ? [...topCategories, OTHERS_CATEGORY_LABEL]
+      : topCategories
+
+  const rowsMap = seedWeekdayRows(data, categories)
+  accumulateWeekdayCategoryTotals(data, rowsMap, new Set(topCategories))
+  const rows = roundWeekdayCategoryRows(rowsMap.values(), categories)
+
+  return { rows, categories }
+}
+
 export type EstablishmentAgg = {
   estabelecimento: string;
   total: number;

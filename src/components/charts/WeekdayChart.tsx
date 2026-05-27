@@ -10,11 +10,13 @@ import {
   YAxis,
 } from "recharts";
 import { WeekdayAgg } from "@/lib/aggregations";
-import { formatBRL, formatBRLAxis } from "@/lib/format";
+import { formatBRL, formatBRLAxis, formatInt } from "@/lib/format";
 
-type Props = { data: WeekdayAgg[] };
+type Props = Readonly<{ data: WeekdayAgg[]; metric?: "total" | "count" }>;
 
-export function WeekdayChart({ data }: Props) {
+export function WeekdayChart({ data, metric = "total" }: Props) {
+  const isCountMetric = metric === "count";
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
@@ -23,7 +25,9 @@ export function WeekdayChart({ data }: Props) {
         <YAxis
           stroke="var(--muted)"
           fontSize={12}
-          tickFormatter={formatBRLAxis}
+          tickFormatter={(value) =>
+            isCountMetric ? formatInt(Number(value)) : formatBRLAxis(Number(value))
+          }
         />
         <Tooltip
           contentStyle={{
@@ -31,9 +35,11 @@ export function WeekdayChart({ data }: Props) {
             border: "1px solid var(--border)",
             borderRadius: 10,
           }}
-          formatter={(v) => formatBRL(Number(v))}
+          formatter={(value) =>
+            isCountMetric ? formatInt(Number(value)) : formatBRL(Number(value))
+          }
         />
-        <Bar dataKey="total" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+        <Bar dataKey={metric} fill="var(--accent)" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
