@@ -15,8 +15,7 @@ const linkButtonClasses =
   "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1";
 
 export function Onboarding() {
-  const { dataset, settings, recurringRules, accounts, updateSettings } =
-    useAppStore();
+  const { dataset, settings, recurringRules, accounts } = useAppStore();
   const [showImport, setShowImport] = useState(false);
   const [showAccounts, setShowAccounts] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -122,13 +121,7 @@ export function Onboarding() {
       )}
 
       {showAccounts && (
-        <AccountsPanel
-          settings={settings}
-          onSaveSettings={async (next) => {
-            await updateSettings(next);
-            setShowAccounts(false);
-          }}
-        />
+        <AccountsPanel onClose={() => setShowAccounts(false)} />
       )}
 
       <QuickAddModal open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />

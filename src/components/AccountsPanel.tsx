@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   ACCOUNT_KIND_LABELS,
@@ -9,7 +9,7 @@ import {
   defaultAccount,
 } from "@/lib/accounts";
 import { useAppStore } from "@/lib/store";
-import { Account, AccountKind, Settings } from "@/lib/types";
+import { Account, AccountKind } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
@@ -17,7 +17,7 @@ import { Input, Select } from "@/components/ui/Input";
 import { Num } from "@/components/ui/Num";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
-import { Plus, Star, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Plus, Star, Trash2, Pencil } from "lucide-react";
 
 const KINDS: AccountKind[] = ["cc", "poupanca", "carteira", "cartao"];
 
@@ -44,29 +44,41 @@ const emptyForm = (): FormState => ({
 });
 
 type Props = {
-  settings: Settings;
-  onSaveSettings: (settings: Settings) => void | Promise<void>;
+  onClose?: () => void;
 };
 
-export function AccountsPanel({ settings, onSaveSettings }: Props) {
+export function AccountsPanel({ onClose }: Props) {
   const {
     accounts,
     dataset,
     manualTransactions,
+    settings,
     addAccount,
     updateAccount,
     removeAccount,
     setDefaultAccount,
+    updateSettings,
   } = useAppStore();
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [horizon, setHorizon] = useState(settings.projectionHorizonDays);
+  const [savingHorizon, setSavingHorizon] = useState(false);
+  const [horizonSaved, setHorizonSaved] = useState(false);
+  const horizonResetTimer = useRef<number | null>(null);
 
   useEffect(() => {
     setHorizon(settings.projectionHorizonDays);
   }, [settings.projectionHorizonDays]);
+
+  useEffect(() => {
+    return () => {
+      if (horizonResetTimer.current !== null) {
+        window.clearTimeout(horizonResetTimer.current);
+      }
+    };
+  }, []);
 
   const cardFontesInDataset = useMemo(() => {
     const set = new Set<"inter" | "nubank">();
@@ -166,13 +178,30 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
     await updateAccount({ ...account, ativa: !account.ativa });
   }
 
-  async function saveHorizon() {
-    await onSaveSettings({
-      ...settings,
-      projectionHorizonDays: horizon,
-    });
+  async function handleSaveHorizon() {
+    if (savingHorizon) return;
+    setSavingHorizon(true);
+    try {
+      await updateSettings({
+        ...settings,
+        projectionHorizonDays: horizon,
+      });
+      setHorizonSaved(true);
+      if (horizonResetTimer.current !== null) {
+        window.clearTimeout(horizonResetTimer.current);
+      }
+      horizonResetTimer.current = window.setTimeout(() => {
+        setHorizonSaved(false);
+        horizonResetTimer.current = null;
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar horizonte.");
+    } finally {
+      setSavingHorizon(false);
+    }
   }
 
+  const horizonChanged = horizon !== settings.projectionHorizonDays;
   const def = defaultAccount(accounts);
 
   return (
@@ -184,10 +213,18 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
             Contas correntes, poupança, carteira e cartões vinculados ao CSV.
           </p>
         </div>
-        <Button variant="primary" size="sm" onClick={openNew}>
-          <Plus size={13} />
-          Nova conta
-        </Button>
+        <div className="flex items-center gap-2">
+          {onClose && (
+            <Button size="sm" onClick={onClose}>
+              <ArrowLeft size={13} />
+              Voltar
+            </Button>
+          )}
+          <Button variant="primary" size="sm" onClick={openNew}>
+            <Plus size={13} />
+            Nova conta
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -399,6 +436,7 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
             className="w-auto"
             value={horizon}
             onChange={(e) => setHorizon(Number(e.target.value))}
+            disabled={savingHorizon}
           >
             {HORIZONS.map((h) => (
               <option key={h} value={h}>
@@ -406,9 +444,24 @@ export function AccountsPanel({ settings, onSaveSettings }: Props) {
               </option>
             ))}
           </Select>
-          <Button size="sm" onClick={saveHorizon}>
-            Salvar horizonte
+          <Button
+            size="sm"
+            variant={horizonChanged ? "primary" : "default"}
+            onClick={handleSaveHorizon}
+            disabled={savingHorizon || !horizonChanged}
+          >
+            {savingHorizon ? "Salvando…" : "Salvar horizonte"}
           </Button>
+          {horizonSaved && (
+            <span
+              className="inline-flex items-center gap-1 text-[11px] text-success"
+              role="status"
+              aria-live="polite"
+            >
+              <Check size={12} />
+              Salvo
+            </span>
+          )}
         </div>
         {def && (
           <p className="text-[11px] text-muted">

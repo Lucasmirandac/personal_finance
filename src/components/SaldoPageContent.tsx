@@ -111,11 +111,7 @@ export function SaldoPageContent() {
           </p>
         )}
         <AccountsPanel
-          settings={settings}
-          onSaveSettings={async (next) => {
-            await updateSettings(next);
-            setEditing(false);
-          }}
+          onClose={complete ? () => setEditing(false) : undefined}
         />
       </div>
     );
@@ -135,13 +131,7 @@ export function SaldoPageContent() {
             Configure a âncora de saldo para ver a projeção.
           </p>
         </div>
-        <AccountsPanel
-          settings={settings}
-          onSaveSettings={async (next) => {
-            await updateSettings(next);
-            setEditing(false);
-          }}
-        />
+        <AccountsPanel />
       </div>
     );
   }

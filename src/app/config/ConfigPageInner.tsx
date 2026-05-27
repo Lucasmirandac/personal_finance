@@ -39,7 +39,7 @@ function parseTab(v: string | null): ConfigTab {
 }
 
 export default function ConfigPageInner() {
-  const { loaded, hasAnalysis, settings, updateSettings } = useAppStore();
+  const { loaded, hasAnalysis } = useAppStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
@@ -89,12 +89,7 @@ export default function ConfigPageInner() {
             />
           ))}
 
-        {tab === "contas" && (
-          <AccountsPanel
-            settings={settings}
-            onSaveSettings={(next) => updateSettings(next)}
-          />
-        )}
+        {tab === "contas" && <AccountsPanel />}
 
         {tab === "backup" && <BackupPanel />}
 
