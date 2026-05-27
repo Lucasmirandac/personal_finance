@@ -9,6 +9,7 @@ import { AdjustBalanceModal } from "@/components/AdjustBalanceModal";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { BalanceProjectionChart } from "@/components/charts/BalanceProjectionChart";
 import { KpiCard, KpiStrip } from "@/components/KpiCard";
+import { SaldoCalendarView } from "@/components/SaldoCalendarView";
 import {
   isSettingsComplete,
   projectDailyBalance,
@@ -16,46 +17,19 @@ import {
 } from "@/lib/projection";
 import { accountsToBalanceAnchor } from "@/lib/accounts";
 import { formatBRL, formatDateBR } from "@/lib/format";
-import { Fonte } from "@/lib/types";
+import { Fonte, SaldoView } from "@/lib/types";
 import {
-  CalendarRange,
-  CreditCard,
+  EVENT_FILTER_OPTIONS,
+  EventFilter,
+  EventIcon,
+  EVENT_LABELS,
+  eventBadgeClass,
+} from "@/components/saldoEventVisual";
+import {
   Plus,
-  Repeat,
   Settings as SettingsIcon,
   SlidersHorizontal,
-  TrendingUp,
 } from "lucide-react";
-
-const EVENT_LABELS: Record<CashEvent["type"], string> = {
-  fatura: "Fatura",
-  fixa: "Fixa",
-  receita: "Receita",
-  ancora: "Âncora",
-};
-
-function EventIcon({ type }: { type: CashEvent["type"] }) {
-  const size = 12;
-  if (type === "fatura") return <CreditCard size={size} />;
-  if (type === "receita") return <TrendingUp size={size} />;
-  if (type === "fixa") return <Repeat size={size} />;
-  return <CalendarRange size={size} />;
-}
-
-function eventBadgeClass(type: CashEvent["type"]): string {
-  switch (type) {
-    case "fatura":
-      return "badge badge-pay";
-    case "receita":
-      return "badge badge-receita";
-    case "fixa":
-      return "badge badge-fixa";
-    default:
-      return "badge badge-gasto";
-  }
-}
-
-type EventFilter = "all" | CashEvent["type"];
 
 export function SaldoPageContent() {
   const {
@@ -69,6 +43,7 @@ export function SaldoPageContent() {
   const [editing, setEditing] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
+  const activeView: SaldoView = settings.saldoView ?? "overview";
 
   const cardSources = useMemo(() => {
     const set = new Set<Fonte>();
@@ -108,6 +83,11 @@ export function SaldoPageContent() {
         : upcoming.filter((e) => e.type === eventFilter);
     return list.slice(0, 15);
   }, [upcoming, eventFilter]);
+
+  async function setActiveView(view: SaldoView) {
+    if (view === activeView) return;
+    await updateSettings({ ...settings, saldoView: view });
+  }
 
   if (!complete || editing) {
     return (
@@ -245,85 +225,111 @@ export function SaldoPageContent() {
         </KpiStrip>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-3">
-          {series.length > 0 ? (
-            <ChartCard
-              title="Saldo por dia"
-              subtitle="Compras de cartão no dia de pagamento da fatura"
-            >
-              <BalanceProjectionChart data={series} />
-            </ChartCard>
-          ) : (
-            <p className="text-sm subtle panel p-4">
-              Nenhum dia no horizonte. Ajuste a data âncora ou o horizonte.
-            </p>
-          )}
-        </div>
-
-        <div className="lg:col-span-2 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="section-title">Próximos eventos</span>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {(
-              [
-                ["all", "Todos"],
-                ["fatura", "Fatura"],
-                ["fixa", "Fixa"],
-                ["receita", "Receita"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={clsx(
-                  "btn btn-sm",
-                  eventFilter === id && "btn-primary",
-                )}
-                onClick={() => setEventFilter(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {filteredUpcoming.length > 0 ? (
-            <div className="panel divide-y max-h-[420px] overflow-auto">
-              {filteredUpcoming.map((e, i) => (
-                <div
-                  key={`${e.date}-${e.type}-${i}`}
-                  className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={clsx(eventBadgeClass(e.type), "gap-1 shrink-0")}>
-                      <EventIcon type={e.type} />
-                      {EVENT_LABELS[e.type]}
-                    </span>
-                    <span className="truncate text-xs">{e.description}</span>
-                  </div>
-                  <div className="flex flex-col items-end shrink-0">
-                    <span className="text-[10px] subtle">
-                      {formatDateBR(e.date)}
-                    </span>
-                    <span
-                      className={clsx(
-                        "num text-xs font-medium",
-                        e.amount >= 0
-                          ? "text-[var(--success)]"
-                          : "text-[var(--danger)]",
-                      )}
-                    >
-                      {formatBRL(e.amount)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs subtle panel p-3">Nenhum evento no filtro.</p>
-          )}
-        </div>
+      <div className="tab-list">
+        <button
+          type="button"
+          className="tab-trigger"
+          data-active={activeView === "overview"}
+          onClick={() => setActiveView("overview")}
+        >
+          Visão geral
+        </button>
+        <button
+          type="button"
+          className="tab-trigger"
+          data-active={activeView === "calendar"}
+          onClick={() => setActiveView("calendar")}
+        >
+          Calendário
+        </button>
       </div>
+
+      <div className="flex flex-wrap gap-1">
+        {EVENT_FILTER_OPTIONS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={clsx(
+              "btn btn-sm",
+              eventFilter === id && "btn-primary",
+            )}
+            onClick={() => setEventFilter(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeView === "overview" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-3">
+            {series.length > 0 ? (
+              <ChartCard
+                title="Saldo por dia"
+                subtitle="Compras de cartão no dia de pagamento da fatura"
+              >
+                <BalanceProjectionChart data={series} />
+              </ChartCard>
+            ) : (
+              <p className="text-sm subtle panel p-4">
+                Nenhum dia no horizonte. Ajuste a data âncora ou o horizonte.
+              </p>
+            )}
+          </div>
+
+          <div className="lg:col-span-2 space-y-2">
+            <span className="section-title">Próximos eventos</span>
+            {filteredUpcoming.length > 0 ? (
+              <div className="panel divide-y max-h-[420px] overflow-auto">
+                {filteredUpcoming.map((e, i) => (
+                  <div
+                    key={`${e.date}-${e.type}-${i}`}
+                    className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={clsx(eventBadgeClass(e.type), "gap-1 shrink-0")}
+                      >
+                        <EventIcon type={e.type} />
+                        {EVENT_LABELS[e.type]}
+                      </span>
+                      <span className="truncate text-xs">{e.description}</span>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="text-[10px] subtle">
+                        {formatDateBR(e.date)}
+                      </span>
+                      <span
+                        className={clsx(
+                          "num text-xs font-medium",
+                          e.amount >= 0
+                            ? "text-[var(--success)]"
+                            : "text-[var(--danger)]",
+                        )}
+                      >
+                        {formatBRL(e.amount)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs subtle panel p-3">Nenhum evento no filtro.</p>
+            )}
+          </div>
+        </div>
+      ) : horizonEnd && anchor ? (
+        <SaldoCalendarView
+          series={series}
+          anchorISO={anchor.data}
+          horizonEndISO={horizonEnd}
+          filter={eventFilter}
+        />
+      ) : (
+        <p className="text-sm subtle panel p-4">
+          Nenhum dia no horizonte. Ajuste a data âncora ou o horizonte.
+        </p>
+      )}
     </div>
   );
 }

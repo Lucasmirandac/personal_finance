@@ -153,10 +153,13 @@ export type BalanceAnchor = {
   valor: number;
 };
 
+export type SaldoView = "overview" | "calendar";
+
 export type Settings = {
   cards: CardConfig[];
   balanceAnchor: BalanceAnchor | null;
   projectionHorizonDays: number;
+  saldoView?: SaldoView;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
