@@ -18,9 +18,17 @@ export function HeroBalance({ summary, series, onAdjustBalance }: Props) {
   if (!summary) return null
   const snapshot30 = projectionSnapshot(series, summary.saldoInicial, 30)
   const toneUp = (snapshot30?.delta ?? 0) >= 0
+  const negativeOutlook = summary.menorSaldo < 0
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[color-mix(in_oklab,var(--system-green)_14%,var(--surface))] to-[color-mix(in_oklab,var(--system-blue)_8%,var(--surface))] p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-black/5">
+    <section
+      className={clsx(
+        "relative overflow-hidden rounded-3xl bg-gradient-to-br p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-black/5",
+        negativeOutlook
+          ? "from-[color-mix(in_oklab,var(--system-red)_16%,var(--surface))] to-[color-mix(in_oklab,var(--system-orange)_8%,var(--surface))]"
+          : "from-[color-mix(in_oklab,var(--system-green)_14%,var(--surface))] to-[color-mix(in_oklab,var(--system-blue)_8%,var(--surface))]",
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-wider text-muted">Saldo atual</p>
