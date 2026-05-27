@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppStore } from "@/lib/store";
@@ -18,8 +18,7 @@ import {
 } from "@/lib/aggregations";
 import { EmptyState } from "@/components/EmptyState";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
-import { NextEventPeek } from "@/components/NextEventPeek";
-import { KpiCard, KpiStrip } from "@/components/KpiCard";
+import { DashboardAlerts } from "@/components/dashboard/DashboardAlerts";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { MonthlyChart } from "@/components/charts/MonthlyChart";
 import { CategoryChart } from "@/components/charts/CategoryChart";
@@ -27,8 +26,9 @@ import { WeekdayChart } from "@/components/charts/WeekdayChart";
 import { MonthlyCountChart } from "@/components/charts/MonthlyCountChart";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { ComparisonPanel } from "@/components/ComparisonPanel";
-import { Tabs } from "@/components/Tabs";
 import { Button } from "@/components/ui/Button";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { StatTile } from "@/components/ui/StatTile";
 import {
   DataTable,
   DataTableCell,
@@ -48,12 +48,11 @@ import {
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
 import {
-  budgetAlertSummary,
   budgetUsageForMonth,
   currentMonthIso,
 } from "@/lib/budgets";
 import { BudgetProgressCard } from "@/components/BudgetProgressCard";
-import { FileDown, FileSpreadsheet, List, ArrowRight } from "lucide-react";
+import { FileDown, FileSpreadsheet, List } from "lucide-react";
 
 const DASH_TABS = [
   { id: "geral", label: "Visão geral" },
@@ -89,23 +88,17 @@ export default function DashboardPage() {
 }
 
 function DashboardPageInner() {
-  const { loaded, dataset, hasAnalysis, normalized, settings, accounts, budgets } =
+  const { loaded, dataset, hasAnalysis, normalized, settings, accounts, budgets, recurringRules } =
     useAppStore();
   const { filters, setFilters, clearFilters } = useFilters();
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [tab, setTab] = useState<DashTab>(() => parseDashTab(tabParam));
+  const tab = parseDashTab(tabParam);
   const [estView, setEstView] = useState<"top" | "recurring">("top");
 
-  useEffect(() => {
-    setTab(parseDashTab(tabParam));
-  }, [tabParam]);
-
-  function onTabChange(id: string) {
-    const next = id as DashTab;
-    setTab(next);
+  const handleTabChange = (next: DashTab) => {
     router.replace(`/dashboard?tab=${next}`, { scroll: false });
   }
 
@@ -153,20 +146,15 @@ function DashboardPageInner() {
     () => budgetUsageForMonth(normalized, budgets, monthIso),
     [normalized, budgets, monthIso],
   );
-  const budgetAlerts = useMemo(
-    () => budgetAlertSummary(budgetUsages),
-    [budgetUsages],
-  );
-
   if (!loaded) return <div className="text-muted">Carregando…</div>;
   if (!hasAnalysis) return <EmptyState />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 lg:space-y-8">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Análise</h1>
-          <p className="text-muted text-xs mt-0.5">
+          <h1 className="text-2xl font-semibold tracking-tight">Análise</h1>
+          <p className="text-muted text-sm mt-0.5">
             {dataset.sources.length} fonte(s) · {formatInt(normalized.length)} linhas
             {windowCaption && <> · {windowCaption}</>}
           </p>
@@ -174,7 +162,7 @@ function DashboardPageInner() {
         <div className="flex gap-2 flex-wrap items-center">
           <Link
             href="/transacoes"
-            className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1"
+            className="inline-flex items-center justify-center gap-1.5 font-medium rounded-full border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-3 py-1.5"
           >
             <List size={13} />
             Transações
@@ -183,13 +171,14 @@ function DashboardPageInner() {
             activeCount={activeCount}
             onClick={() => setDrawerOpen(true)}
           />
-          <Button size="sm" onClick={() => exportTreatedCsv(filtered)}>
+          <Button size="sm" className="rounded-full" onClick={() => exportTreatedCsv(filtered)}>
             <FileDown size={13} />
             CSV
           </Button>
           <Button
             variant="primary"
             size="sm"
+            className="rounded-full"
             onClick={() => exportWorkbook(filtered, budgets, budgetUsages)}
           >
             <FileSpreadsheet size={13} />
@@ -207,73 +196,45 @@ function DashboardPageInner() {
         onClear={clearFilters}
       />
 
-      {!projectionReady && (
-        <Panel className="px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-warning/30">
-          <p className="text-xs">
-            Configure cartões e saldo inicial para ver sua{" "}
-            <strong>projeção de saldo</strong>.
-          </p>
-          <Link
-            href="/config?tab=cartoes"
-            className="shrink-0 inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-foreground bg-foreground text-surface hover:opacity-90 text-xs px-2 py-1"
-          >
-            Configurar
-            <ArrowRight size={13} />
-          </Link>
-        </Panel>
-      )}
+      <DashboardAlerts
+        dataset={dataset}
+        projectionReady={projectionReady}
+        normalized={normalized}
+        recurringRules={recurringRules}
+        settings={settings}
+        accounts={accounts}
+        budgets={budgets}
+      />
 
-      {projectionReady && <NextEventPeek />}
-
-      {budgetAlerts.warning + budgetAlerts.danger > 0 && (
-        <Panel className="px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm border-warning/30">
-          <p className="text-xs">
-            {budgetAlerts.danger > 0 && (
-              <span className="text-danger font-medium">
-                {budgetAlerts.danger} categoria
-                {budgetAlerts.danger > 1 ? "s" : ""} estourada
-                {budgetAlerts.danger > 1 ? "s" : ""}
-              </span>
-            )}
-            {budgetAlerts.danger > 0 && budgetAlerts.warning > 0 && " · "}
-            {budgetAlerts.warning > 0 && (
-              <span className="text-warning">
-                {budgetAlerts.warning} perto do limite
-              </span>
-            )}
-          </p>
-          <Button
-            size="sm"
-            className="shrink-0"
-            onClick={() => onTabChange("orcamentos")}
-          >
-            Ver orçamentos
-            <ArrowRight size={13} />
-          </Button>
-        </Panel>
-      )}
-
-      <KpiStrip>
-        <KpiCard label="Receitas" value={formatBRL(kpis.totalReceitas)} tone="success" />
-        <KpiCard
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatTile label="Receitas" value={formatBRL(kpis.totalReceitas)} tone="success" />
+        <StatTile
           label="Despesas"
           value={formatBRL(kpis.totalDespesas)}
           hint={`Cartão ${formatBRL(expenseComp.cartao.total)} · Fixas ${formatBRL(expenseComp.fixas.total)}`}
           tone="danger"
         />
-        <KpiCard
+        <StatTile
           label="Saldo"
           value={formatBRL(kpis.saldo)}
           tone={kpis.saldo >= 0 ? "success" : "warning"}
         />
-        <KpiCard
+        <StatTile
           label="Gasto no cartão"
           value={formatBRL(kpis.totalGasto)}
           hint={`${formatInt(kpis.countConsumo)} transações`}
         />
-      </KpiStrip>
+      </div>
 
-      <Tabs tabs={[...DASH_TABS]} active={tab} onChange={onTabChange}>
+      <div className="overflow-x-auto no-scrollbar">
+        <SegmentedControl<DashTab>
+          value={tab}
+          onChange={handleTabChange}
+          options={DASH_TABS.map((item) => ({ value: item.id, label: item.label }))}
+        />
+      </div>
+
+      <div>
         {tab === "geral" && (
           <div className="space-y-4">
             <ChartCard
@@ -283,7 +244,7 @@ function DashboardPageInner() {
               <MonthlyChart data={months} />
             </ChartCard>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 { label: "Ticket médio", value: formatBRL(kpis.ticketMedio) },
                 {
@@ -297,9 +258,7 @@ function DashboardPageInner() {
                 },
                 { label: "Total bruto", value: formatBRL(kpis.totalBruto) },
               ].map((k) => (
-                <div key={k.label} className="bg-surface p-3">
-                  <KpiCard label={k.label} value={k.value} hint={k.hint} compact />
-                </div>
+                <StatTile key={k.label} label={k.label} value={k.value} hint={k.hint} />
               ))}
             </div>
 
@@ -315,13 +274,13 @@ function DashboardPageInner() {
         {tab === "orcamentos" && (
           <div className="space-y-4">
             {budgetUsages.length === 0 ? (
-              <Panel className="p-4 space-y-2">
+              <Panel className="rounded-2xl p-4 space-y-2 ring-1 ring-border/60 shadow-[var(--shadow-card)]">
                 <p className="text-sm text-muted">
                   Nenhum orçamento ativo. Crie limites em Configurações.
                 </p>
                 <Link
                   href="/config?tab=orcamentos"
-                  className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-foreground bg-foreground text-surface hover:opacity-90 text-xs px-2 py-1"
+                  className="inline-flex items-center justify-center gap-1.5 font-medium rounded-full border whitespace-nowrap border-foreground bg-foreground text-surface hover:opacity-90 text-xs px-3 py-1.5"
                 >
                   Configurar orçamentos
                 </Link>
@@ -352,7 +311,7 @@ function DashboardPageInner() {
                 <SectionTitle>Maiores compras</SectionTitle>
                 <span className="text-[11px] text-muted">Top 10</span>
               </div>
-              <div className="border border-border rounded-lg overflow-x-auto">
+              <div className="rounded-2xl ring-1 ring-border/60 overflow-x-auto">
                 <DataTable>
                   <thead>
                     <tr>
@@ -388,7 +347,7 @@ function DashboardPageInner() {
               <CategoryChart data={cats} />
             </ChartCard>
 
-            <div className="border border-border rounded-lg overflow-x-auto">
+            <div className="rounded-2xl ring-1 ring-border/60 overflow-x-auto">
               <DataTable>
                 <thead>
                   <tr>
@@ -429,24 +388,19 @@ function DashboardPageInner() {
 
         {tab === "estabelecimentos" && (
           <div className="space-y-3">
-            <div className="flex gap-1">
-              <Button
+            <div className="overflow-x-auto no-scrollbar">
+              <SegmentedControl<"top" | "recurring">
                 size="sm"
-                variant={estView === "top" ? "primary" : "default"}
-                onClick={() => setEstView("top")}
-              >
-                Top por valor
-              </Button>
-              <Button
-                size="sm"
-                variant={estView === "recurring" ? "primary" : "default"}
-                onClick={() => setEstView("recurring")}
-              >
-                Recorrentes (3+)
-              </Button>
+                value={estView}
+                onChange={setEstView}
+                options={[
+                  { value: "top", label: "Top por valor" },
+                  { value: "recurring", label: "Recorrentes (3+)" },
+                ]}
+              />
             </div>
 
-            <div className="border border-border rounded-lg overflow-x-auto">
+            <div className="rounded-2xl ring-1 ring-border/60 overflow-x-auto">
               <DataTable>
                 <thead>
                   <tr>
@@ -505,7 +459,7 @@ function DashboardPageInner() {
             </div>
           </div>
         )}
-      </Tabs>
+      </div>
     </div>
   );
 }

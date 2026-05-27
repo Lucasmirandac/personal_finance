@@ -1,48 +1,58 @@
-"use client";
+"use client"
 
-import clsx from "clsx";
-import { BudgetUsage } from "@/lib/budgets";
-import { formatBRL, formatPercent } from "@/lib/format";
-import { Num } from "@/components/ui/Num";
+import clsx from "clsx"
+import { BudgetUsage } from "@/lib/budgets"
+import { formatBRL, formatPercent } from "@/lib/format"
+import { Num } from "@/components/ui/Num"
 
 type Props = {
-  usage: BudgetUsage;
-  compact?: boolean;
-};
+  usage: BudgetUsage
+  compact?: boolean
+}
 
 function statusLabel(status: BudgetUsage["status"]): string {
-  if (status === "danger") return "Estourado";
-  if (status === "warning") return "Perto do limite";
-  return "Dentro do orçamento";
+  if (status === "danger") return "Estourado"
+  if (status === "warning") return "Perto do limite"
+  return "Dentro do orçamento"
 }
 
 function barColor(status: BudgetUsage["status"]): string {
-  if (status === "danger") return "bg-[var(--danger)]";
-  if (status === "warning") return "bg-[var(--warning)]";
-  return "bg-[var(--success)]";
+  if (status === "danger") return "bg-[var(--system-red)]"
+  if (status === "warning") return "bg-[var(--system-orange)]"
+  return "bg-[var(--system-green)]"
 }
 
-export function BudgetProgressCard({ usage, compact = false }: Props) {
-  const pct = Math.min(usage.percentual, 100);
+function statusColor(status: BudgetUsage["status"]): string {
+  if (status === "danger") return "var(--system-red)"
+  if (status === "warning") return "var(--system-orange)"
+  return "var(--system-green)"
+}
+
+export function BudgetProgressCard({ usage, compact = false }: Readonly<Props>) {
+  const pct = Math.min(usage.percentual, 100)
 
   return (
     <div
       className={clsx(
-        "border border-border rounded-md p-3 space-y-2",
-        usage.status === "danger" && "border-[var(--danger)]/40",
-        usage.status === "warning" && "border-[var(--warning)]/40",
+        "rounded-2xl bg-surface p-4 space-y-3 ring-1 ring-border/60 shadow-[var(--shadow-card)]",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="font-medium text-sm truncate">{usage.categoria}</div>
+        <div className="min-w-0 space-y-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: statusColor(usage.status) }}
+            />
+            <div className="font-medium text-sm truncate">{usage.categoria}</div>
+          </div>
           {!compact && (
-            <div className="text-[10px] text-muted">{statusLabel(usage.status)}</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted">{statusLabel(usage.status)}</div>
           )}
         </div>
         <Num
           className={clsx(
-            "text-xs font-medium shrink-0",
+            "text-2xl font-semibold shrink-0 num-display",
             usage.status === "danger" && "text-danger",
             usage.status === "warning" && "text-warning",
             usage.status === "ok" && "text-success",
@@ -51,7 +61,7 @@ export function BudgetProgressCard({ usage, compact = false }: Props) {
           {formatPercent(usage.percentual)}
         </Num>
       </div>
-      <div className="h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
         <div
           className={clsx("h-full rounded-full transition-all", barColor(usage.status))}
           style={{ width: `${pct}%` }}
@@ -62,5 +72,5 @@ export function BudgetProgressCard({ usage, compact = false }: Props) {
         <span>de {formatBRL(usage.limite)}</span>
       </div>
     </div>
-  );
+  )
 }
