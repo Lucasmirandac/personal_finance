@@ -477,6 +477,341 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+// --- Hábitos / weekend insights ---
+
+export type DayType = "all" | "weekday" | "weekend";
+
+export function applyDayTypeFilter(
+  data: TransactionNormalized[],
+  dayType: DayType,
+): TransactionNormalized[] {
+  if (dayType === "all") return data;
+  if (dayType === "weekend") return data.filter((t) => t.fimSemana);
+  return data.filter((t) => !t.fimSemana);
+}
+
+export type WeekendStats = {
+  weekendTotal: number;
+  weekdayTotal: number;
+  weekendDayCount: number;
+  weekdayDayCount: number;
+  weekendWeekCount: number;
+  avgPerWeekend: number;
+  avgPerWeekday: number;
+  weekendShare: number;
+};
+
+export function computeWeekendStats(
+  data: TransactionNormalized[],
+): WeekendStats {
+  let weekendTotal = 0;
+  let weekdayTotal = 0;
+  const weekendDays = new Set<string>();
+  const weekdayDays = new Set<string>();
+  const weekendWeeks = new Set<string>();
+
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida" || !t.dataISO) continue;
+    if (t.fimSemana) {
+      weekendTotal += t.valorFluxo;
+      weekendDays.add(t.dataISO);
+      if (t.semana) weekendWeeks.add(t.semana);
+    } else {
+      weekdayTotal += t.valorFluxo;
+      weekdayDays.add(t.dataISO);
+    }
+  }
+
+  const total = weekendTotal + weekdayTotal;
+  const weekendWeekCount = weekendWeeks.size;
+  const weekendDayCount = weekendDays.size;
+  const weekdayDayCount = weekdayDays.size;
+
+  return {
+    weekendTotal: round2(weekendTotal),
+    weekdayTotal: round2(weekdayTotal),
+    weekendDayCount,
+    weekdayDayCount,
+    weekendWeekCount,
+    avgPerWeekend:
+      weekendWeekCount > 0 ? round2(weekendTotal / weekendWeekCount) : 0,
+    avgPerWeekday:
+      weekdayDayCount > 0 ? round2(weekdayTotal / weekdayDayCount) : 0,
+    weekendShare: total > 0 ? round2((weekendTotal / total) * 100) : 0,
+  };
+}
+
+export type HabitNarrativeId =
+  | "peak-day"
+  | "top-cat-dominance"
+  | "small-tx-30d"
+  | "weekday-avg-gap"
+  | "weekday-volatility";
+
+export type HabitNarrative = {
+  id: HabitNarrativeId;
+  text: string;
+  score: number;
+};
+
+function habitScopeLabel(dayType: DayType): string {
+  if (dayType === "weekday") return "dos dias úteis";
+  if (dayType === "weekend") return "do fim de semana";
+  return "semanal";
+}
+
+function habitScopeSuffix(dayType: DayType): string {
+  if (dayType === "weekday") return " úteis";
+  if (dayType === "weekend") return " de fim de semana";
+  return "";
+}
+
+function habitTotalDays(dayType: DayType): number {
+  if (dayType === "weekday") return 5;
+  if (dayType === "weekend") return 2;
+  return 7;
+}
+
+function shiftIsoDays(iso: string, delta: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + delta));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+function dailyTotalsByWeekday(
+  data: TransactionNormalized[],
+): Map<number, number[]> {
+  const byDate = new Map<string, { index: number; total: number }>();
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida" || !t.dataISO) continue;
+    const cur = byDate.get(t.dataISO) ?? {
+      index: t.diaSemanaIndex,
+      total: 0,
+    };
+    cur.total += t.valorFluxo;
+    byDate.set(t.dataISO, cur);
+  }
+  const byWeekday = new Map<number, number[]>();
+  for (const { index, total } of byDate.values()) {
+    const list = byWeekday.get(index) ?? [];
+    list.push(total);
+    byWeekday.set(index, list);
+  }
+  return byWeekday;
+}
+
+function weekdayLabelFromIndex(index: number): string {
+  const labels = [
+    "domingos",
+    "segundas",
+    "terças",
+    "quartas",
+    "quintas",
+    "sextas",
+    "sábados",
+  ];
+  return labels[index] ?? "esse dia";
+}
+
+function narrativePeakDay(
+  data: TransactionNormalized[],
+  dayType: DayType,
+): HabitNarrative | null {
+  const byWeekday = dailyTotalsByWeekday(data);
+  if (byWeekday.size === 0) return null;
+
+  let peakIndex = -1;
+  let peakAvg = 0;
+  const avgs: number[] = [];
+
+  for (const [index, totals] of byWeekday) {
+    const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+    avgs.push(avg);
+    if (avg > peakAvg) {
+      peakAvg = avg;
+      peakIndex = index;
+    }
+  }
+
+  const overallAvg = avgs.reduce((a, b) => a + b, 0) / avgs.length;
+  if (peakIndex < 0 || overallAvg <= 0) return null;
+
+  const pct = round2(((peakAvg - overallAvg) / overallAvg) * 100);
+  if (Math.abs(pct) < 5) return null;
+
+  const scope = habitScopeLabel(dayType);
+  const moreLess = pct >= 0 ? "mais" : "menos";
+  const absPct = Math.abs(pct);
+
+  return {
+    id: "peak-day",
+    text: `Você gasta ${absPct}% ${moreLess} às ${weekdayLabelFromIndex(peakIndex)} do que a média ${scope}.`,
+    score: absPct,
+  };
+}
+
+function narrativeTopCatDominance(
+  data: TransactionNormalized[],
+  dayType: DayType,
+): HabitNarrative | null {
+  const { rows, categories } = weekdayCategoryAggregation(data, 5);
+  if (rows.length === 0 || categories.length === 0) return null;
+
+  const dominance = new Map<string, number>();
+  for (const row of rows) {
+    let topCat = "";
+    let topVal = 0;
+    for (const cat of categories) {
+      const v = (row[cat] as number) ?? 0;
+      if (v > topVal) {
+        topVal = v;
+        topCat = cat;
+      }
+    }
+    if (topCat && topVal > 0) {
+      dominance.set(topCat, (dominance.get(topCat) ?? 0) + 1);
+    }
+  }
+
+  let bestCat = "";
+  let bestDays = 0;
+  for (const [cat, days] of dominance) {
+    if (days > bestDays) {
+      bestDays = days;
+      bestCat = cat;
+    }
+  }
+
+  if (!bestCat || bestDays < 2) return null;
+
+  const totalDias = habitTotalDays(dayType);
+  const scope = habitScopeLabel(dayType);
+
+  return {
+    id: "top-cat-dominance",
+    text: `${bestCat} domina ${bestDays} dos ${totalDias} dias ${scope}.`,
+    score: (bestDays / totalDias) * 100,
+  };
+}
+
+function narrativeSmallTx30d(
+  data: TransactionNormalized[],
+  dayType: DayType,
+): HabitNarrative | null {
+  let maxIso = "";
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida" || !t.dataISO) continue;
+    if (!maxIso || t.dataISO > maxIso) maxIso = t.dataISO;
+  }
+  if (!maxIso) return null;
+
+  const fromIso = shiftIsoDays(maxIso, -29);
+  let smallCount = 0;
+  let totalInWindow = 0;
+
+  for (const t of data) {
+    if (t.tipoFluxo !== "saida" || !t.dataISO) continue;
+    if (t.dataISO < fromIso || t.dataISO > maxIso) continue;
+    totalInWindow += 1;
+    if (t.valorFluxo < 30) smallCount += 1;
+  }
+
+  if (smallCount === 0) return null;
+
+  const suffix = habitScopeSuffix(dayType);
+  const score = totalInWindow > 0 ? (smallCount / totalInWindow) * 100 : smallCount;
+
+  return {
+    id: "small-tx-30d",
+    text: `Você teve ${smallCount} transações abaixo de R$ 30 nos últimos 30 dias${suffix}.`,
+    score,
+  };
+}
+
+function narrativeWeekdayAvgGap(
+  data: TransactionNormalized[],
+): HabitNarrative | null {
+  const stats = computeWeekendStats(data);
+  if (stats.weekendDayCount === 0 || stats.weekdayDayCount === 0) return null;
+
+  const weekendPerDay = stats.weekendTotal / stats.weekendDayCount;
+  const weekdayPerDay = stats.weekdayTotal / stats.weekdayDayCount;
+  if (weekdayPerDay <= 0) return null;
+
+  const pct = round2(((weekendPerDay - weekdayPerDay) / weekdayPerDay) * 100);
+  if (Math.abs(pct) < 5) return null;
+
+  const moreLess = pct >= 0 ? "mais" : "menos";
+  const absPct = Math.abs(pct);
+
+  return {
+    id: "weekday-avg-gap",
+    text: `Fins de semana custam ${absPct}% ${moreLess} por dia do que dias úteis.`,
+    score: absPct,
+  };
+}
+
+function narrativeWeekdayVolatility(
+  data: TransactionNormalized[],
+): HabitNarrative | null {
+  const byWeekday = dailyTotalsByWeekday(data);
+  if (byWeekday.size < 2) return null;
+
+  let peakIndex = -1;
+  let peakCv = 0;
+
+  for (const [index, totals] of byWeekday) {
+    if (totals.length < 2) continue;
+    const mean = totals.reduce((a, b) => a + b, 0) / totals.length;
+    if (mean <= 0) continue;
+    const variance =
+      totals.reduce((acc, v) => acc + (v - mean) ** 2, 0) / totals.length;
+    const cv = Math.sqrt(variance) / mean;
+    if (cv > peakCv) {
+      peakCv = cv;
+      peakIndex = index;
+    }
+  }
+
+  if (peakIndex < 0 || peakCv < 0.15) return null;
+
+  const dayName = weekdayLabelFromIndex(peakIndex).replace(/s$/, "");
+  return {
+    id: "weekday-volatility",
+    text: `Seus gastos de ${dayName} variam mais que qualquer outro dia.`,
+    score: peakCv * 100,
+  };
+}
+
+export function computeHabitNarratives(
+  data: TransactionNormalized[],
+  dayType: DayType,
+): HabitNarrative[] {
+  const candidates: HabitNarrative[] = [];
+
+  const peak = narrativePeakDay(data, dayType);
+  if (peak) candidates.push(peak);
+
+  const dominance = narrativeTopCatDominance(data, dayType);
+  if (dominance) candidates.push(dominance);
+
+  const smallTx = narrativeSmallTx30d(data, dayType);
+  if (smallTx) candidates.push(smallTx);
+
+  if (dayType === "all") {
+    const gap = narrativeWeekdayAvgGap(data);
+    if (gap) candidates.push(gap);
+  }
+
+  const volatility = narrativeWeekdayVolatility(data);
+  if (volatility) candidates.push(volatility);
+
+  return candidates.sort((a, b) => b.score - a.score);
+}
+
 // --- Month comparison ---
 
 export function shiftMonth(anoMes: string, deltaMonths: number): string {

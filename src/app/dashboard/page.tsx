@@ -7,19 +7,25 @@ import { useAppStore } from "@/lib/store";
 import { useFilters } from "@/lib/filtersContext";
 import { isProjectionReady } from "@/lib/setupStatus";
 import {
+  applyDayTypeFilter,
   applyFilters,
   buildInsights,
   categoryAggregation,
+  computeHabitNarratives,
   computeKpis,
+  computeWeekendStats,
   establishmentAggregation,
   expenseComposition,
   monthlySeries,
   weekdayAggregation,
   weekdayCategoryAggregation,
+  type DayType,
 } from "@/lib/aggregations";
 import { EmptyState } from "@/components/EmptyState";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
 import { DashboardAlerts } from "@/components/dashboard/DashboardAlerts";
+import { HabitOfWeekCard } from "@/components/dashboard/HabitOfWeekCard";
+import { WeekendSharePanel } from "@/components/dashboard/WeekendSharePanel";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { MonthlyChart } from "@/components/charts/MonthlyChart";
 import { CategoryChart } from "@/components/charts/CategoryChart";
@@ -101,6 +107,7 @@ function DashboardPageInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const tab = parseDashTab(tabParam);
   const [estView, setEstView] = useState<"top" | "recurring">("top");
+  const [dayType, setDayType] = useState<DayType>("all");
 
   const handleTabChange = (next: DashTab) => {
     router.replace(`/dashboard?tab=${next}`, { scroll: false });
@@ -115,9 +122,25 @@ function DashboardPageInner() {
   const months = useMemo(() => monthlySeries(filtered), [filtered]);
   const cats = useMemo(() => categoryAggregation(filtered), [filtered]);
   const weekdays = useMemo(() => weekdayAggregation(filtered), [filtered]);
-  const weekdayCategories = useMemo(
-    () => weekdayCategoryAggregation(filtered, 5),
+  const habitData = useMemo(
+    () => applyDayTypeFilter(filtered, dayType),
+    [filtered, dayType],
+  );
+  const habitWeekdays = useMemo(
+    () => weekdayAggregation(habitData),
+    [habitData],
+  );
+  const habitWeekdayCategories = useMemo(
+    () => weekdayCategoryAggregation(habitData, 5),
+    [habitData],
+  );
+  const weekendStats = useMemo(
+    () => computeWeekendStats(filtered),
     [filtered],
+  );
+  const habitNarratives = useMemo(
+    () => computeHabitNarratives(habitData, dayType).slice(0, 3),
+    [habitData, dayType],
   );
   const ests = useMemo(() => establishmentAggregation(filtered), [filtered]);
   const insights = useMemo(() => buildInsights(filtered), [filtered]);
@@ -145,29 +168,35 @@ function DashboardPageInner() {
         .slice(0, 15),
     [ests],
   );
-  const weekdaysWithData = useMemo(
-    () => weekdays.filter((day) => day.count > 0),
-    [weekdays],
+  const habitWeekdaysWithData = useMemo(
+    () => habitWeekdays.filter((day) => day.count > 0),
+    [habitWeekdays],
   );
   const mostExpensiveWeekday = useMemo(
     () =>
-      weekdaysWithData.reduce<(typeof weekdaysWithData)[number] | null>(
+      habitWeekdaysWithData.reduce<
+        (typeof habitWeekdaysWithData)[number] | null
+      >(
         (best, day) => (best === null || day.total > best.total ? day : best),
         null,
       ),
-    [weekdaysWithData],
+    [habitWeekdaysWithData],
   );
   const lightestWeekday = useMemo(
     () =>
-      weekdaysWithData.reduce<(typeof weekdaysWithData)[number] | null>(
+      habitWeekdaysWithData.reduce<
+        (typeof habitWeekdaysWithData)[number] | null
+      >(
         (best, day) => (best === null || day.total < best.total ? day : best),
         null,
       ),
-    [weekdaysWithData],
+    [habitWeekdaysWithData],
   );
   const highestAverageTicketWeekday = useMemo(
     () =>
-      weekdaysWithData.reduce<(typeof weekdaysWithData)[number] | null>(
+      habitWeekdaysWithData.reduce<
+        (typeof habitWeekdaysWithData)[number] | null
+      >(
         (best, day) => {
           if (best === null) return day;
           const dayAverage = day.total / day.count;
@@ -176,7 +205,7 @@ function DashboardPageInner() {
         },
         null,
       ),
-    [weekdaysWithData],
+    [habitWeekdaysWithData],
   );
 
   const maxCatTotal = cats[0]?.total ?? 1;
@@ -384,6 +413,22 @@ function DashboardPageInner() {
 
         {tab === "habitos" && (
           <div className="space-y-4">
+            <HabitOfWeekCard narratives={habitNarratives} />
+
+            <WeekendSharePanel stats={weekendStats} dayType={dayType} />
+
+            <div className="overflow-x-auto no-scrollbar">
+              <SegmentedControl<DayType>
+                value={dayType}
+                onChange={setDayType}
+                options={[
+                  { value: "all", label: "Tudo" },
+                  { value: "weekday", label: "Dias úteis" },
+                  { value: "weekend", label: "Fim de semana" },
+                ]}
+              />
+            </div>
+
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <StatTile
                 label="Dia mais caro"
@@ -422,13 +467,13 @@ function DashboardPageInner() {
                 title="Gastos por dia da semana"
                 subtitle="Total no período filtrado"
               >
-                <WeekdayChart data={weekdays} />
+                <WeekdayChart data={habitWeekdays} />
               </ChartCard>
               <ChartCard
                 title="Transações por dia da semana"
                 subtitle="Contagem de saídas"
               >
-                <WeekdayChart data={weekdays} metric="count" />
+                <WeekdayChart data={habitWeekdays} metric="count" />
               </ChartCard>
             </div>
 
@@ -436,12 +481,12 @@ function DashboardPageInner() {
               title="Categoria por dia da semana"
               subtitle="Top 5 categorias + Outros, empilhadas por dia"
             >
-              {weekdayCategories.categories.length === 0 ? (
+              {habitWeekdayCategories.categories.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-muted">
                   Sem dados no período
                 </div>
               ) : (
-                <WeekdayCategoryChart data={weekdayCategories} />
+                <WeekdayCategoryChart data={habitWeekdayCategories} />
               )}
             </ChartCard>
           </div>
