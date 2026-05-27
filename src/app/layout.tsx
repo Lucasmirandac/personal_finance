@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppStoreProvider } from "@/lib/store";
@@ -16,9 +16,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Finanças — análise e projeção local",
+  title: "Saldo Real — finanças locais e privadas",
   description:
-    "Análise local e privada de faturas em CSV — saldo projetado, KPIs e exportação.",
+    "Saldo Real é o seu painel financeiro local: importe faturas, projete saldo, defina orçamentos e nada sai do navegador.",
+  openGraph: {
+    title: "Saldo Real",
+    description: "Painel financeiro local e privado.",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f3ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#13110c" },
+  ],
 };
 
 export default function RootLayout({

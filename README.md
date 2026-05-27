@@ -1,4 +1,4 @@
-# Dashboard de Gastos por CSV
+# Saldo Real
 
 App Next.js local e privado para análise de faturas em CSV, sem backend e sem upload para servidores. Todo o processamento, persistência e exportação acontece no próprio navegador.
 

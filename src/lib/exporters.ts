@@ -101,7 +101,7 @@ export function exportWorkbook(
   const insights = buildInsights(data);
 
   const dashboard = [
-    ["Dashboard de Gastos"],
+    ["Saldo Real — Dashboard"],
     [],
     ["Indicador", "Valor"],
     ["Receitas", kpis.totalReceitas],
