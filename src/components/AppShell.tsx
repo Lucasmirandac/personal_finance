@@ -7,7 +7,6 @@ import {
   BackupReminder,
   BudgetAlertWidget,
   SetupIndicator,
-  Saldo30Widget,
 } from "@/components/HeaderWidgets";
 import { DesktopNav, MobileNav } from "@/components/NavBar";
 import { QuickAddFab } from "@/components/QuickAddFab";
@@ -16,15 +15,15 @@ import { Database, Wallet } from "lucide-react";
 const chipBase =
   "inline-flex items-center px-2 py-0.5 rounded-sm font-mono bg-surface-2 border border-border text-muted";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const { dataset, hasAnalysis, normalized } = useAppStore();
 
   return (
     <div className="min-h-dvh flex flex-col">
-      <header className="border-b border-border bg-[var(--surface)]/95 backdrop-blur sticky top-0 z-20">
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-[color-mix(in_oklab,var(--surface)_75%,transparent)] backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
           <Link href="/saldo" className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex w-7 h-7 items-center justify-center rounded-md bg-[var(--foreground)] text-[var(--surface)]">
+            <span className="inline-flex w-7 h-7 items-center justify-center rounded-xl bg-[var(--foreground)] text-[var(--surface)]">
               <Wallet size={15} strokeWidth={2.25} />
             </span>
             <span className="font-semibold text-sm hidden sm:inline">
@@ -38,7 +37,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SetupIndicator />
             <BudgetAlertWidget />
             <BackupReminder />
-            <Saldo30Widget />
             {hasAnalysis && (
               <span
                 className={clsx(chipBase, "hidden lg:inline-flex gap-1")}

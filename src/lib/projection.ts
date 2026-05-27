@@ -38,6 +38,13 @@ export type ProjectionSummary = {
   proximaFatura: { date: string; amount: number; description: string } | null;
 };
 
+export type ProjectionSnapshot = {
+  balance: number
+  date: string
+  delta: number
+  deltaPct: number
+} | null
+
 function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
@@ -285,6 +292,32 @@ export function projectDailyBalance(
   };
 
   return { series, summary };
+}
+
+export function projectionSnapshot(
+  series: DailyBalancePoint[],
+  anchorValue: number,
+  daysAhead: number,
+): ProjectionSnapshot {
+  if (series.length === 0) return null
+  const target = addDaysIso(todayIso(), daysAhead)
+  let snapshot = series[series.length - 1]
+  for (const point of series) {
+    if (point.date <= target) {
+      snapshot = point
+    } else {
+      break
+    }
+  }
+  const delta = round2(snapshot.balance - anchorValue)
+  const base = Math.abs(anchorValue)
+  const deltaPct = base > 0 ? round2((delta / base) * 100) : 0
+  return {
+    balance: snapshot.balance,
+    date: snapshot.date,
+    delta,
+    deltaPct,
+  }
 }
 
 function addDaysIso(iso: string, days: number): string {

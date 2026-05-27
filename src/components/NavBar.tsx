@@ -8,7 +8,7 @@ import { ChevronDown } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 
 export const MAIN_NAV = [
-  { href: "/saldo", label: "Saldo" },
+  { href: "/saldo", label: "Painel" },
   { href: "/dashboard", label: "Análise" },
   { href: "/recorrentes", label: "Recorrentes" },
 ] as const;
@@ -38,7 +38,7 @@ type NavLinkProps = {
   onClick?: () => void;
 };
 
-function NavLink({ href, label, active, onClick }: NavLinkProps) {
+function NavLink({ href, label, active, onClick }: Readonly<NavLinkProps>) {
   return (
     <Link
       href={href}
@@ -55,7 +55,7 @@ function NavLink({ href, label, active, onClick }: NavLinkProps) {
   );
 }
 
-function ConfigMenu({ active }: { active: boolean }) {
+function ConfigMenu({ active }: Readonly<{ active: boolean }>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

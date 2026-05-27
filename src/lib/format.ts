@@ -56,6 +56,39 @@ export function formatDateBR(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+export function formatLongDate(iso: string): string {
+  if (!iso) return ""
+  const [year, month, day] = iso.split("-").map(Number)
+  const dt = new Date(Date.UTC(year, month - 1, day))
+  return dt.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+}
+
+export function getGreeting(date = new Date()): string {
+  const hour = date.getHours()
+  if (hour < 12) return "Bom dia"
+  if (hour < 18) return "Boa tarde"
+  return "Boa noite"
+}
+
+export function formatRelativeDays(iso: string): string {
+  if (!iso) return ""
+  const [year, month, day] = iso.split("-").map(Number)
+  const target = Date.UTC(year, month - 1, day)
+  const now = new Date()
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const diff = Math.round((target - today) / 86400000)
+  if (diff === 0) return "hoje"
+  if (diff === 1) return "amanhã"
+  if (diff < 0) return `${Math.abs(diff)}d atrás`
+  if (diff < 14) return `em ${diff} dias`
+  const weeks = Math.round(diff / 7)
+  return `em ${weeks} semana${weeks > 1 ? "s" : ""}`
+}
+
 /** Caption for active date range filter, e.g. "12/03/2026 – 26/05/2026 · 76 dias" */
 export function formatDateRangeCaption(
   from: string | null,
@@ -65,12 +98,12 @@ export function formatDateRangeCaption(
   const start = from ?? to!;
   const end = to ?? from!;
   const days = daysBetweenInclusive(start, end);
-  const range =
-    from && to
-      ? `${formatDateBR(from)} – ${formatDateBR(to)}`
-      : from
-        ? `desde ${formatDateBR(from)}`
-        : `até ${formatDateBR(to!)}`;
+  let range = `até ${formatDateBR(to!)}`
+  if (from && to) {
+    range = `${formatDateBR(from)} – ${formatDateBR(to)}`
+  } else if (from) {
+    range = `desde ${formatDateBR(from)}`
+  }
   return days > 0 ? `${range} · ${days} dias` : range;
 }
 

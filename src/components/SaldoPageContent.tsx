@@ -1,41 +1,27 @@
-"use client";
+"use client"
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import clsx from "clsx";
-import { useAppStore } from "@/lib/store";
-import { AccountsPanel } from "@/components/AccountsPanel";
-import { AdjustBalanceModal } from "@/components/AdjustBalanceModal";
-import { ChartCard } from "@/components/charts/ChartCard";
-import { BalanceProjectionChart } from "@/components/charts/BalanceProjectionChart";
-import { KpiCard, KpiStrip } from "@/components/KpiCard";
-import { SaldoCalendarView } from "@/components/SaldoCalendarView";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Num } from "@/components/ui/Num";
-import { Panel } from "@/components/ui/Panel";
-import { SectionTitle } from "@/components/ui/SectionTitle";
-import { TabList, TabTrigger } from "@/components/ui/TabList";
-import {
-  isSettingsComplete,
-  projectDailyBalance,
-  CashEvent,
-} from "@/lib/projection";
-import { accountsToBalanceAnchor } from "@/lib/accounts";
-import { formatBRL, formatDateBR } from "@/lib/format";
-import { Fonte, SaldoView } from "@/lib/types";
-import {
-  EVENT_FILTER_OPTIONS,
-  EventFilter,
-  EventIcon,
-  EVENT_LABELS,
-  eventBadgeVariantFor,
-} from "@/components/saldoEventVisual";
-import {
-  Plus,
-  Settings as SettingsIcon,
-  SlidersHorizontal,
-} from "lucide-react";
+import { useMemo, useState } from "react"
+import { AccountsPanel } from "@/components/AccountsPanel"
+import { AdjustBalanceModal } from "@/components/AdjustBalanceModal"
+import { SaldoCalendarView } from "@/components/SaldoCalendarView"
+import { ChartCard } from "@/components/charts/ChartCard"
+import { BalanceProjectionChart } from "@/components/charts/BalanceProjectionChart"
+import { AccountStack } from "@/components/painel/AccountStack"
+import { AlertsBar } from "@/components/painel/AlertsBar"
+import { GreetingHeader } from "@/components/painel/GreetingHeader"
+import { HeroBalance } from "@/components/painel/HeroBalance"
+import { UpcomingTimeline } from "@/components/painel/UpcomingTimeline"
+import { SegmentedControl } from "@/components/ui/SegmentedControl"
+import { StatTile } from "@/components/ui/StatTile"
+import { DrawerBackdrop, DrawerPanel } from "@/components/ui/Drawer"
+import { Panel } from "@/components/ui/Panel"
+import { formatBRL } from "@/lib/format"
+import { buildPainelAlerts } from "@/lib/alerts"
+import { useAppStore } from "@/lib/store"
+import { accountsToBalanceAnchor } from "@/lib/accounts"
+import { projectionSnapshot, isSettingsComplete, projectDailyBalance, CashEvent } from "@/lib/projection"
+import { EventFilter } from "@/components/saldoEventVisual"
+import { Fonte, SaldoView } from "@/lib/types"
 
 export function SaldoPageContent() {
   const {
@@ -44,21 +30,25 @@ export function SaldoPageContent() {
     recurringRules,
     settings,
     accounts,
+    budgets,
+    subscriptionDismissals,
+    lastBackupAt,
     updateSettings,
-  } = useAppStore();
-  const [editing, setEditing] = useState(false);
-  const [adjustOpen, setAdjustOpen] = useState(false);
-  const [eventFilter, setEventFilter] = useState<EventFilter>("all");
-  const activeView: SaldoView = settings.saldoView ?? "overview";
+  } = useAppStore()
+
+  const [configOpen, setConfigOpen] = useState(false)
+  const [adjustOpen, setAdjustOpen] = useState(false)
+  const [eventFilter, setEventFilter] = useState<EventFilter>("all")
+  const activeView: SaldoView = settings.saldoView ?? "overview"
 
   const cardSources = useMemo(() => {
-    const set = new Set<Fonte>();
-    for (const s of dataset.sources) set.add(s.fonte);
-    return [...set];
-  }, [dataset.sources]);
+    const set = new Set<Fonte>()
+    for (const source of dataset.sources) set.add(source.fonte)
+    return [...set]
+  }, [dataset.sources])
 
-  const complete = isSettingsComplete(settings, cardSources, accounts);
-  const anchor = accountsToBalanceAnchor(accounts) ?? settings.balanceAnchor;
+  const complete = isSettingsComplete(settings, cardSources, accounts)
+  const anchor = accountsToBalanceAnchor(accounts) ?? settings.balanceAnchor
 
   const { series, summary } = useMemo(
     () =>
@@ -69,276 +59,170 @@ export function SaldoPageContent() {
         accounts,
       }),
     [normalized, recurringRules, settings, accounts],
-  );
+  )
 
   const upcoming = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const events: CashEvent[] = [];
-    for (const p of series) {
-      if (p.date >= today) events.push(...p.events);
+    const today = new Date().toISOString().slice(0, 10)
+    const events: CashEvent[] = []
+    for (const point of series) {
+      if (point.date >= today) events.push(...point.events)
     }
-    return events.sort((a, b) =>
-      a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
-    );
-  }, [series]);
+    return events.sort((a, b) => (a.date < b.date ? -1 : 1))
+  }, [series])
 
-  const filteredUpcoming = useMemo(() => {
-    const list =
-      eventFilter === "all"
-        ? upcoming
-        : upcoming.filter((e) => e.type === eventFilter);
-    return list.slice(0, 15);
-  }, [upcoming, eventFilter]);
+  const alerts = useMemo(
+    () =>
+      buildPainelAlerts({
+        dataset,
+        settings,
+        recurringRules,
+        accounts,
+        normalized,
+        budgets,
+        summary,
+        upcomingEvents: upcoming,
+        subscriptionDismissals,
+        lastBackupAt,
+      }),
+    [
+      dataset,
+      settings,
+      recurringRules,
+      accounts,
+      normalized,
+      budgets,
+      summary,
+      upcoming,
+      subscriptionDismissals,
+      lastBackupAt,
+    ],
+  )
 
-  async function setActiveView(view: SaldoView) {
-    if (view === activeView) return;
-    await updateSettings({ ...settings, saldoView: view });
+  const snapshot7 = summary ? projectionSnapshot(series, summary.saldoInicial, 7) : null
+  const snapshot30 = summary ? projectionSnapshot(series, summary.saldoInicial, 30) : null
+  const snapshot90 = summary ? projectionSnapshot(series, summary.saldoInicial, 90) : null
+
+  const horizonEnd = series.length > 0 ? series.at(-1)?.date ?? null : null
+
+  const handleSetView = async (view: SaldoView) => {
+    if (view === activeView) return
+    await updateSettings({ ...settings, saldoView: view })
   }
 
-  if (!complete || editing) {
+  if (!complete || !anchor) {
     return (
       <div className="space-y-4">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">Saldo</h1>
-          <p className="text-muted text-xs mt-0.5">
-            Crie suas contas e saldos atuais para projetar seu fluxo de caixa.
-          </p>
-        </div>
-        {!complete && (
-          <p className="text-sm text-muted">
-            Cadastre pelo menos uma conta com saldo inicial. Cartões do CSV
-            precisam de fechamento e pagamento configurados.
-          </p>
-        )}
-        <AccountsPanel
-          onClose={complete ? () => setEditing(false) : undefined}
-        />
-      </div>
-    );
-  }
-
-  const horizonEnd =
-    summary && series.length > 0
-      ? series[series.length - 1]?.date
-      : null;
-
-  if (!anchor) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">Saldo</h1>
-          <p className="text-muted text-xs mt-0.5">
-            Configure a âncora de saldo para ver a projeção.
-          </p>
-        </div>
+        <p className="text-sm text-muted">
+          Cadastre contas e saldo atual para liberar o Painel.
+        </p>
         <AccountsPanel />
       </div>
-    );
+    )
   }
 
-  const anchorDate = anchor.data;
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">Saldo</h1>
-          <p className="text-muted text-xs mt-0.5">
-            Projeção · âncora {formatDateBR(anchorDate)} ·{" "}
-            {settings.projectionHorizonDays} dias
-          </p>
+    <div className="space-y-6 lg:space-y-8">
+      <GreetingHeader
+        onAdjustBalance={() => setAdjustOpen(true)}
+        onConfig={() => setConfigOpen(true)}
+      />
+
+      <AlertsBar alerts={alerts} />
+
+      <HeroBalance
+        summary={summary}
+        series={series}
+        onAdjustBalance={() => setAdjustOpen(true)}
+      />
+
+      <AccountStack accounts={accounts} />
+
+      {summary && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} />
+          <StatTile label="Em 30d" value={formatBRL(snapshot30?.balance)} />
+          <StatTile label="Em 90d" value={formatBRL(snapshot90?.balance)} />
+          <StatTile
+            label="Menor saldo"
+            value={formatBRL(summary.menorSaldo)}
+            hint={summary.menorSaldoData ?? undefined}
+            tone={summary.menorSaldo >= 0 ? "default" : "danger"}
+          />
+          <StatTile
+            label="Receitas"
+            value={formatBRL(upcoming.filter((event) => event.amount > 0).reduce((sum, event) => sum + event.amount, 0))}
+            tone="success"
+          />
+          <StatTile
+            label="Saídas"
+            value={formatBRL(upcoming.filter((event) => event.amount < 0).reduce((sum, event) => sum + event.amount, 0))}
+            tone="danger"
+          />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Link
-            href="/recorrentes"
-            className="inline-flex items-center justify-center gap-1.5 font-medium rounded-md border whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1"
-          >
-            <Plus size={13} />
-            Recorrente
-          </Link>
-          <Button size="sm" onClick={() => setAdjustOpen(true)}>
-            <SlidersHorizontal size={13} />
-            Ajustar saldo
-          </Button>
-          <Button size="sm" onClick={() => setEditing(true)}>
-            <SettingsIcon size={13} />
-            Configurar
-          </Button>
+      )}
+
+      <SegmentedControl<SaldoView>
+        value={activeView}
+        onChange={handleSetView}
+        options={[
+          { value: "overview", label: "Projeção" },
+          { value: "calendar", label: "Calendário" },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          {activeView === "overview" && series.length > 0 && (
+            <ChartCard
+              title="Projeção de saldo"
+              subtitle="Compras de cartão no dia de pagamento da fatura"
+            >
+              <BalanceProjectionChart data={series} />
+            </ChartCard>
+          )}
+          {activeView === "overview" && series.length === 0 && (
+            <Panel className="p-4 text-sm text-muted">
+              Nenhum dia no horizonte para exibir no gráfico.
+            </Panel>
+          )}
+          {activeView === "calendar" && horizonEnd && (
+            <SaldoCalendarView
+              series={series}
+              anchorISO={anchor.data}
+              horizonEndISO={horizonEnd}
+              filter={eventFilter}
+            />
+          )}
+          {activeView === "calendar" && !horizonEnd && (
+            <Panel className="p-4 text-sm text-muted">
+              Nenhum dia no horizonte para exibir no calendário.
+            </Panel>
+          )}
+        </div>
+
+        <div className="lg:col-span-2">
+          <UpcomingTimeline
+            series={series}
+            filter={eventFilter}
+            onFilterChange={setEventFilter}
+          />
         </div>
       </div>
 
       <AdjustBalanceModal open={adjustOpen} onClose={() => setAdjustOpen(false)} />
 
-      {summary && (
-        <Panel className="p-4 border-accent/25 bg-[color-mix(in_oklab,var(--accent)_6%,transparent)]">
-          <div className="text-xs text-muted uppercase tracking-wide">
-            Saldo projetado
-            {horizonEnd ? ` em ${formatDateBR(horizonEnd)}` : ""}
-          </div>
-          <Num
-            className={clsx(
-              "text-3xl sm:text-4xl font-semibold mt-1 block",
-              summary.saldoFinal >= 0 ? "text-success" : "text-danger",
-            )}
+      {configOpen && (
+        <DrawerBackdrop onClick={() => setConfigOpen(false)}>
+          <DrawerPanel
+            role="dialog"
+            aria-modal="true"
+            className="w-[min(100%,36rem)] p-4 overflow-auto"
+            onClick={(event) => event.stopPropagation()}
           >
-            {formatBRL(summary.saldoFinal)}
-          </Num>
-          {summary.menorSaldo < 0 && (
-            <p className="text-xs text-danger mt-2">
-              Atenção: menor saldo de {formatBRL(summary.menorSaldo)}
-              {summary.menorSaldoData
-                ? ` em ${formatDateBR(summary.menorSaldoData)}`
-                : ""}
-            </p>
-          )}
-        </Panel>
-      )}
-
-      {summary && (
-        <KpiStrip>
-          <KpiCard
-            label="Saldo inicial"
-            value={formatBRL(summary.saldoInicial)}
-            hint={formatDateBR(anchorDate)}
-            compact
-          />
-          <KpiCard
-            label="Menor saldo"
-            value={formatBRL(summary.menorSaldo)}
-            hint={
-              summary.menorSaldoData
-                ? formatDateBR(summary.menorSaldoData)
-                : undefined
-            }
-            tone={summary.menorSaldo >= 0 ? "default" : "danger"}
-            compact
-          />
-          <KpiCard
-            label="Próxima fatura"
-            value={
-              summary.proximaFatura
-                ? formatBRL(Math.abs(summary.proximaFatura.amount))
-                : "—"
-            }
-            hint={
-              summary.proximaFatura
-                ? `${summary.proximaFatura.description} · ${formatDateBR(summary.proximaFatura.date)}`
-                : "Nenhuma no horizonte"
-            }
-            compact
-          />
-          <KpiCard
-            label="Horizonte"
-            value={`${settings.projectionHorizonDays}d`}
-            hint="Dias à frente"
-            compact
-          />
-        </KpiStrip>
-      )}
-
-      <TabList>
-        <TabTrigger
-          active={activeView === "overview"}
-          onClick={() => setActiveView("overview")}
-        >
-          Visão geral
-        </TabTrigger>
-        <TabTrigger
-          active={activeView === "calendar"}
-          onClick={() => setActiveView("calendar")}
-        >
-          Calendário
-        </TabTrigger>
-      </TabList>
-
-      <div className="flex flex-wrap gap-1">
-        {EVENT_FILTER_OPTIONS.map(([id, label]) => (
-          <Button
-            key={id}
-            size="sm"
-            variant={eventFilter === id ? "primary" : "default"}
-            onClick={() => setEventFilter(id)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-
-      {activeView === "overview" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <div className="lg:col-span-3">
-            {series.length > 0 ? (
-              <ChartCard
-                title="Saldo por dia"
-                subtitle="Compras de cartão no dia de pagamento da fatura"
-              >
-                <BalanceProjectionChart data={series} />
-              </ChartCard>
-            ) : (
-              <Panel className="p-4">
-                <p className="text-sm text-muted">
-                  Nenhum dia no horizonte. Ajuste a data âncora ou o horizonte.
-                </p>
-              </Panel>
-            )}
-          </div>
-
-          <div className="lg:col-span-2 space-y-2">
-            <SectionTitle>Próximos eventos</SectionTitle>
-            {filteredUpcoming.length > 0 ? (
-              <Panel className="divide-y divide-border max-h-[420px] overflow-auto">
-                {filteredUpcoming.map((e, i) => (
-                  <div
-                    key={`${e.date}-${e.type}-${i}`}
-                    className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Badge
-                        variant={eventBadgeVariantFor(e.type)}
-                        className="shrink-0"
-                      >
-                        <EventIcon type={e.type} />
-                        {EVENT_LABELS[e.type]}
-                      </Badge>
-                      <span className="truncate text-xs">{e.description}</span>
-                    </div>
-                    <div className="flex flex-col items-end shrink-0">
-                      <span className="text-[10px] text-muted">
-                        {formatDateBR(e.date)}
-                      </span>
-                      <Num
-                        className={clsx(
-                          "text-xs font-medium",
-                          e.amount >= 0 ? "text-success" : "text-danger",
-                        )}
-                      >
-                        {formatBRL(e.amount)}
-                      </Num>
-                    </div>
-                  </div>
-                ))}
-              </Panel>
-            ) : (
-              <Panel className="p-3">
-                <p className="text-xs text-muted">Nenhum evento no filtro.</p>
-              </Panel>
-            )}
-          </div>
-        </div>
-      ) : horizonEnd ? (
-        <SaldoCalendarView
-          series={series}
-          anchorISO={anchorDate}
-          horizonEndISO={horizonEnd}
-          filter={eventFilter}
-        />
-      ) : (
-        <Panel className="p-4">
-          <p className="text-sm text-muted">
-            Nenhum dia no horizonte. Ajuste a data âncora ou o horizonte.
-          </p>
-        </Panel>
+            <AccountsPanel onClose={() => setConfigOpen(false)} />
+          </DrawerPanel>
+        </DrawerBackdrop>
       )}
     </div>
-  );
+  )
 }

@@ -30,6 +30,41 @@
   --bg-success-soft: color-mix(in oklab, var(--success) 6%, transparent);
   --bg-danger-soft: color-mix(in oklab, var(--danger) 8%, transparent);
   --bg-surface-alt: color-mix(in oklab, var(--surface) 70%, var(--surface-2));
+  --system-red: #ff3b30;
+  --system-orange: #ff9500;
+  --system-yellow: #ffcc00;
+  --system-green: #34c759;
+  --system-blue: #007aff;
+  --system-indigo: #5856d6;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px -12px rgba(0, 0, 0, 0.08);
+  --shadow-card-lg:
+    0 6px 20px -10px rgba(0, 0, 0, 0.14),
+    0 18px 42px -26px rgba(0, 0, 0, 0.2);
+  --grad-account-cc: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--system-green) 22%, var(--surface)) 0%,
+    color-mix(in oklab, var(--system-blue) 8%, var(--surface)) 100%
+  );
+  --grad-account-poupanca: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--system-blue) 24%, var(--surface)) 0%,
+    color-mix(in oklab, var(--system-indigo) 10%, var(--surface)) 100%
+  );
+  --grad-account-carteira: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--system-orange) 24%, var(--surface)) 0%,
+    color-mix(in oklab, var(--system-yellow) 12%, var(--surface)) 100%
+  );
+  --grad-account-cartao: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--system-indigo) 24%, var(--surface)) 0%,
+    color-mix(in oklab, var(--system-blue) 12%, var(--surface)) 100%
+  );
 }
 
 @theme inline {
@@ -57,8 +92,19 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-system-red: var(--system-red);
+  --color-system-orange: var(--system-orange);
+  --color-system-yellow: var(--system-yellow);
+  --color-system-green: var(--system-green);
+  --color-system-blue: var(--system-blue);
+  --color-system-indigo: var(--system-indigo);
+  --shadow-card: var(--shadow-card);
+  --shadow-card-lg: var(--shadow-card-lg);
 }
 
 @utility no-scrollbar {
@@ -66,6 +112,10 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+@utility num-display {
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,5 +148,37 @@
     --bg-success-soft: color-mix(in oklab, var(--success) 6%, transparent);
     --bg-danger-soft: color-mix(in oklab, var(--danger) 8%, transparent);
     --bg-surface-alt: color-mix(in oklab, var(--surface) 70%, var(--surface-2));
+    --system-red: #ff453a;
+    --system-orange: #ff9f0a;
+    --system-yellow: #ffd60a;
+    --system-green: #30d158;
+    --system-blue: #0a84ff;
+    --system-indigo: #5e5ce6;
+    --shadow-card:
+      0 1px 2px rgba(0, 0, 0, 0.24),
+      0 8px 24px -12px rgba(0, 0, 0, 0.42);
+    --shadow-card-lg:
+      0 10px 24px -10px rgba(0, 0, 0, 0.58),
+      0 22px 50px -24px rgba(0, 0, 0, 0.74);
+    --grad-account-cc: linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--system-green) 35%, var(--surface)) 0%,
+      color-mix(in oklab, var(--system-blue) 14%, var(--surface)) 100%
+    );
+    --grad-account-poupanca: linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--system-blue) 35%, var(--surface)) 0%,
+      color-mix(in oklab, var(--system-indigo) 18%, var(--surface)) 100%
+    );
+    --grad-account-carteira: linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--system-orange) 35%, var(--surface)) 0%,
+      color-mix(in oklab, var(--system-yellow) 20%, var(--surface)) 100%
+    );
+    --grad-account-cartao: linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--system-indigo) 35%, var(--surface)) 0%,
+      color-mix(in oklab, var(--system-blue) 18%, var(--surface)) 100%
+    );
   }
 }
