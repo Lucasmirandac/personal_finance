@@ -1,126 +1,369 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ImportPanel } from "@/components/ImportPanel";
 import { AccountsPanel } from "@/components/AccountsPanel";
 import { QuickAddModal } from "@/components/QuickAddModal";
 import { DivisorDeAguasStep } from "@/components/onboarding/DivisorDeAguasStep";
 import { useAppStore } from "@/lib/store";
-import { getSetupSteps } from "@/lib/setupStatus";
+import { getSetupSteps, SetupStep } from "@/lib/setupStatus";
 import { Button } from "@/components/ui/Button";
-import { Check } from "lucide-react";
+import { Panel } from "@/components/ui/Panel";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Info,
+  LineChart,
+  ShieldCheck,
+  Upload,
+  UserX,
+  WalletCards,
+} from "lucide-react";
 import clsx from "clsx";
+
+const TOTAL_STEPS = 3;
 
 export function Onboarding() {
   const { dataset, settings, recurringRules, accounts } = useAppStore();
-  const [showImport, setShowImport] = useState(false);
+  const router = useRouter();
   const [showAccounts, setShowAccounts] = useState(false);
+  const [showDivisor, setShowDivisor] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const steps = getSetupSteps(dataset, settings, recurringRules, accounts);
+  const [currentStep, setCurrentStep] = useState(() => initialWizardStep(steps));
+  const current = currentStep + 1;
+  const progress = (current / TOTAL_STEPS) * 100;
+
+  const goBack = () => setCurrentStep((step) => Math.max(0, step - 1));
+  const goNext = () => setCurrentStep((step) => Math.min(TOTAL_STEPS - 1, step + 1));
+  const goToPanel = () => router.push("/saldo");
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="text-center">
+    <div className="mx-auto max-w-[46rem] space-y-6 py-4 sm:py-8">
+      <WizardHeader current={current} progress={progress} />
+
+      <Panel className="rounded-[1.75rem] p-5 shadow-[var(--shadow-card-lg)] sm:p-6">
+        {currentStep === 0 && (
+          <WelcomeStep onStart={goNext} onSkip={goToPanel} />
+        )}
+
+        {currentStep === 1 && (
+          <AccountsStep
+            accountsDone={steps.some((step) => step.id === "contas" && step.done)}
+            accountsCount={accounts.length}
+            showAccounts={showAccounts}
+            onBack={goBack}
+            onContinue={goNext}
+            onToggleAccounts={() => setShowAccounts((open) => !open)}
+            onQuickAdd={() => setShowQuickAdd(true)}
+          />
+        )}
+
+        {currentStep === 2 && (
+          <ImportStep
+            csvDone={steps.some((step) => step.id === "csv" && step.done)}
+            recurringDone={steps.some((step) => step.id === "recorrentes" && step.done)}
+            showDivisor={showDivisor}
+            onBack={goBack}
+            onFinish={goToPanel}
+            onToggleDivisor={() => setShowDivisor((open) => !open)}
+          />
+        )}
+      </Panel>
+
+      <QuickAddModal open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
+    </div>
+  );
+}
+
+function initialWizardStep(steps: SetupStep[]) {
+  const csv = steps.find((step) => step.id === "csv");
+  const contas = steps.find((step) => step.id === "contas");
+  const recorrentes = steps.find((step) => step.id === "recorrentes");
+
+  if (!csv?.done && !contas?.done && !recorrentes?.done) return 0;
+  if (!contas?.done) return 1;
+  if (!csv?.done || !recorrentes?.done) return 2;
+  return 0;
+}
+
+function WizardHeader({
+  current,
+  progress,
+}: Readonly<{
+  current: number;
+  progress: number;
+}>) {
+  return (
+    <header className="space-y-3">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold tracking-tight">
-          Bem-vindo ao seu painel financeiro
+          Configuração Inicial
         </h1>
-        <p className="text-muted text-sm mt-1">
-          Três passos para ver seu saldo projetado e entender seus gastos.
+        <span className="text-xs font-medium text-muted">
+          Passo {current} de {TOTAL_STEPS}
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-accent/15">
+        <div
+          className="h-full rounded-full bg-accent transition-[width] duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </header>
+  );
+}
+
+function WelcomeStep({
+  onStart,
+  onSkip,
+}: Readonly<{
+  onStart: () => void;
+  onSkip: () => void;
+}>) {
+  return (
+    <div className="space-y-6">
+      <StepIntro
+        icon={<Upload size={24} />}
+        iconClassName="bg-accent/12 text-accent"
+        title="Bem-vindo ao Saldo Real"
+        subtitle="Seu painel financeiro pessoal, 100% local e privado"
+      />
+
+      <div className="space-y-4">
+        <Benefit
+          icon={<ShieldCheck size={17} />}
+          title="Local-first"
+          description="Todos os seus dados ficam no seu navegador"
+        />
+        <Benefit
+          icon={<UserX size={17} />}
+          title="Sem cadastro"
+          description="Importe seus dados e comece a usar imediatamente"
+        />
+        <Benefit
+          icon={<LineChart size={17} />}
+          title="Projeção de saldo"
+          description="Saiba quanto você terá nos próximos meses"
+        />
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <Button variant="primary" className="h-10 rounded-xl" onClick={onStart}>
+          Começar
+        </Button>
+        <Button className="h-10 rounded-xl px-5" onClick={onSkip}>
+          Pular Tutorial
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AccountsStep({
+  accountsDone,
+  accountsCount,
+  showAccounts,
+  onBack,
+  onContinue,
+  onToggleAccounts,
+  onQuickAdd,
+}: Readonly<{
+  accountsDone: boolean;
+  accountsCount: number;
+  showAccounts: boolean;
+  onBack: () => void;
+  onContinue: () => void;
+  onToggleAccounts: () => void;
+  onQuickAdd: () => void;
+}>) {
+  return (
+    <div className="space-y-5">
+      <StepIntro
+        icon={<WalletCards size={24} />}
+        iconClassName="bg-info/12 text-info"
+        title="Configure suas contas"
+        subtitle="Cadastre suas contas bancárias e cartões"
+      />
+
+      <p className="text-sm leading-relaxed text-muted">
+        Você pode cadastrar contas correntes, poupanças, carteiras e cartões de
+        crédito. Cada conta terá um saldo inicial que será usado para calcular
+        projeções futuras.
+      </p>
+
+      <div className="rounded-2xl border border-border bg-surface-2/60 p-4">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          <Info size={15} className="text-warning" />
+          Dica
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Você pode pular essa etapa agora e configurar suas contas depois em{" "}
+          <strong>Config → Contas</strong>.
         </p>
       </div>
 
-      <ol className="space-y-3">
-        {steps.map((step, i) => (
-          <li
-            key={step.id}
-            className={clsx(
-              "bg-surface border border-border rounded-lg p-4 flex gap-4 items-start",
-              step.done && "border-success/30",
-            )}
-          >
-            <span
-              className={clsx(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                step.done
-                  ? "bg-success text-surface"
-                  : "bg-surface-2 text-muted",
-              )}
-            >
-              {step.done ? <Check size={16} /> : i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-sm">{step.label}</div>
-              {step.id === "csv" && (
-                <p className="text-xs text-muted mt-0.5">
-                  Importe a fatura Inter ou Nubank em CSV.
-                </p>
-              )}
-              {step.id === "contas" && (
-                <p className="text-xs text-muted mt-0.5">
-                  Crie suas contas e informe os saldos atuais.
-                </p>
-              )}
-              {step.id === "recorrentes" && (
-                <p className="text-xs text-muted mt-0.5">
-                  Separe o difícil de mudar (custos fixos) do gerenciável no dia
-                  a dia.
-                </p>
-              )}
-              <div className="mt-2 flex flex-wrap gap-2">
-                {step.id === "csv" && !step.done && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setShowImport(true);
-                      setShowAccounts(false);
-                    }}
-                  >
-                    Importar CSV
-                  </Button>
-                )}
-                {step.id === "contas" && !step.done && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      setShowAccounts(true);
-                      setShowImport(false);
-                    }}
-                  >
-                    Configurar contas
-                  </Button>
-                )}
-                {step.id === "contas" && step.done && accounts.length > 0 && (
-                  <Button size="sm" onClick={() => setShowQuickAdd(true)}>
-                    Adicionar primeiro gasto
-                  </Button>
-                )}
-                {step.id === "recorrentes" && step.done && (
-                  <span className="text-xs text-success">Concluído</span>
-                )}
-                {step.done && step.id !== "recorrentes" && (
-                  <span className="text-xs text-success">Concluído</span>
-                )}
-              </div>
-              {step.id === "recorrentes" && <DivisorDeAguasStep />}
-            </div>
-          </li>
-        ))}
-      </ol>
-
-      {showImport && (
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <ImportPanel redirectAfterImport="/" compact />
+      {accountsDone && (
+        <div className="rounded-2xl bg-success/10 p-3 text-sm text-success">
+          {accountsCount} conta{accountsCount === 1 ? "" : "s"} configurada
+          {accountsCount === 1 ? "" : "s"}.
         </div>
       )}
 
       {showAccounts && (
-        <AccountsPanel onClose={() => setShowAccounts(false)} />
+        <div className="rounded-2xl border border-border bg-surface p-3">
+          <AccountsPanel onClose={onToggleAccounts} />
+        </div>
       )}
 
-      <QuickAddModal open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+        <Button variant="primary" className="h-10 rounded-xl" onClick={onContinue}>
+          Continuar
+        </Button>
+        <Button className="h-10 rounded-xl px-5" onClick={onToggleAccounts}>
+          {showAccounts ? "Ocultar contas" : "Configurar agora"}
+        </Button>
+        <Button className="h-10 rounded-xl px-5" onClick={onBack}>
+          <ArrowLeft size={14} />
+          Voltar
+        </Button>
+      </div>
+
+      {accountsDone && (
+        <button
+          type="button"
+          className="text-xs text-muted underline underline-offset-4 hover:text-foreground"
+          onClick={onQuickAdd}
+        >
+          Adicionar primeiro gasto manual
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ImportStep({
+  csvDone,
+  recurringDone,
+  showDivisor,
+  onBack,
+  onFinish,
+  onToggleDivisor,
+}: Readonly<{
+  csvDone: boolean;
+  recurringDone: boolean;
+  showDivisor: boolean;
+  onBack: () => void;
+  onFinish: () => void;
+  onToggleDivisor: () => void;
+}>) {
+  const divisorButtonLabel = showDivisor
+    ? "Ocultar"
+    : divisorLabel(recurringDone);
+
+  return (
+    <div className="space-y-5">
+      <StepIntro
+        icon={<LineChart size={24} />}
+        iconClassName="bg-[color-mix(in_oklab,var(--cat-4)_14%,transparent)] text-cat-4"
+        title="Importe seus dados"
+        subtitle="Importe faturas de cartão do Inter ou Nubank"
+      />
+
+      <p className="text-sm leading-relaxed text-muted">
+        O Saldo Real aceita arquivos CSV exportados do Inter e Nubank. Após
+        importar, suas transações serão automaticamente classificadas e você
+        poderá ver análises detalhadas.
+      </p>
+
+      <div className="rounded-2xl border border-dashed border-border-strong bg-surface/70 p-4">
+        <ImportPanel redirectAfterImport="/" compact />
+      </div>
+
+      {csvDone && (
+        <div className="rounded-2xl bg-success/10 p-3 text-sm text-success">
+          Dados importados. Você já pode ir para o painel.
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-border bg-surface-2/60 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Divisor de Águas</p>
+            <p className="mt-1 text-sm text-muted">
+              Separe renda e custos fixos para calcular seu limite diário.
+            </p>
+          </div>
+          <Button size="sm" className="rounded-full" onClick={onToggleDivisor}>
+            {divisorButtonLabel}
+            <ArrowRight size={13} />
+          </Button>
+        </div>
+        {showDivisor && <DivisorDeAguasStep />}
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <Button variant="primary" className="h-10 rounded-xl" onClick={onFinish}>
+          Ir para o Painel
+        </Button>
+        <Button className="h-10 rounded-xl px-5" onClick={onBack}>
+          <ArrowLeft size={14} />
+          Voltar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function divisorLabel(recurringDone: boolean) {
+  return recurringDone ? "Revisar" : "Configurar";
+}
+
+function StepIntro({
+  icon,
+  iconClassName,
+  title,
+  subtitle,
+}: Readonly<{
+  icon: React.ReactNode;
+  iconClassName: string;
+  title: string;
+  subtitle: string;
+}>) {
+  return (
+    <div>
+      <span
+        className={clsx(
+          "flex h-12 w-12 items-center justify-center rounded-2xl",
+          iconClassName,
+        )}
+      >
+        {icon}
+      </span>
+      <h2 className="mt-5 text-lg font-semibold tracking-tight">{title}</h2>
+      <p className="mt-1 text-sm text-muted">{subtitle}</p>
+    </div>
+  );
+}
+
+function Benefit({
+  icon,
+  title,
+  description,
+}: Readonly<{
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}>) {
+  return (
+    <div className="flex gap-3">
+      <span className="mt-0.5 text-accent">{icon}</span>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-sm text-muted">{description}</p>
+      </div>
     </div>
   );
 }

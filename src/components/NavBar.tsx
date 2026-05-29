@@ -8,7 +8,8 @@ import { ChevronDown } from "lucide-react";
 import { Panel } from "@/components/ui/Panel";
 
 export const MAIN_NAV = [
-  { href: "/saldo", label: "Painel" },
+  { href: "/saldo", label: "Hoje" },
+  { href: "/futuro", label: "Futuro" },
   { href: "/dashboard", label: "Análise" },
   { href: "/recorrentes", label: "Recorrentes" },
 ] as const;
@@ -44,10 +45,10 @@ function NavLink({ href, label, active, onClick }: Readonly<NavLinkProps>) {
       href={href}
       onClick={onClick}
       className={clsx(
-        "px-3 py-1 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap",
+        "px-3 py-1.5 text-sm rounded-full transition-colors whitespace-nowrap",
         active
-          ? "border-[var(--foreground)] text-[var(--foreground)] font-medium"
-          : "border-transparent text-muted hover:text-[var(--foreground)]",
+          ? "bg-foreground text-surface font-medium shadow-sm"
+          : "text-muted hover:bg-surface-2 hover:text-[var(--foreground)]",
       )}
     >
       {label}
@@ -82,10 +83,10 @@ function ConfigMenu({ active }: Readonly<{ active: boolean }>) {
       <button
         type="button"
         className={clsx(
-          "px-3 py-1 text-sm border-b-2 -mb-px transition-colors whitespace-nowrap inline-flex items-center gap-1",
+          "px-3 py-1.5 text-sm rounded-full transition-colors whitespace-nowrap inline-flex items-center gap-1",
           active
-            ? "border-[var(--foreground)] text-[var(--foreground)] font-medium"
-            : "border-transparent text-muted hover:text-[var(--foreground)]",
+            ? "bg-foreground text-surface font-medium shadow-sm"
+            : "text-muted hover:bg-surface-2 hover:text-[var(--foreground)]",
         )}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
@@ -97,7 +98,7 @@ function ConfigMenu({ active }: Readonly<{ active: boolean }>) {
       {open && (
         <Panel
           role="menu"
-          className="absolute right-0 top-full mt-1 py-1 min-w-[200px] shadow-lg z-40"
+          className="absolute right-0 top-full mt-2 py-1 min-w-[200px] rounded-2xl shadow-[var(--shadow-card-lg)] z-40"
         >
           {CONFIG_LINKS.map((l) => (
             <Link
@@ -128,7 +129,7 @@ export function DesktopNav() {
   const { isActive, configActive } = useActiveMatcher();
 
   return (
-    <nav className="hidden sm:flex items-center gap-0 min-w-0">
+    <nav className="hidden sm:flex items-center gap-1 min-w-0 rounded-full bg-surface/70 p-1 ring-1 ring-border/70">
       {MAIN_NAV.map((n) => (
         <NavLink
           key={n.href}
@@ -146,7 +147,7 @@ export function MobileNav() {
   const { isActive, configActive } = useActiveMatcher();
 
   return (
-    <nav className="no-scrollbar sm:hidden flex items-center gap-0 px-4 overflow-x-auto overflow-y-hidden border-t border-border">
+    <nav className="no-scrollbar sm:hidden flex items-center gap-1 px-4 py-2 overflow-x-auto overflow-y-hidden border-t border-border">
       {MAIN_NAV.map((n) => (
         <NavLink
           key={n.href}

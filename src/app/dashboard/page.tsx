@@ -26,6 +26,7 @@ import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
 import { DashboardAlerts } from "@/components/dashboard/DashboardAlerts";
 import { HabitOfWeekCard } from "@/components/dashboard/HabitOfWeekCard";
 import { WeekendSharePanel } from "@/components/dashboard/WeekendSharePanel";
+import { WealthProjectionPanel } from "@/components/saldo/WealthProjectionPanel";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { MonthlyChart } from "@/components/charts/MonthlyChart";
 import { CategoryChart } from "@/components/charts/CategoryChart";
@@ -68,6 +69,7 @@ const DASH_TABS = [
   { id: "orcamentos", label: "Orçamentos" },
   { id: "cartao", label: "Cartão" },
   { id: "habitos", label: "Hábitos" },
+  { id: "patrimonio", label: "Patrimônio" },
   { id: "categorias", label: "Categorias" },
   { id: "estabelecimentos", label: "Estabelecimentos" },
 ] as const;
@@ -79,6 +81,7 @@ function parseDashTab(v: string | null): DashTab {
     v === "orcamentos" ||
     v === "cartao" ||
     v === "habitos" ||
+    v === "patrimonio" ||
     v === "categorias" ||
     v === "estabelecimentos" ||
     v === "comparar" ||
@@ -491,6 +494,8 @@ function DashboardPageInner() {
             </ChartCard>
           </div>
         )}
+
+        {tab === "patrimonio" && <WealthProjectionPanel />}
 
         {tab === "categorias" && (
           <div className="space-y-4">

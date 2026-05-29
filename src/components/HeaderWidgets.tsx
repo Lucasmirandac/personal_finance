@@ -13,7 +13,7 @@ import {
 } from "@/lib/budgets";
 
 const chipLinkBase =
-  "inline-flex items-center px-2 py-0.5 rounded-sm font-mono bg-surface-2 border border-border text-muted hover:border-border-strong";
+  "inline-flex items-center px-2 py-0.5 rounded-full font-mono bg-surface/70 border border-border text-muted shadow-sm hover:border-border-strong";
 
 export function BudgetAlertWidget() {
   const { normalized, budgets, hasAnalysis } = useAppStore();
@@ -27,10 +27,11 @@ export function BudgetAlertWidget() {
   if (!hasAnalysis || usages.length === 0) return null;
   if (alerts.warning + alerts.danger === 0) return null;
 
-  const label =
-    alerts.danger > 0
-      ? `${alerts.danger} orçamento${alerts.danger > 1 ? "s" : ""} estourado${alerts.danger > 1 ? "s" : ""}`
-      : `${alerts.warning} perto do limite`;
+  const hasDanger = alerts.danger > 0;
+  const dangerPlural = alerts.danger > 1 ? "s" : "";
+  const label = hasDanger
+    ? `${alerts.danger} orçamento${dangerPlural} estourado${dangerPlural}`
+    : `${alerts.warning} perto do limite`;
 
   return (
     <Link
@@ -38,7 +39,7 @@ export function BudgetAlertWidget() {
       className={clsx(
         chipLinkBase,
         "hidden sm:inline-flex gap-1 text-[10px]",
-        alerts.danger > 0
+        hasDanger
           ? "text-danger border-[var(--danger)]/40"
           : "text-warning border-[var(--warning)]/40",
       )}
@@ -120,7 +121,7 @@ export function Saldo30Widget() {
     if (series.length === 0) return null;
     const today = new Date().toISOString().slice(0, 10);
     const target = addDaysIso(today, 30);
-    let best = series[series.length - 1];
+    let best = series.at(-1)!;
     for (const p of series) {
       if (p.date <= target) best = p;
     }
@@ -131,7 +132,7 @@ export function Saldo30Widget() {
 
   return (
     <Link
-      href="/saldo"
+      href="/futuro"
       className={clsx(
         chipLinkBase,
         "hidden md:inline-flex gap-2 tabular-nums text-xs",
