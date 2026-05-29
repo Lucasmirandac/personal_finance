@@ -149,6 +149,28 @@ Transações criadas pelo Quick Add ficam com `fonte: "manual"` e `sourceId: "ma
 
 ---
 
+## Simulador "Posso comprar isso?"
+
+Modal global de simulação acessível pelos atalhos **`s`** ou **`?`** (Shift+/), ou pelo FAB secundário **`?`** (botão flutuante acima do `+`). Não cria transação — só mostra impacto em tempo real enquanto você digita valor, parcelas, categoria e conta.
+
+Calculado em `src/lib/afford.ts`, reutilizando:
+
+- **`projection.ts`** — menor saldo nos próximos 30 e 90 dias (compra injetada como eventos sintéticos de fatura ou saída).
+- **`budgets.ts`** — uso projetado do orçamento da categoria no mês corrente.
+- **`wealth.ts`** — meses de tranquilidade financeira (Paz Futura) com meta padrão de 20%.
+
+Mostra:
+
+- **Fatura(s)** — parcelas e datas de pagamento (cartão) ou débitos mensais (conta corrente).
+- **Saldo mínimo** — antes → depois em 30 e 90 dias.
+- **Orçamento** — percentual e status projetados (ok / warning / danger).
+- **Paz Futura** — quantos meses de tranquilidade você perde.
+- **Semáforo** — verde / amarelo / vermelho com motivos.
+
+Opcionalmente, "Registrar gasto com esses dados" abre o Quick Add já preenchido.
+
+---
+
 ## Recorrentes
 
 Em `/recorrentes`, cadastre regras mensais para despesas fixas (aluguel, boletos) e receitas (salário, aluguéis recebidos).
@@ -304,6 +326,8 @@ Em `/transacoes`, o CSV exportado respeita os filtros ativos (`fatura_tratada_fi
 |-------|------|------|
 | `n` / `N` | Global | Abre Quick Add em modo Gasto (ignorado em inputs) |
 | `r` / `R` | Global | Abre Quick Add em modo Receita (ignorado em inputs) |
+| `s` / `S` | Global | Abre simulador "Posso comprar isso?" (ignorado em inputs) |
+| `?` (Shift+/) | Global | Abre simulador "Posso comprar isso?" (ignorado em inputs) |
 | `Esc` | Modais e drawers | Fecha |
 | `Enter` | Quick Add (valor), editores de padrões/apelidos | Salva / adiciona |
 | `Enter` / `Space` | Dropzone | Abre seletor de arquivo |
@@ -381,6 +405,7 @@ src/
     filters.ts       # filtros + presets de data
     normalize.ts     # natureza, valorAnalise, fluxo
     projection.ts    # saldo diário projetado
+    afford.ts        # simulador "Posso comprar isso?"
     wealth.ts        # projeção patrimonial (Paz Futura)
     recurring.ts     # expansão de regras
     storage.ts       # IndexedDB

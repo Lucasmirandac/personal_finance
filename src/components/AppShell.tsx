@@ -11,6 +11,7 @@ import {
 } from "@/components/HeaderWidgets";
 import { DesktopNav, MobileNav } from "@/components/NavBar";
 import { QuickAddFab } from "@/components/QuickAddFab";
+import { AffordTrigger } from "@/components/AffordTrigger";
 import { Database } from "lucide-react";
 
 const chipBase =
@@ -65,6 +66,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
         Dados processados no navegador. Nada é enviado para servidores.
       </footer>
       <QuickAddFab />
+      <AffordTrigger />
     </div>
   );
 }

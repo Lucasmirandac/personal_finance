@@ -255,6 +255,8 @@ export type ProjectDailyBalanceInput = {
   accounts?: Account[];
   windowFrom?: string;
   windowTo?: string;
+  /** Synthetic events for what-if simulation (e.g. Afford modal). */
+  extraEvents?: CashEvent[];
 };
 
 function resolveProjectionConfig(input: ProjectDailyBalanceInput): {
@@ -307,9 +309,12 @@ export function projectDailyBalance(
     input.normalized,
     input.accounts ?? [],
   );
-  const allEvents = [...faturaEvents, ...recurringEvents, ...manualEvents].filter(
-    (e) => e.date >= rollFrom && e.date <= windowTo,
-  );
+  const allEvents = [
+    ...faturaEvents,
+    ...recurringEvents,
+    ...manualEvents,
+    ...(input.extraEvents ?? []),
+  ].filter((e) => e.date >= rollFrom && e.date <= windowTo);
 
   const eventsByDate = new Map<string, CashEvent[]>();
   for (const e of allEvents) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { useAppStore, QuickAddDraft } from "@/lib/store";
 import { QuickAddModal } from "./QuickAddModal";
+import { OPEN_QUICK_ADD_EVENT } from "./AffordTrigger";
 
 type Props = {
   /** Controlled open state (optional — FAB manages its own if omitted) */
@@ -54,6 +55,17 @@ export function QuickAddFab({ open: controlledOpen, draft, onOpenChange }: Props
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    function onOpenQuickAdd(e: Event) {
+      const draft = (e as CustomEvent<QuickAddDraft | null>).detail ?? null;
+      openModal(draft);
+    }
+    window.addEventListener(OPEN_QUICK_ADD_EVENT, onOpenQuickAdd);
+    return () =>
+      window.removeEventListener(OPEN_QUICK_ADD_EVENT, onOpenQuickAdd);
   }, [visible]);
 
   if (!visible) return null;
