@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ImportPanel } from "@/components/ImportPanel";
 import { AccountsPanel } from "@/components/AccountsPanel";
@@ -293,20 +294,30 @@ function ImportStep({
           <div>
             <p className="text-sm font-medium">Divisor de Águas</p>
             <p className="mt-1 text-sm text-muted">
-              Separe renda e custos fixos para calcular seu limite diário.
+              Cadastre suas rendas e custos fixos para liberar o limite diário
+              no painel. Você pode adicionar quantos quiser antes de avançar.
             </p>
           </div>
-          <Button size="sm" className="rounded-full" onClick={onToggleDivisor}>
-            {divisorButtonLabel}
-            <ArrowRight size={13} />
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/divisor"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium hover:bg-surface-2"
+            >
+              Abrir página completa
+              <ArrowRight size={13} />
+            </Link>
+            <Button size="sm" className="rounded-full" onClick={onToggleDivisor}>
+              {divisorButtonLabel}
+              <ArrowRight size={13} />
+            </Button>
+          </div>
         </div>
         {showDivisor && <DivisorDeAguasStep />}
       </div>
 
       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
         <Button variant="primary" className="h-10 rounded-xl" onClick={onFinish}>
-          Ir para o Painel
+          Ir para o Painel quando terminar
         </Button>
         <Button className="h-10 rounded-xl px-5" onClick={onBack}>
           <ArrowLeft size={14} />

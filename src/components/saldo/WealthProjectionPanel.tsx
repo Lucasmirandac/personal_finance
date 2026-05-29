@@ -79,7 +79,7 @@ export function WealthProjectionPanel() {
         <p className="text-sm font-medium">Projeção de Paz Futura</p>
         <p className="text-xs text-muted">
           Cadastre receitas recorrentes e custos fixos no{" "}
-          <Link href="/" className="text-accent underline underline-offset-2">
+          <Link href="/divisor" className="text-accent underline underline-offset-2">
             Divisor de Águas
           </Link>{" "}
           para ver quanto sobra para poupar e projetar seu patrimônio.

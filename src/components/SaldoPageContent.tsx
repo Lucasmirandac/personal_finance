@@ -32,6 +32,7 @@ import {
   Landmark,
   PiggyBank,
   Plus,
+  Route,
   SlidersHorizontal,
   Sparkles,
   WalletCards,
@@ -351,6 +352,12 @@ function FlowPanel({
           icon={<CalendarDays size={18} />}
           title="Ver o futuro"
           description={nextEvent ? `Próximo evento: ${nextEvent.description}` : "Projeção, calendário e agenda"}
+        />
+        <FlowLink
+          href="/divisor"
+          icon={<Route size={18} />}
+          title="Divisor de Águas"
+          description="Renda, custos fixos e limite diário"
         />
         <FlowLink
           href="/dashboard?tab=patrimonio"

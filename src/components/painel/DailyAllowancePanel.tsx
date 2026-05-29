@@ -148,7 +148,7 @@ export function DailyAllowancePanel() {
               Recorrentes
             </Link>{" "}
             ou no{" "}
-            <Link href="/" className="text-accent underline underline-offset-2">
+            <Link href="/divisor" className="text-accent underline underline-offset-2">
               Divisor de Águas
             </Link>
             .

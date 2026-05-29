@@ -16,7 +16,7 @@ import {
 import { newRecurringId } from "@/lib/recurring";
 import { useAppStore } from "@/lib/store";
 import { RecurringKind, RecurringRule } from "@/lib/types";
-import { Plus } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
 
 const KIND_LABELS: Record<RecurringKind, string> = {
   receita: "Receita",
@@ -34,6 +34,7 @@ export function DivisorDeAguasStep() {
   } = useAppStore();
 
   const [creating, setCreating] = useState<RecurringKind | null>(null);
+  const [lastAdded, setLastAdded] = useState<RecurringKind | null>(null);
 
   const ratio = useMemo(
     () =>
@@ -78,6 +79,7 @@ export function DivisorDeAguasStep() {
       ativo: true,
       criadoEm: new Date().toISOString(),
     });
+    setLastAdded(values.kind);
     setCreating(null);
   }
 
@@ -92,7 +94,11 @@ export function DivisorDeAguasStep() {
           rules={receitas}
           kind="receita"
           creating={creating === "receita"}
-          onAdd={() => setCreating("receita")}
+          justAdded={lastAdded === "receita" && creating !== "receita"}
+          onAdd={() => {
+            setLastAdded(null);
+            setCreating("receita");
+          }}
           onCancel={() => setCreating(null)}
           onSubmit={handleSubmit}
         />
@@ -102,7 +108,11 @@ export function DivisorDeAguasStep() {
           rules={despesas}
           kind="despesa_fixa"
           creating={creating === "despesa_fixa"}
-          onAdd={() => setCreating("despesa_fixa")}
+          justAdded={lastAdded === "despesa_fixa" && creating !== "despesa_fixa"}
+          onAdd={() => {
+            setLastAdded(null);
+            setCreating("despesa_fixa");
+          }}
           onCancel={() => setCreating(null)}
           onSubmit={handleSubmit}
         />
@@ -184,6 +194,7 @@ type RecurringSummaryCardProps = {
   rules: RecurringRule[];
   kind: RecurringKind;
   creating: boolean;
+  justAdded: boolean;
   onAdd: () => void;
   onCancel: () => void;
   onSubmit: (values: RecurringFormValues) => void;
@@ -195,17 +206,28 @@ function RecurringSummaryCard({
   rules,
   kind,
   creating,
+  justAdded,
   onAdd,
   onCancel,
   onSubmit,
 }: Readonly<RecurringSummaryCardProps>) {
   const total = rules.reduce((acc, r) => acc + Math.abs(r.valor), 0);
+  const count = rules.length;
+  const addLabel =
+    count === 0 ? `+ ${KIND_LABELS[kind]}` : `Adicionar outra ${KIND_LABELS[kind].toLowerCase()}`;
 
   return (
     <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-medium">{title}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium">{title}</p>
+            {count > 0 && (
+              <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                {count} cadastrada{count === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-muted">{subtitle}</p>
           <p className="text-sm font-semibold mt-1 tabular-nums">
             {formatBRL(total)}/mês
@@ -214,10 +236,17 @@ function RecurringSummaryCard({
         {!creating && (
           <Button size="sm" variant="primary" className="rounded-full" onClick={onAdd}>
             <Plus size={12} />
-            {KIND_LABELS[kind]}
+            {count === 0 ? KIND_LABELS[kind] : "Adicionar mais"}
           </Button>
         )}
       </div>
+
+      {justAdded && !creating && (
+        <div className="flex items-center gap-2 rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
+          <CheckCircle2 size={13} />
+          Cadastrada. Adicione outra ou siga para o painel.
+        </div>
+      )}
 
       {creating && (
         <div className="border-t border-border/60 pt-3">
@@ -244,6 +273,16 @@ function RecurringSummaryCard({
             </li>
           )}
         </ul>
+      )}
+
+      {!creating && count > 0 && (
+        <button
+          type="button"
+          className="text-[11px] text-muted underline underline-offset-4 hover:text-foreground"
+          onClick={onAdd}
+        >
+          {addLabel}
+        </button>
       )}
     </div>
   );
