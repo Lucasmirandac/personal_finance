@@ -227,6 +227,17 @@ Calculada em `src/lib/wealth.ts`, reutilizando o Divisor de Águas (`src/lib/lev
 
 Exemplo de copy: *"Mantendo sua meta de 20%, em dez/26 seu patrimônio terá crescido R$ X, te garantindo Y meses de tranquilidade financeira."*
 
+### Saldo diário disponível
+
+Calculado em `src/lib/dailyAllowance.ts`:
+
+- **Renda disponível** = receitas recorrentes − custos fixos
+- **Sobra do mês** = renda disponível − gasto variável já feito − fatura aberta do cartão
+- **Saldo diário** = sobra do mês ÷ dias restantes do mês
+- **Teto recomendado do cartão** = renda disponível mensal
+
+Aparece no Painel (`/saldo`), entre saldo atual e contas.
+
 ---
 
 ## Orçamentos por categoria
@@ -405,6 +416,7 @@ src/
     filters.ts       # filtros + presets de data
     normalize.ts     # natureza, valorAnalise, fluxo
     projection.ts    # saldo diário projetado
+    dailyAllowance.ts # saldo disponível por dia + teto cartão
     afford.ts        # simulador "Posso comprar isso?"
     wealth.ts        # projeção patrimonial (Paz Futura)
     recurring.ts     # expansão de regras
