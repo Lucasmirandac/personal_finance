@@ -4,6 +4,7 @@ import {
   hasProjectionSetup,
 } from "./accounts";
 import { isoFromParts, parseIso, todayIso } from "./dates";
+import { isManualQuickRaw } from "./manualTransactions";
 import { monthsBetween } from "./recurring";
 import {
   Account,
@@ -127,6 +128,71 @@ export function buildFaturaEvents(
   return events;
 }
 
+export function buildManualCashEvents(
+  normalized: TransactionNormalized[],
+  accounts: Account[],
+): CashEvent[] {
+  if (accounts.length === 0) return [];
+  const accountById = new Map(accounts.map((a) => [a.id, a]));
+  const events: CashEvent[] = [];
+  const cardGroups = new Map<
+    string,
+    { date: string; total: number; account: Account }
+  >();
+
+  for (const t of normalized) {
+    if (t.fonte !== "manual") continue;
+    if (!isManualQuickRaw({ sourceId: t.sourceId, id: t.id })) continue;
+    if (!t.accountId || !t.dataISO) continue;
+    const account = accountById.get(t.accountId);
+    if (!account?.ativa) continue;
+
+    if (account.kind === "cartao") {
+      const fechamento = account.diaFechamento ?? 10;
+      const pagamento = account.diaPagamento ?? 20;
+      const payDate = cycleFor(t.dataISO, {
+        fonte: account.fonteCsv ?? "inter",
+        diaFechamento: fechamento,
+        diaPagamento: pagamento,
+      });
+      const key = `${account.id}|${payDate}`;
+      const cur = cardGroups.get(key) ?? { date: payDate, total: 0, account };
+      if (t.tipoFluxo === "saida") cur.total += t.valorFluxo;
+      else if (t.tipoFluxo === "entrada") cur.total -= t.valorFluxo;
+      cardGroups.set(key, cur);
+      continue;
+    }
+
+    if (t.tipoFluxo === "entrada") {
+      events.push({
+        date: t.dataISO,
+        type: "receita",
+        description: t.lancamento || "Receita",
+        amount: round2(t.valorFluxo),
+      });
+    } else if (t.tipoFluxo === "saida") {
+      events.push({
+        date: t.dataISO,
+        type: "fixa",
+        description: t.lancamento || "Saída",
+        amount: -round2(t.valorFluxo),
+      });
+    }
+  }
+
+  for (const group of cardGroups.values()) {
+    if (group.total === 0) continue;
+    events.push({
+      date: group.date,
+      type: "fatura",
+      description: `Fatura ${group.account.nome}`,
+      amount: -round2(group.total),
+    });
+  }
+
+  return events;
+}
+
 export function buildRecurringEvents(
   rules: RecurringRule[],
   windowFrom: string,
@@ -237,7 +303,11 @@ export function projectDailyBalance(
     rollFrom,
     windowTo,
   );
-  const allEvents = [...faturaEvents, ...recurringEvents].filter(
+  const manualEvents = buildManualCashEvents(
+    input.normalized,
+    input.accounts ?? [],
+  );
+  const allEvents = [...faturaEvents, ...recurringEvents, ...manualEvents].filter(
     (e) => e.date >= rollFrom && e.date <= windowTo,
   );
 

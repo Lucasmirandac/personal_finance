@@ -13,11 +13,65 @@ import {
   projectUsageAfterExpense,
 } from "@/lib/budgets";
 import { useAppStore, QuickAddDraft } from "@/lib/store";
+import type { TransactionNormalized } from "@/lib/types";
 import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input, Select } from "@/components/ui/Input";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { X } from "lucide-react";
+
+type QuickAddTipo = "Avulso" | "Receita";
+
+const RECEITA_FALLBACK_DESCS = [
+  "Salário",
+  "Freela",
+  "Reembolso",
+  "Rendimento",
+  "Outros",
+];
+const RECEITA_FALLBACK_CATS = [
+  "Salário",
+  "Freela",
+  "Reembolso",
+  "Rendimento",
+  "Outros",
+];
+
+function incomeDescriptionSuggestions(
+  normalized: TransactionNormalized[],
+): string[] {
+  const counts = new Map<string, number>();
+  for (const t of normalized) {
+    if (t.tipoFluxo !== "entrada") continue;
+    const key = (t.estabelecimento || t.lancamento || "").trim();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const sorted = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([k]) => k)
+    .slice(0, 50);
+  return sorted.length > 0 ? sorted : RECEITA_FALLBACK_DESCS;
+}
+
+function categorySuggestions(
+  normalized: TransactionNormalized[],
+  fluxo: "entrada" | "saida",
+  fallback: string[],
+): string[] {
+  const counts = new Map<string, number>();
+  for (const t of normalized) {
+    if (t.tipoFluxo !== fluxo) continue;
+    const cat = t.categoria?.trim();
+    if (!cat) continue;
+    counts.set(cat, (counts.get(cat) ?? 0) + 1);
+  }
+  const sorted = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([k]) => k);
+  return sorted.length > 0 ? sorted : fallback;
+}
 
 type Props = {
   open: boolean;
@@ -35,20 +89,33 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
   const [accountId, setAccountId] = useState("");
   const [dataIso, setDataIso] = useState(todayIso());
   const [categoria, setCategoria] = useState("");
-  const [tipo, setTipo] = useState<"Avulso" | "Receita">("Avulso");
-  const [showMore, setShowMore] = useState(false);
+  const [tipo, setTipo] = useState<QuickAddTipo>("Avulso");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const isReceita = tipo === "Receita";
 
   const activeAccounts = useMemo(
     () => accounts.filter((a) => a.ativa),
     [accounts],
   );
 
-  const suggestions = useMemo(() => {
-    const ests = establishmentAggregation(normalized);
-    return ests.slice(0, 50).map((e) => e.estabelecimento);
-  }, [normalized]);
+  const descriptionSuggestions = useMemo(() => {
+    if (isReceita) return incomeDescriptionSuggestions(normalized);
+    return establishmentAggregation(normalized)
+      .slice(0, 50)
+      .map((e) => e.estabelecimento);
+  }, [normalized, isReceita]);
+
+  const categoryList = useMemo(
+    () =>
+      categorySuggestions(
+        normalized,
+        isReceita ? "entrada" : "saida",
+        isReceita ? RECEITA_FALLBACK_CATS : [],
+      ),
+    [normalized, isReceita],
+  );
 
   const monthIso = currentMonthIso();
   const budgetUsages = useMemo(
@@ -56,17 +123,21 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     [normalized, budgets, monthIso],
   );
 
-  const expensePreview = useMemo(() => {
-    if (tipo === "Receita") return null;
-    const parsed =
+  const parsedValor = useMemo(() => {
+    return (
       parseBrlValue(valorStr) ??
-      (Number(valorStr.replace(",", ".")) || null);
-    if (parsed === null || parsed <= 0) return null;
-    return Math.abs(parsed);
-  }, [valorStr, tipo]);
+      (Number(valorStr.replace(",", ".")) || null)
+    );
+  }, [valorStr]);
+
+  const expensePreview = useMemo(() => {
+    if (isReceita) return null;
+    if (parsedValor === null || parsedValor <= 0) return null;
+    return Math.abs(parsedValor);
+  }, [parsedValor, isReceita]);
 
   const budgetNotice = useMemo(() => {
-    if (tipo === "Receita") return null;
+    if (isReceita) return null;
     const hasActive = budgets.some((b) => b.ativa);
     if (!hasActive) return null;
 
@@ -104,7 +175,18 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
       limite: usage.limite,
       status: usage.status,
     };
-  }, [tipo, budgets, categoria, budgetUsages, expensePreview]);
+  }, [isReceita, budgets, categoria, budgetUsages, expensePreview]);
+
+  const incomePreview = useMemo(() => {
+    if (!isReceita || parsedValor === null || parsedValor <= 0) return null;
+    const account = activeAccounts.find((a) => a.id === accountId);
+    if (!account) return null;
+    return {
+      valor: Math.abs(parsedValor),
+      conta: account.nome,
+      data: isoToBr(dataIso),
+    };
+  }, [isReceita, parsedValor, activeAccounts, accountId, dataIso]);
 
   const fmtBrl = (n: number) =>
     n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -120,6 +202,22 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
         ? budgetNotice.status
         : "neutral";
 
+  const copy = isReceita
+    ? {
+        title: "Adicionar receita",
+        subtitle: "Salário, freela, reembolso — entra no saldo na hora.",
+        descPlaceholder: "Salário, Freela, Reembolso…",
+        primary: "Adicionar receita",
+        secondary: "Salvar e adicionar outra",
+      }
+    : {
+        title: "Adicionar gasto",
+        subtitle: "Pix, dinheiro, débito — aparece na análise na hora.",
+        descPlaceholder: "Mercado, Uber…",
+        primary: "Adicionar gasto",
+        secondary: "Salvar e adicionar outro",
+      };
+
   useEffect(() => {
     if (!open) return;
     const def = defaultAccount(accounts);
@@ -129,13 +227,10 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     setLancamento(draft?.lancamento ?? "");
     setAccountId(draft?.accountId ?? def?.id ?? "");
     setDataIso(
-      draft?.data
-        ? parseBrDate(draft.data) ?? draft.data
-        : todayIso(),
+      draft?.data ? (parseBrDate(draft.data) ?? draft.data) : todayIso(),
     );
     setCategoria(draft?.categoria ?? "");
     setTipo(draft?.tipo === "Receita" ? "Receita" : "Avulso");
-    setShowMore(Boolean(draft?.categoria || draft?.tipo === "Receita"));
     setError(null);
     setTimeout(() => valorRef.current?.focus(), 50);
   }, [open, draft, accounts]);
@@ -171,8 +266,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
       return;
     }
 
-    const valorOriginal =
-      tipo === "Receita" ? -Math.abs(parsed) : Math.abs(parsed);
+    const valorOriginal = isReceita ? -Math.abs(parsed) : Math.abs(parsed);
 
     setSaving(true);
     try {
@@ -188,8 +282,6 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
         setValorStr("");
         setLancamento("");
         setCategoria("");
-        setTipo("Avulso");
-        setShowMore(false);
         valorRef.current?.focus();
       } else {
         onClose();
@@ -221,11 +313,9 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
               id="quick-add-title"
               className="text-[11px] font-semibold tracking-wider uppercase text-muted"
             >
-              Adicionar gasto
+              {copy.title}
             </h2>
-            <p className="text-xs text-muted mt-0.5">
-              Pix, dinheiro, débito — aparece na análise na hora.
-            </p>
+            <p className="text-xs text-muted mt-0.5">{copy.subtitle}</p>
           </div>
           <Button
             variant="ghost"
@@ -237,12 +327,27 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           </Button>
         </div>
 
+        <SegmentedControl<QuickAddTipo>
+          className="w-full [&>button]:flex-1 [&>button]:justify-center"
+          size="sm"
+          options={[
+            { value: "Avulso", label: "Gasto" },
+            { value: "Receita", label: "Receita" },
+          ]}
+          value={tipo}
+          onChange={setTipo}
+        />
+
         <div className="space-y-3">
           <label className="block space-y-1">
             <span className="text-xs text-muted">Valor (R$)</span>
             <Input
               ref={valorRef}
-              className="font-mono tabular-nums text-lg"
+              className={clsx(
+                "font-mono tabular-nums text-lg",
+                isReceita &&
+                  "border-l-2 border-l-success pl-2 focus-visible:ring-success/40",
+              )}
               inputMode="decimal"
               placeholder="48,50"
               value={valorStr}
@@ -262,11 +367,26 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
               list="quick-add-establishments"
               value={lancamento}
               onChange={(e) => setLancamento(e.target.value)}
-              placeholder="Mercado, Uber…"
+              placeholder={copy.descPlaceholder}
             />
             <datalist id="quick-add-establishments">
-              {suggestions.map((s) => (
+              {descriptionSuggestions.map((s) => (
                 <option key={s} value={s} />
+              ))}
+            </datalist>
+          </label>
+
+          <label className="block space-y-1">
+            <span className="text-xs text-muted">Categoria</span>
+            <Input
+              list="quick-add-categories"
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              placeholder={isReceita ? "Salário, Freela…" : "Alimentação, Transporte…"}
+            />
+            <datalist id="quick-add-categories">
+              {categoryList.map((c) => (
+                <option key={c} value={c} />
               ))}
             </datalist>
           </label>
@@ -312,36 +432,11 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
             </p>
           )}
 
-          {!showMore ? (
-            <button
-              type="button"
-              className="text-xs text-muted underline"
-              onClick={() => setShowMore(true)}
-            >
-              Mais campos…
-            </button>
-          ) : (
-            <div className="space-y-2 border-t border-border pt-2">
-              <label className="block space-y-1">
-                <span className="text-xs text-muted">Categoria</span>
-                <Input
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-muted">Tipo</span>
-                <Select
-                  value={tipo}
-                  onChange={(e) =>
-                    setTipo(e.target.value as "Avulso" | "Receita")
-                  }
-                >
-                  <option value="Avulso">Gasto avulso</option>
-                  <option value="Receita">Receita</option>
-                </Select>
-              </label>
-            </div>
+          {incomePreview && (
+            <p className="text-xs text-muted border border-border rounded-md px-2 py-1.5">
+              Saldo aumenta em {fmtBrl(incomePreview.valor)} em{" "}
+              {incomePreview.conta} no dia {incomePreview.data}.
+            </p>
           )}
 
           {budgetNotice && budgetNotice.kind !== "need-category" && (
@@ -377,19 +472,15 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
 
           <div className="flex flex-wrap gap-2 pt-1">
             <Button
-              variant="primary"
+              variant={isReceita ? "success" : "primary"}
               size="sm"
               disabled={saving}
               onClick={() => save(false)}
             >
-              Salvar
+              {copy.primary}
             </Button>
-            <Button
-              size="sm"
-              disabled={saving}
-              onClick={() => save(true)}
-            >
-              Salvar e adicionar outra
+            <Button size="sm" disabled={saving} onClick={() => save(true)}>
+              {copy.secondary}
             </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
               Cancelar

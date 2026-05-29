@@ -1,6 +1,6 @@
 import clsx from "clsx"
 
-type Variant = "default" | "primary" | "ghost" | "danger"
+type Variant = "default" | "primary" | "success" | "ghost" | "danger"
 type Size = "default" | "sm"
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -12,6 +12,8 @@ const variantClasses: Record<Variant, string> = {
   default:
     "border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong",
   primary: "border-foreground bg-foreground text-surface hover:opacity-90",
+  success:
+    "border-success bg-success text-surface hover:opacity-90",
   ghost:
     "border-transparent bg-transparent hover:bg-surface-2 hover:border-border",
   danger:
