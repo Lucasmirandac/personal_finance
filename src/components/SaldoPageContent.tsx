@@ -11,6 +11,7 @@ import { AlertsBar } from "@/components/painel/AlertsBar"
 import { GreetingHeader } from "@/components/painel/GreetingHeader"
 import { HeroBalance } from "@/components/painel/HeroBalance"
 import { UpcomingTimeline } from "@/components/painel/UpcomingTimeline"
+import { WealthProjectionPanel } from "@/components/saldo/WealthProjectionPanel"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { StatTile } from "@/components/ui/StatTile"
 import { DrawerBackdrop, DrawerPanel } from "@/components/ui/Drawer"
@@ -208,6 +209,8 @@ export function SaldoPageContent() {
           />
         </div>
       </div>
+
+      <WealthProjectionPanel />
 
       <AdjustBalanceModal open={adjustOpen} onClose={() => setAdjustOpen(false)} />
 

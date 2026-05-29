@@ -191,6 +191,19 @@ A página mostra:
 - Próxima fatura prevista.
 - Gráfico de linha (`BalanceProjectionChart`) **ou** calendário mensal com eventos (`SaldoCalendarView`) — alternável.
 - Timeline de receitas e despesas futuras com filtros.
+- **Projeção de Paz Futura** (`WealthProjectionPanel`): evolução patrimonial em 12 meses com slider de meta de poupança (5–80% da renda disponível) e tradução em meses de tranquilidade financeira.
+
+### Projeção de Paz Futura
+
+Calculada em `src/lib/wealth.ts`, reutilizando o Divisor de Águas (`src/lib/leverage.ts`):
+
+- **Renda disponível** = receitas recorrentes − custos fixos.
+- **Patrimônio inicial** = soma dos saldos das contas ativas não-cartão.
+- **Aporte mensal** = renda disponível × meta (%).
+- **Patrimônio projetado** = patrimônio inicial + aportes acumulados (sem juros no MVP).
+- **Meses de tranquilidade** = patrimônio ÷ custo fixo mensal.
+
+Exemplo de copy: *"Mantendo sua meta de 20%, em dez/26 seu patrimônio terá crescido R$ X, te garantindo Y meses de tranquilidade financeira."*
 
 ---
 
@@ -368,6 +381,7 @@ src/
     filters.ts       # filtros + presets de data
     normalize.ts     # natureza, valorAnalise, fluxo
     projection.ts    # saldo diário projetado
+    wealth.ts        # projeção patrimonial (Paz Futura)
     recurring.ts     # expansão de regras
     storage.ts       # IndexedDB
     store.tsx        # AppStoreProvider (estado global)
