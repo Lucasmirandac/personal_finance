@@ -28,6 +28,7 @@ export function BackupPanel() {
     budgets,
     subscriptionDismissals,
     establishmentAliases,
+    structuralCategories,
     lastBackupAt,
     exportBackup,
     importBackup,
@@ -54,6 +55,7 @@ export function BackupPanel() {
         budgets,
         subscriptionDismissals,
         establishmentAliases,
+        structuralCategories,
       }),
     [
       dataset,
@@ -66,6 +68,7 @@ export function BackupPanel() {
       budgets,
       subscriptionDismissals,
       establishmentAliases,
+      structuralCategories,
     ],
   )
 
@@ -83,6 +86,7 @@ export function BackupPanel() {
       budgets,
       subscriptionDismissals,
       establishmentAliases,
+      structuralCategories,
     }),
     [
       dataset,
@@ -95,6 +99,7 @@ export function BackupPanel() {
       budgets,
       subscriptionDismissals,
       establishmentAliases,
+      structuralCategories,
     ],
   )
 

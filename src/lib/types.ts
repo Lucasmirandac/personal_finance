@@ -201,4 +201,5 @@ export type AppState = {
   budgets: CategoryBudget[];
   subscriptionDismissals: string[];
   establishmentAliases: EstablishmentAlias[];
+  structuralCategories: string[];
 };

@@ -37,7 +37,7 @@ export function getSetupSteps(
     },
     {
       id: "recorrentes",
-      label: "Recorrentes",
+      label: "Divisor de Águas",
       done: hasRecorrentes,
       href: "/recorrentes",
     },

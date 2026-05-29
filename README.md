@@ -39,7 +39,7 @@ Abra `http://localhost:3000`. Na primeira vez, o onboarding leva você por:
 
 1. Importar um CSV (Inter ou Nubank).
 2. Cadastrar contas (conta corrente, poupança, carteira, cartão).
-3. (Opcional) cadastrar despesas fixas e receitas recorrentes.
+3. (Opcional) **Divisor de Águas** — separar renda, custos fixos estruturais e categorias do CSV marcadas como estruturais.
 
 Depois disso, o app redireciona automaticamente para `/saldo` ou `/dashboard`.
 
@@ -242,11 +242,28 @@ A modal **Auto-categorizar** (`AutoCategorizeModal`) aplica uma categoria em lot
 
 ---
 
+## Divisor de Águas
+
+No onboarding (passo 3), o app ajuda a separar o que é **difícil de mudar** (custos fixos estruturais) do que é **gerenciável** no dia a dia (variáveis no cartão).
+
+- **Renda total**: soma das receitas recorrentes ativas (`RecurringRule kind="receita"`).
+- **Custo fixo**: despesas fixas recorrentes ativas + categorias do CSV que você marcar manualmente como estruturais.
+- **CSV estrutural**: mediana de gasto nos últimos 3 meses fechados por categoria marcada.
+- **Anti-dupla-contagem**: se uma categoria já tem despesa fixa recorrente, o CSV dessa categoria não entra de novo.
+
+**Alerta de alavancagem**: se os custos fixos passarem de **50%** da renda cadastrada, o app exibe:
+
+> Seu custo de vida fixo está muito alto para a sua renda atual. Para se reestruturar rápido, avalie negociar esses contratos ou reduzir a estrutura.
+
+Bandas graduadas: saudável (&lt;30%), atenta (30–50%), alta (50–70%), crítica (≥70%).
+
+---
+
 ## Backup completo
 
-`src/lib/backup.ts` exporta um JSON único com tudo: dataset, regras, recorrentes, configurações, edições, contas, transações manuais, orçamentos, dispensas de assinaturas e apelidos de estabelecimento.
+`src/lib/backup.ts` exporta um JSON único com tudo: dataset, regras, recorrentes, configurações, edições, contas, transações manuais, orçamentos, dispensas de assinaturas, apelidos de estabelecimento e categorias estruturais do Divisor de Águas.
 
-- Versão atual: **V4**. Backups V1, V2 e V3 ainda são importáveis (campos novos vêm vazios).
+- Versão atual: **V5**. Backups V1–V4 ainda são importáveis (campos novos vêm vazios).
 - Nome do arquivo: `backup-YYYY-MM-DD.json`.
 - Import aceita colar JSON ou arrastar arquivo.
 - Modos:
@@ -296,6 +313,7 @@ Tudo via IndexedDB usando `idb-keyval`. Chaves (`src/lib/storage.ts`):
 | `pf:budgets:v1` | Orçamentos por categoria |
 | `pf:subscriptionDismissals:v1` | Assinaturas dispensadas |
 | `pf:aliases:v1` | Apelidos de estabelecimento |
+| `pf:structuralCategories:v1` | Categorias CSV marcadas como estruturais (Divisor de Águas) |
 | `pf:lastBackup:v1` | Timestamp do último backup |
 
 Para limpar tudo: `/config?tab=importar` → "Limpar dados".
@@ -341,7 +359,8 @@ src/
   lib/
     accounts.ts      # contas + âncora de saldo
     aggregations.ts  # KPIs, séries, insights, hábitos
-    backup.ts        # export/import V1-V4
+    backup.ts        # export/import V1-V5
+    leverage.ts      # alavancagem fixo vs renda (Divisor de Águas)
     budgets.ts       # orçamentos e alertas
     csv.ts           # parse Inter/Nubank
     edits.ts         # edição/exclusão lógica

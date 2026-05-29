@@ -60,7 +60,10 @@ import {
   loadSubscriptionDismissals,
   loadAliases,
   saveAliases,
+  loadStructuralCategories,
+  saveStructuralCategories,
 } from "./storage";
+import { normalizeBudgetCategory } from "./budgets";
 import {
   Account,
   CategoryBudget,
@@ -155,6 +158,9 @@ type Ctx = {
   addAlias: (alias: EstablishmentAlias) => Promise<void>;
   updateAlias: (alias: EstablishmentAlias) => Promise<void>;
   removeAlias: (id: string) => Promise<void>;
+  structuralCategories: string[];
+  setStructuralCategories: (categories: string[]) => Promise<void>;
+  toggleStructuralCategory: (categoria: string) => Promise<void>;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -203,11 +209,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [establishmentAliases, setEstablishmentAliases] = useState<
     EstablishmentAlias[]
   >([]);
+  const [structuralCategories, setStructuralCategoriesState] = useState<
+    string[]
+  >([]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases] =
+      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases, structural] =
         await Promise.all([
         loadDataset(),
         loadRules(),
@@ -219,6 +228,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         loadLastBackupAt(),
         loadSubscriptionDismissals(),
         loadAliases(),
+        loadStructuralCategories(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -241,6 +251,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setLastBackupAt(lastBk);
       setSubscriptionDismissals(dismissals);
       setEstablishmentAliases(aliases);
+      setStructuralCategoriesState(structural);
       setLoaded(true);
     })();
     return () => {
@@ -294,6 +305,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistAliases = useCallback(async (next: EstablishmentAlias[]) => {
     await saveAliases(next);
     setEstablishmentAliases(next);
+  }, []);
+
+  const persistStructuralCategories = useCallback(async (next: string[]) => {
+    const normalized = [
+      ...new Set(next.map((c) => normalizeBudgetCategory(c))),
+    ];
+    await saveStructuralCategories(normalized);
+    setStructuralCategoriesState(normalized);
   }, []);
 
   const importedRaw = useMemo(
@@ -392,6 +411,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setBudgetsState([]);
     setSubscriptionDismissals([]);
     setEstablishmentAliases([]);
+    setStructuralCategoriesState([]);
     setLastBackupAt(null);
   }, []);
 
@@ -484,6 +504,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         budgets,
         subscriptionDismissals,
         establishmentAliases,
+        structuralCategories,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -502,6 +523,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveBudgets(resolved.budgets),
         saveSubscriptionDismissals(resolved.subscriptionDismissals),
         saveAliases(resolved.establishmentAliases),
+        saveStructuralCategories(resolved.structuralCategories),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -523,12 +545,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setBudgetsState(resolved.budgets);
       setSubscriptionDismissals(resolved.subscriptionDismissals);
       setEstablishmentAliases(resolved.establishmentAliases);
+      setStructuralCategoriesState(resolved.structuralCategories);
     },
     [
       accounts,
       budgets,
       subscriptionDismissals,
       establishmentAliases,
+      structuralCategories,
       dataset,
       edits,
       manualTransactions,
@@ -740,6 +764,32 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [establishmentAliases, persistAliases],
   );
 
+  const setStructuralCategories = useCallback(
+    async (categories: string[]) => {
+      await persistStructuralCategories(categories);
+    },
+    [persistStructuralCategories],
+  );
+
+  const toggleStructuralCategory = useCallback(
+    async (categoria: string) => {
+      const cat = normalizeBudgetCategory(categoria);
+      const has = structuralCategories.some(
+        (c) => normalizeBudgetCategory(c) === cat,
+      );
+      if (has) {
+        await persistStructuralCategories(
+          structuralCategories.filter(
+            (c) => normalizeBudgetCategory(c) !== cat,
+          ),
+        );
+        return;
+      }
+      await persistStructuralCategories([...structuralCategories, cat]);
+    },
+    [structuralCategories, persistStructuralCategories],
+  );
+
   const editTransaction = useCallback(
     async (rawId: string, patch: TransactionEditPatch) => {
       const manual = manualTransactions.find((t) => t.id === rawId);
@@ -882,6 +932,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       addAlias,
       updateAlias,
       removeAlias,
+      structuralCategories,
+      setStructuralCategories,
+      toggleStructuralCategory,
     }),
     [
       loaded,
@@ -934,6 +987,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       addAlias,
       updateAlias,
       removeAlias,
+      structuralCategories,
+      setStructuralCategories,
+      toggleStructuralCategory,
     ],
   );
 

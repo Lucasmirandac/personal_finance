@@ -4,6 +4,7 @@ import {
   loadBudgets,
   loadSubscriptionDismissals,
   loadAliases,
+  loadStructuralCategories,
   loadDataset,
   loadEdits,
   loadManualTransactions,
@@ -27,7 +28,8 @@ import {
   Settings,
 } from "./types";
 
-export const BACKUP_VERSION = 4 as const;
+export const BACKUP_VERSION = 5 as const;
+export const BACKUP_VERSION_V4 = 4 as const;
 export const BACKUP_VERSION_V3 = 3 as const;
 export const BACKUP_VERSION_V2 = 2 as const;
 export const BACKUP_VERSION_LEGACY = 1 as const;
@@ -46,6 +48,7 @@ export type BackupPayload = {
   budgets: CategoryBudget[];
   subscriptionDismissals: string[];
   establishmentAliases: EstablishmentAlias[];
+  structuralCategories: string[];
 };
 
 /** @deprecated use BackupFile */
@@ -59,6 +62,7 @@ export type BackupV1 = {
 export type BackupFile = {
   version:
     | typeof BACKUP_VERSION
+    | typeof BACKUP_VERSION_V4
     | typeof BACKUP_VERSION_V3
     | typeof BACKUP_VERSION_V2
     | typeof BACKUP_VERSION_LEGACY;
@@ -154,8 +158,19 @@ const backupDataV4Schema = backupDataV3Schema.extend({
   establishmentAliases: z.array(aliasSchema).optional(),
 });
 
-const backupV4Schema = z.object({
+const backupDataV5Schema = backupDataV4Schema.extend({
+  structuralCategories: z.array(z.string()).optional(),
+});
+
+const backupV5Schema = z.object({
   version: z.literal(BACKUP_VERSION),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataV5Schema,
+});
+
+const backupV4Schema = z.object({
+  version: z.literal(BACKUP_VERSION_V4),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
   data: backupDataV4Schema,
@@ -223,6 +238,12 @@ export function resolveBackupApplication(
       current.establishmentAliases,
       backup.establishmentAliases,
     ),
+    structuralCategories: [
+      ...new Set([
+        ...current.structuralCategories,
+        ...backup.structuralCategories,
+      ]),
+    ],
     rules: backup.rules,
     settings: backup.settings,
     edits: backup.edits,
@@ -434,8 +455,17 @@ function sanitizeRules(raw: z.infer<typeof backupDataBaseSchema>["rules"]): Rule
   };
 }
 
+function sanitizeStructuralCategories(raw: unknown[] | undefined): string[] {
+  if (!raw || !Array.isArray(raw)) return [];
+  return [
+    ...new Set(
+      raw.filter((x): x is string => typeof x === "string" && x.trim().length > 0),
+    ),
+  ];
+}
+
 function toBackupPayload(
-  parsed: z.infer<typeof backupDataV4Schema>,
+  parsed: z.infer<typeof backupDataV5Schema>,
   version: number,
 ): BackupPayload {
   return {
@@ -455,8 +485,12 @@ function toBackupPayload(
         ? sanitizeDismissals(parsed.subscriptionDismissals)
         : [],
     establishmentAliases:
-      version >= BACKUP_VERSION
+      version >= BACKUP_VERSION_V4
         ? sanitizeAliases(parsed.establishmentAliases)
+        : [],
+    structuralCategories:
+      version >= BACKUP_VERSION
+        ? sanitizeStructuralCategories(parsed.structuralCategories)
         : [],
   };
 }
@@ -473,6 +507,7 @@ export async function exportAllData(): Promise<BackupFile> {
     budgets,
     subscriptionDismissals,
     establishmentAliases,
+    structuralCategories,
   ] = await Promise.all([
     loadDataset(),
     loadRules(),
@@ -484,6 +519,7 @@ export async function exportAllData(): Promise<BackupFile> {
     loadBudgets(),
     loadSubscriptionDismissals(),
     loadAliases(),
+    loadStructuralCategories(),
   ]);
 
   return {
@@ -501,6 +537,7 @@ export async function exportAllData(): Promise<BackupFile> {
       budgets,
       subscriptionDismissals,
       establishmentAliases,
+      structuralCategories,
     },
   };
 }
@@ -527,13 +564,24 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
+  const v5 = backupV5Schema.safeParse(json);
+  if (v5.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v5.data,
+        data: toBackupPayload(v5.data.data, BACKUP_VERSION),
+      },
+    };
+  }
+
   const v4 = backupV4Schema.safeParse(json);
   if (v4.success) {
     return {
       ok: true,
       backup: {
         ...v4.data,
-        data: toBackupPayload(v4.data.data, BACKUP_VERSION),
+        data: toBackupPayload(v4.data.data, BACKUP_VERSION_V4),
       },
     };
   }
@@ -575,7 +623,11 @@ export function parseBackup(text: string): ParseBackupResult {
   }
 
   const first =
-    v4.error.issues[0] ?? v3.error.issues[0] ?? v2.error.issues[0] ?? v1.error.issues[0];
+    v5.error.issues[0] ??
+    v4.error.issues[0] ??
+    v3.error.issues[0] ??
+    v2.error.issues[0] ??
+    v1.error.issues[0];
   return {
     ok: false,
     error: first
@@ -645,6 +697,7 @@ export function emptyBackupPayload(): BackupPayload {
     budgets: [],
     subscriptionDismissals: [],
     establishmentAliases: [],
+    structuralCategories: [],
   };
 }
 

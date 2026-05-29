@@ -36,6 +36,7 @@ const KEY_LAST_BACKUP = "pf:lastBackup:v1";
 const KEY_BUDGETS = "pf:budgets:v1";
 const KEY_SUBSCRIPTION_DISMISSALS = "pf:subscriptionDismissals:v1";
 const KEY_ALIASES = "pf:aliases:v1";
+const KEY_STRUCTURAL_CATEGORIES = "pf:structuralCategories:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -148,6 +149,7 @@ export async function clearAllData(opts?: {
   await clearBudgets();
   await clearSubscriptionDismissals();
   await clearAliases();
+  await clearStructuralCategories();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
@@ -559,4 +561,30 @@ export async function saveAliases(aliases: EstablishmentAlias[]): Promise<void> 
 
 export async function clearAliases(): Promise<void> {
   await del(KEY_ALIASES);
+}
+
+function mergeStructuralCategories(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [
+    ...new Set(
+      v.filter((x): x is string => typeof x === "string" && x.trim().length > 0),
+    ),
+  ];
+}
+
+export async function loadStructuralCategories(): Promise<string[]> {
+  try {
+    const v = await get(KEY_STRUCTURAL_CATEGORIES);
+    return mergeStructuralCategories(v);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveStructuralCategories(categories: string[]): Promise<void> {
+  await set(KEY_STRUCTURAL_CATEGORIES, mergeStructuralCategories(categories));
+}
+
+export async function clearStructuralCategories(): Promise<void> {
+  await del(KEY_STRUCTURAL_CATEGORIES);
 }

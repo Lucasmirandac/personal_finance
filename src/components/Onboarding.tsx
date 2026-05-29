@@ -1,18 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { ImportPanel } from "@/components/ImportPanel";
 import { AccountsPanel } from "@/components/AccountsPanel";
 import { QuickAddModal } from "@/components/QuickAddModal";
+import { DivisorDeAguasStep } from "@/components/onboarding/DivisorDeAguasStep";
 import { useAppStore } from "@/lib/store";
 import { getSetupSteps } from "@/lib/setupStatus";
 import { Button } from "@/components/ui/Button";
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import clsx from "clsx";
-
-const linkButtonClasses =
-  "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong text-xs px-2 py-1";
 
 export function Onboarding() {
   const { dataset, settings, recurringRules, accounts } = useAppStore();
@@ -66,7 +63,8 @@ export function Onboarding() {
               )}
               {step.id === "recorrentes" && (
                 <p className="text-xs text-muted mt-0.5">
-                  Salário, aluguel e outras entradas/saídas mensais.
+                  Separe o difícil de mudar (custos fixos) do gerenciável no dia
+                  a dia.
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-2">
@@ -99,16 +97,14 @@ export function Onboarding() {
                     Adicionar primeiro gasto
                   </Button>
                 )}
-                {step.id === "recorrentes" && (
-                  <Link href="/recorrentes" className={linkButtonClasses}>
-                    Ir para Recorrentes
-                    <ArrowRight size={13} />
-                  </Link>
+                {step.id === "recorrentes" && step.done && (
+                  <span className="text-xs text-success">Concluído</span>
                 )}
                 {step.done && step.id !== "recorrentes" && (
                   <span className="text-xs text-success">Concluído</span>
                 )}
               </div>
+              {step.id === "recorrentes" && <DivisorDeAguasStep />}
             </div>
           </li>
         ))}
