@@ -139,6 +139,8 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
       data: isoToBr(dataIso),
       tipo: "Avulso",
       lancamento: "Compra simulada",
+      parcelas,
+      amountMode: "total",
     });
     onClose();
   }

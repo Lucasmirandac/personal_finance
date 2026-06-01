@@ -31,6 +31,29 @@ export function yyyyMmFromIso(iso: string): string {
   return iso.slice(0, 7)
 }
 
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+function clampDay(year: number, month: number, day: number): number {
+  return Math.min(Math.max(1, day), daysInMonth(year, month))
+}
+
+export function addMonthsIso(iso: string, delta: number): string {
+  const [y, m, d] = parseIso(iso)
+  let month = m + delta
+  let year = y
+  while (month > 12) {
+    month -= 12
+    year += 1
+  }
+  while (month < 1) {
+    month += 12
+    year -= 1
+  }
+  return isoFromParts(year, month, clampDay(year, month, d))
+}
+
 export function yesterdayIso(): string {
   const d = new Date()
   d.setUTCDate(d.getUTCDate() - 1)

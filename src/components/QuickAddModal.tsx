@@ -4,7 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { establishmentAggregation } from "@/lib/aggregations";
 import { isoToBr, parseBrlValue, parseBrDate } from "@/lib/csv";
 import { todayIso, yesterdayIso } from "@/lib/dates";
-import { defaultAccount } from "@/lib/accounts";
+import { formatDateBR } from "@/lib/format";
+import {
+  buildInstallmentDates,
+  formatInstallmentLancamento,
+  MAX_PARCELAS,
+  splitInstallments,
+} from "@/lib/installments";
+import { ACCOUNT_KIND_LABELS, defaultAccount } from "@/lib/accounts";
 import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import {
   budgetUsageForMonth,
@@ -18,11 +25,13 @@ import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input, Select } from "@/components/ui/Input";
+import { IntegerInput } from "@/components/ui/IntegerInput";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { X } from "lucide-react";
+import { CreditCard, Wallet, X } from "lucide-react";
 
 type QuickAddTipo = "Avulso" | "Receita";
+type AmountMode = "total" | "parcela";
 
 const RECEITA_FALLBACK_DESCS = [
   "Salário",
@@ -82,7 +91,8 @@ type Props = {
 
 export function QuickAddModal({ open, draft, onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  const { accounts, normalized, budgets, addManualTransaction } = useAppStore();
+  const { accounts, normalized, budgets, addManualTransaction, addManualTransactions } =
+    useAppStore();
   const valorRef = useRef<HTMLInputElement>(null);
 
   const [valorStr, setValorStr] = useState("");
@@ -91,6 +101,8 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
   const [dataIso, setDataIso] = useState(todayIso());
   const [categoria, setCategoria] = useState("");
   const [tipo, setTipo] = useState<QuickAddTipo>("Avulso");
+  const [parcelas, setParcelas] = useState("1");
+  const [amountMode, setAmountMode] = useState<AmountMode>("total");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -99,6 +111,29 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
   const activeAccounts = useMemo(
     () => accounts.filter((a) => a.ativa),
     [accounts],
+  );
+
+  const contasSaldo = useMemo(
+    () => activeAccounts.filter((a) => a.kind !== "cartao"),
+    [activeAccounts],
+  );
+
+  const cartoes = useMemo(
+    () => activeAccounts.filter((a) => a.kind === "cartao"),
+    [activeAccounts],
+  );
+
+  const selectedAccount = useMemo(
+    () => activeAccounts.find((a) => a.id === accountId),
+    [activeAccounts, accountId],
+  );
+
+  const showParcelas =
+    !isReceita && selectedAccount?.kind === "cartao";
+
+  const parcelasN = Math.max(
+    1,
+    Math.min(MAX_PARCELAS, Number(parcelas) || 1),
   );
 
   const descriptionSuggestions = useMemo(() => {
@@ -131,11 +166,36 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     );
   }, [valorStr]);
 
+  const valorTotal = useMemo(() => {
+    if (parsedValor === null || parsedValor <= 0) return null;
+    if (showParcelas && parcelasN > 1 && amountMode === "parcela") {
+      return Math.abs(parsedValor) * parcelasN;
+    }
+    return Math.abs(parsedValor);
+  }, [parsedValor, showParcelas, parcelasN, amountMode]);
+
   const expensePreview = useMemo(() => {
     if (isReceita) return null;
-    if (parsedValor === null || parsedValor <= 0) return null;
-    return Math.abs(parsedValor);
-  }, [parsedValor, isReceita]);
+    if (valorTotal === null || valorTotal <= 0) return null;
+    if (showParcelas && parcelasN > 1) {
+      const amounts = splitInstallments(valorTotal, parcelasN);
+      return amounts[0] ?? valorTotal;
+    }
+    return valorTotal;
+  }, [valorTotal, isReceita, showParcelas, parcelasN]);
+
+  const installmentPreview = useMemo(() => {
+    if (!showParcelas || parcelasN <= 1 || valorTotal === null) return null;
+    const amounts = splitInstallments(valorTotal, parcelasN);
+    const dates = buildInstallmentDates(dataIso, parcelasN);
+    const parcelaValue = amounts[0] ?? 0;
+    return {
+      parcelaValue,
+      valorTotal,
+      firstDate: dates[0] ?? dataIso,
+      lastDate: dates[dates.length - 1] ?? dataIso,
+    };
+  }, [showParcelas, parcelasN, valorTotal, dataIso]);
 
   const budgetNotice = useMemo(() => {
     if (isReceita) return null;
@@ -213,7 +273,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
       }
     : {
         title: "Adicionar gasto",
-        subtitle: "Pix, dinheiro, débito — aparece na análise na hora.",
+        subtitle: "Pix, débito ou cartão de crédito — vai pro saldo ou pra fatura.",
         descPlaceholder: "Mercado, Uber…",
         primary: "Adicionar gasto",
         secondary: "Salvar e adicionar outro",
@@ -232,6 +292,10 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     );
     setCategoria(draft?.categoria ?? "");
     setTipo(draft?.tipo === "Receita" ? "Receita" : "Avulso");
+    setParcelas(
+      draft?.parcelas != null ? String(Math.min(MAX_PARCELAS, Math.max(1, draft.parcelas))) : "1",
+    );
+    setAmountMode(draft?.amountMode ?? "total");
     setError(null);
     setTimeout(() => valorRef.current?.focus(), 50);
   }, [open, draft, accounts]);
@@ -263,26 +327,63 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
       return;
     }
     if (!accountId) {
-      setError("Selecione uma conta.");
+      setError("Selecione onde o gasto sai.");
       return;
     }
 
-    const valorOriginal = isReceita ? -Math.abs(parsed) : Math.abs(parsed);
+    const total =
+      showParcelas && parcelasN > 1 && amountMode === "parcela"
+        ? Math.abs(parsed) * parcelasN
+        : Math.abs(parsed);
+    if (total <= 0) {
+      setError("Informe um valor válido.");
+      return;
+    }
 
     setSaving(true);
     try {
-      await addManualTransaction({
-        data: isoToBr(dataIso),
-        lancamento: lancamento.trim(),
-        categoria: categoria.trim(),
-        tipo,
-        valorOriginal,
-        accountId,
-      });
+      if (isReceita) {
+        await addManualTransaction({
+          data: isoToBr(dataIso),
+          lancamento: lancamento.trim(),
+          categoria: categoria.trim(),
+          tipo,
+          valorOriginal: -total,
+          accountId,
+        });
+      } else if (showParcelas && parcelasN > 1) {
+        const amounts = splitInstallments(total, parcelasN);
+        const dates = buildInstallmentDates(dataIso, parcelasN);
+        await addManualTransactions(
+          amounts.map((amount, i) => ({
+            data: isoToBr(dates[i]!),
+            lancamento: formatInstallmentLancamento(
+              lancamento.trim(),
+              i,
+              parcelasN,
+            ),
+            categoria: categoria.trim(),
+            tipo,
+            valorOriginal: Math.abs(amount),
+            accountId,
+          })),
+        );
+      } else {
+        await addManualTransaction({
+          data: isoToBr(dataIso),
+          lancamento: lancamento.trim(),
+          categoria: categoria.trim(),
+          tipo,
+          valorOriginal: total,
+          accountId,
+        });
+      }
       if (keepOpen) {
         setValorStr("");
         setLancamento("");
         setCategoria("");
+        setParcelas("1");
+        setAmountMode("total");
         valorRef.current?.focus();
       } else {
         onClose();
@@ -336,7 +437,13 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
             { value: "Receita", label: "Receita" },
           ]}
           value={tipo}
-          onChange={setTipo}
+          onChange={(v) => {
+            setTipo(v);
+            if (v === "Receita") {
+              setParcelas("1");
+              setAmountMode("total");
+            }
+          }}
         />
 
         <div className="space-y-3">
@@ -392,18 +499,101 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           </label>
 
           <label className="block space-y-1">
-            <span className="text-xs text-muted">Conta</span>
+            <span className="text-xs text-muted">Pagar com</span>
             <Select
               value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setAccountId(nextId);
+                const acc = activeAccounts.find((a) => a.id === nextId);
+                if (acc?.kind !== "cartao") {
+                  setParcelas("1");
+                  setAmountMode("total");
+                }
+              }}
             >
-              {activeAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nome}
-                </option>
-              ))}
+              {contasSaldo.length > 0 && (
+                <optgroup label="Contas (saldo)">
+                  {contasSaldo.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nome} · {ACCOUNT_KIND_LABELS[a.kind]}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {cartoes.length > 0 && (
+                <optgroup label="Cartões de crédito">
+                  {cartoes.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nome} · Cartão
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </Select>
+            {selectedAccount && !isReceita && (
+              <div className="flex items-center gap-1.5 text-[11px] text-muted pt-0.5">
+                {selectedAccount.kind === "cartao" ? (
+                  <>
+                    <CreditCard size={12} className="shrink-0" />
+                    <span>Vai para a fatura do cartão.</span>
+                  </>
+                ) : (
+                  <>
+                    <Wallet size={12} className="shrink-0" />
+                    <span>Sai do saldo em {isoToBr(dataIso)}.</span>
+                  </>
+                )}
+              </div>
+            )}
           </label>
+
+          {showParcelas && (
+            <div className="rounded-md border border-border bg-surface-2 p-2.5 space-y-2">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted">
+                <CreditCard size={12} className="shrink-0" />
+                <span>Cartão {selectedAccount?.nome}</span>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted">Parcelas</span>
+                <IntegerInput
+                  min={1}
+                  max={MAX_PARCELAS}
+                  value={parcelas}
+                  onChange={setParcelas}
+                />
+              </label>
+              {parcelasN > 1 && (
+                <>
+                  <SegmentedControl<AmountMode>
+                    className="w-full [&>button]:flex-1 [&>button]:justify-center"
+                    size="sm"
+                    options={[
+                      { value: "total", label: "Valor total" },
+                      { value: "parcela", label: "Valor da parcela" },
+                    ]}
+                    value={amountMode}
+                    onChange={setAmountMode}
+                  />
+                  {installmentPreview && (
+                    <p className="text-xs text-muted border border-border rounded-md px-2 py-1.5 bg-surface">
+                      {parcelasN}x de {fmtBrl(installmentPreview.parcelaValue)}{" "}
+                      = {fmtBrl(installmentPreview.valorTotal)}
+                      <br />
+                      1ª em {formatDateBR(installmentPreview.firstDate)}, última
+                      em {formatDateBR(installmentPreview.lastDate)}
+                    </p>
+                  )}
+                </>
+              )}
+              {parcelasN === 1 && (
+                <p className="text-[11px] text-muted">
+                  À vista: lança em {formatDateBR(dataIso)}, paga na próxima
+                  fatura.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-1">
             <label className="text-xs text-muted" htmlFor="quick-add-date">

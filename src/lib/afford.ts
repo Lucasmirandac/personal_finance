@@ -6,8 +6,15 @@ import {
   findBudgetForCategory,
   projectUsageAfterExpense,
 } from "./budgets";
-import { isoFromParts, parseIso, todayIso, yyyyMmFromIso } from "./dates";
+import {
+  addMonthsIso,
+  isoFromParts,
+  parseIso,
+  todayIso,
+  yyyyMmFromIso,
+} from "./dates";
 import { formatMonthLabel } from "./format";
+import { MAX_PARCELAS, splitInstallments } from "./installments";
 import { computeLeverageRatio } from "./leverage";
 import {
   CashEvent,
@@ -97,29 +104,6 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-function daysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-function clampDay(year: number, month: number, day: number): number {
-  return Math.min(Math.max(1, day), daysInMonth(year, month));
-}
-
-function addMonthsIso(iso: string, delta: number): string {
-  const [y, m, d] = parseIso(iso);
-  let month = m + delta;
-  let year = y;
-  while (month > 12) {
-    month -= 12;
-    year += 1;
-  }
-  while (month < 1) {
-    month += 12;
-    year -= 1;
-  }
-  return isoFromParts(year, month, clampDay(year, month, d));
-}
-
 function addDaysIso(iso: string, days: number): string {
   const [y, m, d] = parseIso(iso);
   const t = Date.UTC(y, m - 1, d) + days * 86400000;
@@ -129,19 +113,6 @@ function addDaysIso(iso: string, days: number): string {
     dt.getUTCMonth() + 1,
     dt.getUTCDate(),
   );
-}
-
-function splitInstallments(total: number, parcelas: number): number[] {
-  const n = Math.max(1, Math.min(24, Math.round(parcelas)));
-  const base = round2(total / n);
-  const amounts: number[] = [];
-  let sum = 0;
-  for (let i = 0; i < n - 1; i += 1) {
-    amounts.push(base);
-    sum += base;
-  }
-  amounts.push(round2(total - sum));
-  return amounts;
 }
 
 function buildInstallmentPlan(
@@ -474,7 +445,8 @@ export function simulateAffordability(
   };
 }
 
-export const AFFORD_PARCELAS_MAX = 24;
+/** @deprecated Use MAX_PARCELAS from ./installments */
+export const AFFORD_PARCELAS_MAX = MAX_PARCELAS;
 
 export const AFFORD_SEMAFORO_COPY: Record<
   AffordResult["semaforo"],

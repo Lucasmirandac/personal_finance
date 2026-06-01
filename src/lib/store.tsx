@@ -89,7 +89,11 @@ export type QuickAddDraft = Partial<
     ManualTransaction,
     "valorOriginal" | "lancamento" | "categoria" | "tipo" | "accountId"
   >
-> & { data?: string };
+> & {
+  data?: string;
+  parcelas?: number;
+  amountMode?: "total" | "parcela";
+};
 
 type Ctx = {
   loaded: boolean;
@@ -124,6 +128,12 @@ type Ctx = {
     partial: Omit<ManualTransaction, "id" | "fonte" | "sourceId"> &
       Partial<Pick<ManualTransaction, "id">>,
   ) => Promise<ManualTransaction>;
+  addManualTransactions: (
+    partials: Array<
+      Omit<ManualTransaction, "id" | "fonte" | "sourceId"> &
+        Partial<Pick<ManualTransaction, "id">>
+    >,
+  ) => Promise<ManualTransaction[]>;
   updateManualTransaction: (
     id: string,
     patch: Partial<
@@ -642,6 +652,26 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [accounts, manualTransactions, persistManual],
   );
 
+  const addManualTransactions = useCallback(
+    async (
+      partials: Array<
+        Omit<ManualTransaction, "id" | "fonte" | "sourceId"> &
+          Partial<Pick<ManualTransaction, "id">>
+      >,
+    ) => {
+      const def = defaultAccount(accounts);
+      const txs = partials.map((p) =>
+        newManualTransaction({
+          ...p,
+          accountId: p.accountId ?? def?.id,
+        }),
+      );
+      await persistManual([...manualTransactions, ...txs]);
+      return txs;
+    },
+    [accounts, manualTransactions, persistManual],
+  );
+
   const updateManualTransaction = useCallback(
     async (
       id: string,
@@ -911,6 +941,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       removeAccount,
       setDefaultAccount,
       addManualTransaction,
+      addManualTransactions,
       updateManualTransaction,
       removeManualTransaction,
       editTransaction,
@@ -966,6 +997,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       removeAccount,
       setDefaultAccount,
       addManualTransaction,
+      addManualTransactions,
       updateManualTransaction,
       removeManualTransaction,
       editTransaction,
