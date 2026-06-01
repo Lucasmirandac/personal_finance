@@ -8,6 +8,7 @@ import { TransactionRaw } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { X } from "lucide-react";
 
 type Props = {
@@ -180,12 +181,9 @@ export function TransactionEditModal({
           </label>
           <label className="block space-y-1">
             <span className="text-xs text-muted">Valor original (R$)</span>
-            <Input
-              type="text"
-              className="font-mono tabular-nums"
+            <MoneyInput
               value={valorStr}
-              onChange={(e) => setValorStr(e.target.value)}
-              inputMode="decimal"
+              onChange={setValorStr}
               required
             />
           </label>

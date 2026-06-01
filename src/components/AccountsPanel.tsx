@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { DrawerBackdrop } from "@/components/ui/Drawer"
 import { Input, Select } from "@/components/ui/Input"
+import { MoneyInput } from "@/components/ui/MoneyInput"
+import { IntegerInput } from "@/components/ui/IntegerInput"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { Num } from "@/components/ui/Num"
 import { ArrowLeft, CheckCircle2, Plus, Star, Trash2, Pencil, XCircle } from "lucide-react"
@@ -351,12 +353,10 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
                   <span className="text-xs text-muted">Saldo inicial (R$)</span>
-                  <Input
-                    className="font-mono tabular-nums"
-                    inputMode="decimal"
+                  <MoneyInput
                     value={form.saldoInicial}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, saldoInicial: e.target.value }))
+                    onChange={(next) =>
+                      setForm((f) => ({ ...f, saldoInicial: next }))
                     }
                   />
                 </label>
@@ -402,25 +402,23 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block space-y-1">
                       <span className="text-xs text-muted">Dia fechamento</span>
-                      <Input
-                        type="number"
+                      <IntegerInput
                         min={1}
                         max={31}
                         value={form.diaFechamento}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, diaFechamento: e.target.value }))
+                        onChange={(next) =>
+                          setForm((f) => ({ ...f, diaFechamento: next }))
                         }
                       />
                     </label>
                     <label className="block space-y-1">
                       <span className="text-xs text-muted">Dia pagamento</span>
-                      <Input
-                        type="number"
+                      <IntegerInput
                         min={1}
                         max={31}
                         value={form.diaPagamento}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, diaPagamento: e.target.value }))
+                        onChange={(next) =>
+                          setForm((f) => ({ ...f, diaPagamento: next }))
                         }
                       />
                     </label>

@@ -1,7 +1,7 @@
 import clsx from "clsx"
 import { forwardRef } from "react"
 
-const fieldClasses =
+export const fieldClasses =
   "bg-surface border border-border rounded-md px-2.5 py-1.5 text-[13px] text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong"
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement>

@@ -18,6 +18,7 @@ import clsx from "clsx";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input, Select } from "@/components/ui/Input";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { X } from "lucide-react";
 
@@ -341,17 +342,16 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
         <div className="space-y-3">
           <label className="block space-y-1">
             <span className="text-xs text-muted">Valor (R$)</span>
-            <Input
+            <MoneyInput
               ref={valorRef}
               className={clsx(
-                "font-mono tabular-nums text-lg",
+                "text-lg",
                 isReceita &&
                   "border-l-2 border-l-success pl-2 focus-visible:ring-success/40",
               )}
-              inputMode="decimal"
               placeholder="48,50"
               value={valorStr}
-              onChange={(e) => setValorStr(e.target.value)}
+              onChange={setValorStr}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();

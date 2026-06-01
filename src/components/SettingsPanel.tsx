@@ -10,6 +10,8 @@ import {
 import { defaultCardsForSources } from "@/lib/projection";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { IntegerInput } from "@/components/ui/IntegerInput";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 
 const FONTE_LABELS: Record<Fonte, string> = {
@@ -117,14 +119,11 @@ export function SettingsPanel({
             >
               Valor (R$)
             </label>
-            <Input
+            <MoneyInput
               id="anchor-valor"
-              className="font-mono tabular-nums"
-              type="text"
-              inputMode="decimal"
               placeholder="5000,00"
               value={anchorValor}
-              onChange={(e) => setAnchorValor(e.target.value)}
+              onChange={setAnchorValor}
               required
             />
           </div>
@@ -166,15 +165,14 @@ export function SettingsPanel({
                   >
                     Fechamento
                   </label>
-                  <Input
+                  <IntegerInput
                     id={`card-fechamento-${c.fonte}`}
                     className="mt-0.5"
-                    type="number"
                     min={1}
                     max={31}
                     value={c.diaFechamento}
-                    onChange={(e) =>
-                      updateCard(c.fonte, "diaFechamento", Number(e.target.value))
+                    onChange={(next) =>
+                      updateCard(c.fonte, "diaFechamento", Number(next))
                     }
                   />
                 </div>
@@ -185,15 +183,14 @@ export function SettingsPanel({
                   >
                     Pagamento
                   </label>
-                  <Input
+                  <IntegerInput
                     id={`card-pagamento-${c.fonte}`}
                     className="mt-0.5"
-                    type="number"
                     min={1}
                     max={31}
                     value={c.diaPagamento}
-                    onChange={(e) =>
-                      updateCard(c.fonte, "diaPagamento", Number(e.target.value))
+                    onChange={(next) =>
+                      updateCard(c.fonte, "diaPagamento", Number(next))
                     }
                   />
                 </div>

@@ -9,7 +9,7 @@ import { Account, TransactionNormalized } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
-import { Input } from "@/components/ui/Input";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Num } from "@/components/ui/Num";
 import { X } from "lucide-react";
 
@@ -230,13 +230,11 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
                   </p>
                   <label className="block space-y-1">
                     <span className="text-xs text-muted">Tenho hoje (R$)</span>
-                    <Input
-                      className="font-mono tabular-nums"
-                      inputMode="decimal"
+                    <MoneyInput
                       placeholder={String(p?.projected ?? 0)}
                       value={values[a.id] ?? ""}
-                      onChange={(e) =>
-                        setValues((v) => ({ ...v, [a.id]: e.target.value }))
+                      onChange={(next) =>
+                        setValues((v) => ({ ...v, [a.id]: next }))
                       }
                     />
                   </label>

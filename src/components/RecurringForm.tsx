@@ -7,6 +7,8 @@ import { previewRecurringRule } from "@/lib/recurring";
 import { RecurringKind, RecurringRule } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { MoneyInput } from "@/components/ui/MoneyInput";
+import { IntegerInput } from "@/components/ui/IntegerInput";
 
 const schema = z.object({
   kind: z.enum(["despesa_fixa", "receita"]),
@@ -115,28 +117,24 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
           <label className="text-xs text-muted" htmlFor="recurring-valor">
             Valor (R$)
           </label>
-          <Input
+          <MoneyInput
             id="recurring-valor"
             className="mt-1"
-            type="number"
-            min="0"
-            step="0.01"
             value={valorStr}
-            onChange={(e) => setValorStr(e.target.value)}
+            onChange={setValorStr}
           />
         </div>
         <div>
           <label className="text-xs text-muted" htmlFor="recurring-dia-mes">
             Dia do mês
           </label>
-          <Input
+          <IntegerInput
             id="recurring-dia-mes"
             className="mt-1"
-            type="number"
             min={1}
             max={31}
             value={diaMes}
-            onChange={(e) => setDiaMes(e.target.value)}
+            onChange={setDiaMes}
           />
         </div>
         <div>

@@ -18,6 +18,7 @@ import { useAppStore, QuickAddDraft } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input, Select } from "@/components/ui/Input";
+import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Num } from "@/components/ui/Num";
 
 type Props = {
@@ -176,13 +177,12 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1 col-span-2 sm:col-span-1">
             <span className="text-xs text-muted">Valor (R$)</span>
-            <Input
+            <MoneyInput
               ref={valorRef}
-              className="font-mono tabular-nums text-lg"
-              inputMode="decimal"
+              className="text-lg"
               placeholder="1.200,00"
               value={valorStr}
-              onChange={(e) => setValorStr(e.target.value)}
+              onChange={setValorStr}
             />
           </label>
 

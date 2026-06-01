@@ -9,6 +9,7 @@ import { formatBRL } from "@/lib/format"
 import { Button } from "@/components/ui/Button"
 import { DrawerBackdrop } from "@/components/ui/Drawer"
 import { Input } from "@/components/ui/Input"
+import { MoneyInput } from "@/components/ui/MoneyInput"
 import { Num } from "@/components/ui/Num"
 import { Plus, Pencil, Trash2, XCircle } from "lucide-react"
 
@@ -212,12 +213,10 @@ export function BudgetsPanel() {
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-muted">Valor mensal (R$)</span>
-              <Input
-                className="font-mono tabular-nums"
-                inputMode="decimal"
+              <MoneyInput
                 value={form.valorMensal}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, valorMensal: e.target.value }))
+                onChange={(next) =>
+                  setForm((f) => ({ ...f, valorMensal: next }))
                 }
                 required
               />
