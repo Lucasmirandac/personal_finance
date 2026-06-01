@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppStoreProvider } from "@/lib/store";
 import { FiltersProvider } from "@/lib/filtersContext";
 import { AppShell } from "@/components/AppShell";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
+        <Analytics />
         <AppStoreProvider>
           <FiltersProvider>
             <AppShell>{children}</AppShell>

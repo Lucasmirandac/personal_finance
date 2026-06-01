@@ -22,7 +22,7 @@ Tudo roda no navegador — sem backend, sem upload, sem cadastro. Os dados ficam
 - **Tailwind CSS 4** com tokens próprios em `src/styles/theme.css`
 - **PapaParse** para CSV, **Zod** para validação
 - **Recharts** para gráficos, **@tanstack/react-table** para a tabela detalhada
-- **xlsx** para exportação Excel multi-aba
+- **write-excel-file** para exportação Excel multi-aba
 - **idb-keyval** para persistência local em IndexedDB
 - **Geist** (sans + mono) via `next/font/google`
 

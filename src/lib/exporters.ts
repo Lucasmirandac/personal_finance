@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import writeExcelFile from "write-excel-file/browser";
 import { BudgetUsage } from "./budgets";
 import { CategoryBudget, TransactionNormalized } from "./types";
 import {
@@ -86,14 +86,26 @@ function formatNumber(n: number): string {
   return n.toFixed(2).replace(".", ",");
 }
 
-export function exportWorkbook(
+type Cell = string | number | null | undefined;
+
+function toRow(row: readonly Cell[]) {
+  return row.map((cell) =>
+    typeof cell === "number"
+      ? { type: Number, value: cell }
+      : { type: String, value: cell == null ? "" : String(cell) },
+  );
+}
+
+function toSheetData(rows: readonly (readonly Cell[])[]) {
+  return rows.map(toRow);
+}
+
+export async function exportWorkbook(
   data: TransactionNormalized[],
   budgets: CategoryBudget[] = [],
   budgetUsages: BudgetUsage[] = [],
   fileName = "dashboard_fatura.xlsx",
 ) {
-  const wb = XLSX.utils.book_new();
-
   const kpis = computeKpis(data, data);
   const months = monthlySeries(data);
   const cats = categoryAggregation(data);
@@ -119,7 +131,6 @@ export function exportWorkbook(
     ["Pagamentos/estornos excluídos", kpis.countExcluidos],
     ["Total bruto (CSV)", kpis.totalBruto],
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dashboard), "Dashboard");
 
   const dadosHeaders = [
     "Data",
@@ -157,11 +168,6 @@ export function exportWorkbook(
     t.faixaValor,
     t.fimSemana ? "Sim" : "Não",
   ]);
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet([dadosHeaders, ...dadosRows]),
-    "Dados",
-  );
 
   const resumoFluxo = [
     ["Ano-Mês", "Mês", "Receitas", "Despesas", "Saldo", "Lançamentos"],
@@ -174,21 +180,11 @@ export function exportWorkbook(
       m.count,
     ]),
   ];
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet(resumoFluxo),
-    "Resumo_Fluxo",
-  );
 
   const resumoMes = [
     ["Ano-Mês", "Mês", "Despesas", "Receitas", "Saldo"],
     ...months.map((m) => [m.anoMes, m.label, m.despesas, m.receitas, m.saldo]),
   ];
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet(resumoMes),
-    "Resumo_Mensal",
-  );
 
   const resumoCat = [
     ["Categoria", "Total", "Transações", "Participação (%)"],
@@ -199,27 +195,26 @@ export function exportWorkbook(
       Number(c.share.toFixed(2)),
     ]),
   ];
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet(resumoCat),
-    "Resumo_Categorias",
-  );
 
   const estab = [
     ["Estabelecimento", "Total", "Transações"],
     ...ests.map((e) => [e.estabelecimento, e.total, e.count]),
   ];
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet(estab),
-    "Estabelecimentos",
-  );
 
   const insRows = [
     ["Insight", "Detalhe", "Tom"],
     ...insights.map((i) => [i.title, i.detail, i.tone]),
   ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(insRows), "Insights");
+
+  const sheets: { data: ReturnType<typeof toSheetData>; sheet: string }[] = [
+    { data: toSheetData(dashboard), sheet: "Dashboard" },
+    { data: toSheetData([dadosHeaders, ...dadosRows]), sheet: "Dados" },
+    { data: toSheetData(resumoFluxo), sheet: "Resumo_Fluxo" },
+    { data: toSheetData(resumoMes), sheet: "Resumo_Mensal" },
+    { data: toSheetData(resumoCat), sheet: "Resumo_Categorias" },
+    { data: toSheetData(estab), sheet: "Estabelecimentos" },
+    { data: toSheetData(insRows), sheet: "Insights" },
+  ];
 
   if (budgets.length > 0 || budgetUsages.length > 0) {
     const usageById = new Map(budgetUsages.map((u) => [u.budgetId, u]));
@@ -237,16 +232,8 @@ export function exportWorkbook(
         ];
       }),
     ];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.aoa_to_sheet(orcRows),
-      "Orcamentos",
-    );
+    sheets.push({ data: toSheetData(orcRows), sheet: "Orcamentos" });
   }
 
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([out], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
-  downloadBlob(blob, fileName);
+  await writeExcelFile(sheets).toFile(fileName);
 }
