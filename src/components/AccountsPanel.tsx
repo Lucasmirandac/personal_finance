@@ -273,7 +273,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                   )}
                   {!a.ativa && <Badge>Inativa</Badge>}
                 </div>
-                <Num className="block text-xs text-muted mt-0.5 pl-[18px] num-display">
+                <Num className="block text-xs text-muted mt-0.5 pl-[18px] num-display font-mono">
                   Saldo {a.saldoInicial.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}{" "}
                   · ref. {a.dataReferencia.split("-").reverse().join("/")}
                   {a.kind === "cartao" && a.fonteCsv && ` · ${a.fonteCsv}`}

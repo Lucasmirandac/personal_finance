@@ -25,9 +25,9 @@ export function StatTile({
   tone = "default",
 }: Readonly<Props>) {
   return (
-    <div className="rounded-2xl bg-surface p-4 ring-1 ring-border/60 shadow-[var(--shadow-card)]">
+    <div className="rounded-2xl bg-surface p-4 ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden">
       <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
-      <Num className={clsx("mt-2 block text-2xl font-semibold tracking-tight num-display", toneClasses[tone])}>
+      <Num className={clsx("mt-2 block text-lg font-semibold tracking-tight num-display sm:text-xl", toneClasses[tone])}>
         {value}
       </Num>
       {(hint || delta) && (

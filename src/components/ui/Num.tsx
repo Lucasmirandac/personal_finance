@@ -5,7 +5,7 @@ type Props = React.HTMLAttributes<HTMLSpanElement>
 export function Num({ className, ...props }: Props) {
   return (
     <span
-      className={clsx("font-mono tabular-nums", className)}
+      className={clsx("tabular-nums whitespace-nowrap", className)}
       {...props}
     />
   )

@@ -39,7 +39,7 @@ export function MetricRow({
           {sublabel && <p className="truncate text-xs text-muted">{sublabel}</p>}
         </div>
       </div>
-      <div className={clsx("shrink-0 text-sm font-medium num-display", toneClasses[tone])}>
+      <div className={clsx("shrink-0 text-sm font-medium num-display font-mono tabular-nums whitespace-nowrap", toneClasses[tone])}>
         {value}
       </div>
     </div>

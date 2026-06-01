@@ -155,7 +155,7 @@ export function BudgetsPanel() {
                 />
                 <div>
                   <div className="font-medium text-sm">{b.categoria}</div>
-                  <Num className="block text-xs text-muted num-display">
+                  <Num className="block text-xs text-muted num-display font-mono">
                     {formatBRL(b.valorMensal)}/mês
                     {!b.ativa && " · inativo"}
                   </Num>
