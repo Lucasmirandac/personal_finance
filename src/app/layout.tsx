@@ -4,6 +4,8 @@ import "./globals.css";
 import { AppStoreProvider } from "@/lib/store";
 import { FiltersProvider } from "@/lib/filtersContext";
 import { AppShell } from "@/components/AppShell";
+import { LaunchSplash } from "@/components/LaunchSplash";
+import { PwaRegister } from "@/components/PwaRegister";
 import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
@@ -20,6 +22,23 @@ export const metadata: Metadata = {
   title: "Saldo Real — finanças locais e privadas",
   description:
     "Saldo Real é o seu painel financeiro local: importe faturas, projete saldo, defina orçamentos e nada sai do navegador.",
+  applicationName: "Saldo Real",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Saldo Real",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/pwa/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/pwa/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "Saldo Real",
     description: "Painel financeiro local e privado.",
@@ -44,7 +63,9 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <Analytics />
+        <PwaRegister />
         <AppStoreProvider>
+          <LaunchSplash />
           <FiltersProvider>
             <AppShell>{children}</AppShell>
           </FiltersProvider>
