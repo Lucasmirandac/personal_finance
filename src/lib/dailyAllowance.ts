@@ -1,6 +1,5 @@
 import { accountsToCardConfigs } from "./accounts";
 import { currentMonthIso, normalizeBudgetCategory } from "./budgets";
-import { todayIso } from "./dates";
 import { computeLeverageRatio } from "./leverage";
 import {
   buildFaturaEvents,
@@ -111,6 +110,7 @@ function computeGastoVariavelMes(
 function computeOpenInvoices(
   normalized: TransactionNormalized[],
   accounts: Account[],
+  todayIsoStr: string,
 ): {
   total: number;
   proximoPagamento: string | null;
@@ -124,9 +124,8 @@ function computeOpenInvoices(
     ),
   ];
 
-  const today = todayIso();
   const upcoming = faturaEvents.filter(
-    (e) => e.type === "fatura" && e.date >= today,
+    (e) => e.type === "fatura" && e.date >= todayIsoStr,
   );
 
   const byCard = new Map<string, CashEvent>();
@@ -214,8 +213,9 @@ export function computeDailyAllowance(
     monthIso,
   );
 
+  const todayIsoStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   const { total: faturaAbertaCartao, proximoPagamento, cartoesComFaturaAberta } =
-    computeOpenInvoices(input.normalized, input.accounts);
+    computeOpenInvoices(input.normalized, input.accounts, todayIsoStr);
 
   const sobraBruta = round2(
     rendaDisponivel - gastoVariavelMes - faturaAbertaCartao,

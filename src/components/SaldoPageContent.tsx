@@ -18,7 +18,11 @@ import { Num } from "@/components/ui/Num"
 import { formatBRL, formatDateBR, formatLongDate, formatRelativeDays } from "@/lib/format"
 import { buildPainelAlerts, PainelAlert } from "@/lib/alerts"
 import { useAppStore } from "@/lib/store"
-import { ACCOUNT_KIND_LABELS, accountsToBalanceAnchor } from "@/lib/accounts"
+import {
+  ACCOUNT_KIND_LABELS,
+  accountsToBalanceAnchor,
+  cashAccountsHaveMixedReferenceDates,
+} from "@/lib/accounts"
 import {
   projectionSnapshot,
   isSettingsComplete,
@@ -113,6 +117,7 @@ export function SaldoPageContent() {
   const activeAccounts = accounts.filter((account) => account.ativa)
   const totalAccounts = activeAccounts.reduce((sum, account) => sum + account.saldoInicial, 0)
   const cardAccounts = activeAccounts.filter((account) => account.kind === "cartao")
+  const mixedReferenceDates = cashAccountsHaveMixedReferenceDates(accounts)
   const upcomingIncome = upcoming.filter((event) => event.amount > 0).reduce((sum, event) => sum + event.amount, 0)
   const upcomingOutcome = upcoming.filter((event) => event.amount < 0).reduce((sum, event) => sum + event.amount, 0)
   const outlookTone = summary && summary.menorSaldo < 0 ? "danger" : "success"
@@ -162,6 +167,7 @@ export function SaldoPageContent() {
             activeAccounts={activeAccounts}
             cardAccountsCount={cardAccounts.length}
             totalAccounts={totalAccounts}
+            mixedReferenceDates={mixedReferenceDates}
             onManage={() => setConfigOpen(true)}
           />
         </div>
@@ -280,7 +286,7 @@ function TodayHero({
           <div className="grid gap-2">
             <TodayMetric
               label="Próximo compromisso"
-              value={nextBill ? formatBRL(nextBill.amount) : "Sem saídas"}
+              value={nextBill ? formatBRL(Math.abs(nextBill.amount)) : "Sem saídas"}
               hint={
                 nextBill
                   ? `${nextBill.description} · ${formatRelativeDays(nextBill.date)}`
@@ -334,7 +340,7 @@ function ActionSummary({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} />
         <StatTile label="Entradas" value={formatBRL(upcomingIncome)} tone="success" />
-        <StatTile label="Saídas" value={formatBRL(upcomingOutcome)} tone="danger" />
+        <StatTile label="Saídas" value={formatBRL(Math.abs(upcomingOutcome))} tone="danger" />
         <StatTile
           label="Menor saldo"
           value={formatBRL(summary?.menorSaldo)}
@@ -351,12 +357,14 @@ function AccountsSummary({
   activeAccounts,
   cardAccountsCount,
   totalAccounts,
+  mixedReferenceDates,
   onManage,
 }: Readonly<{
   anchor: BalanceAnchor
   activeAccounts: Account[]
   cardAccountsCount: number
   totalAccounts: number
+  mixedReferenceDates: boolean
   onManage: () => void
 }>) {
   return (
@@ -374,6 +382,12 @@ function AccountsSummary({
           Gerenciar
         </Button>
       </div>
+      {mixedReferenceDates && (
+        <p className="mt-3 rounded-2xl bg-warning/10 px-3 py-2 text-xs text-warning">
+          Suas contas foram atualizadas em datas diferentes. O saldo consolidado
+          pode misturar momentos distintos — atualize todas para a mesma data.
+        </p>
+      )}
       <div className="mt-4 space-y-2">
         {activeAccounts.slice(0, 3).map((account) => (
           <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2/70 px-3 py-2">

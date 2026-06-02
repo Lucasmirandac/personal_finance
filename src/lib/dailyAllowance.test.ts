@@ -107,4 +107,50 @@ describe("computeDailyAllowance", () => {
     expect(result.rendaMensal).toBe(0);
     expect(result.diarioRestante).toBe(0);
   });
+
+  it("uses the injected today for open invoices instead of the system clock", () => {
+    const interCard = {
+      id: "card-inter",
+      nome: "Inter",
+      kind: "cartao" as const,
+      saldoInicial: 0,
+      dataReferencia: "2026-01-01",
+      ativa: true,
+      criadaEm: "2026-01-01T00:00:00.000Z",
+      fonteCsv: "inter" as const,
+      diaFechamento: 30,
+      diaPagamento: 7,
+    };
+    // Inter installment is paid on its own date (07/06/2026).
+    const installment = tx("2026-06-07", 500, {
+      id: "parcela",
+      fonte: "inter",
+      sourceId: "src-inter",
+      natureza: "Gasto",
+      valorAnalise: 500,
+      tipo: "Parcela 2/3",
+      accountId: "card-inter",
+    });
+
+    const baseInput = {
+      normalized: [installment],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [interCard],
+      structuralCategories: [],
+    };
+
+    // today before the due date → still an open invoice.
+    const before = computeDailyAllowance({
+      ...baseInput,
+      today: new Date("2026-06-01T12:00:00.000Z"),
+    });
+    expect(before.faturaAbertaCartao).toBe(500);
+
+    // today after the due date → invoice already paid, not open anymore.
+    const after = computeDailyAllowance({
+      ...baseInput,
+      today: new Date("2026-06-30T12:00:00.000Z"),
+    });
+    expect(after.faturaAbertaCartao).toBe(0);
+  });
 });

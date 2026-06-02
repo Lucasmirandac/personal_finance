@@ -99,6 +99,19 @@ export function accountsToBalanceAnchor(accounts: Account[]): BalanceAnchor | nu
   };
 }
 
+/**
+ * True when active cash accounts were last updated on different reference dates.
+ * In that case a single consolidated balance anchor can mix balances from
+ * different moments, so the UI should warn before treating it as "today".
+ */
+export function cashAccountsHaveMixedReferenceDates(accounts: Account[]): boolean {
+  const refs = accounts
+    .filter((a) => a.ativa && a.kind !== "cartao" && a.dataReferencia)
+    .map((a) => a.dataReferencia);
+  if (refs.length <= 1) return false;
+  return new Set(refs).size > 1;
+}
+
 export function accountsToCardConfigs(accounts: Account[]): CardConfig[] {
   return accounts
     .filter(

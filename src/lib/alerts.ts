@@ -129,7 +129,7 @@ export const buildPainelAlerts = ({
       accent: "orange",
       icon: "calendar",
       title: "Conta alta nos próximos 7 dias",
-      detail: `${nearOutgoing.description} · ${formatDateShort(nearOutgoing.date)} · ${formatBRLShort(nearOutgoing.amount)}`,
+      detail: `${nearOutgoing.description} · ${formatDateShort(nearOutgoing.date)} · ${formatBRLShort(Math.abs(nearOutgoing.amount))}`,
       href: "/saldo",
     })
   }
