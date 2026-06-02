@@ -127,6 +127,92 @@ export function isoToBr(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+const INTER_INSTALLMENT_TIPO_RE = /^Parcela\s+\d+\s*\/\s*\d+\s*$/i;
+const COMPRA_SUFFIX_RE = /\s*\(compra\s+\d{2}\/\d{2}\/\d{4}\)\s*$/i;
+
+export function isInterInstallmentTipo(tipo: string): boolean {
+  return INTER_INSTALLMENT_TIPO_RE.test(tipo.trim());
+}
+
+function addMonthsToAnoMes(anoMes: string, months: number): string {
+  const [y, m] = anoMes.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1 + months, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function lastDayOfAnoMes(anoMes: string): number {
+  const [y, m] = anoMes.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+export function inferInvoiceAnoMes(
+  dates: string[],
+  diaFechamento?: number,
+): string | null {
+  if (dates.length === 0) return null;
+
+  const maxDate = dates.reduce((max, iso) => (iso > max ? iso : max));
+  const [year, month, day] = maxDate.split("-").map(Number);
+  const baseAnoMes = `${year}-${String(month).padStart(2, "0")}`;
+
+  if (diaFechamento === undefined) {
+    return addMonthsToAnoMes(baseAnoMes, 1);
+  }
+
+  const monthsToAdd = day <= diaFechamento ? 1 : 2;
+  return addMonthsToAnoMes(baseAnoMes, monthsToAdd);
+}
+
+export function rewriteInstallmentRow(
+  raw: TransactionRaw,
+  invoiceAnoMes: string,
+  diaPagamento?: number,
+): TransactionRaw {
+  const originalData = raw.data.trim();
+  const paymentDay = Math.min(
+    Math.max(diaPagamento ?? 1, 1),
+    lastDayOfAnoMes(invoiceAnoMes),
+  );
+  const [year, month] = invoiceAnoMes.split("-");
+  const invoiceData = `${String(paymentDay).padStart(2, "0")}/${month}/${year}`;
+
+  const lancamento = COMPRA_SUFFIX_RE.test(raw.lancamento)
+    ? raw.lancamento.trim()
+    : `${raw.lancamento.trim()} (compra ${originalData})`;
+
+  return {
+    ...raw,
+    data: invoiceData,
+    lancamento,
+  };
+}
+
+function applyInterInstallmentRewrites(
+  raw: TransactionRaw[],
+  cardAccount: Account,
+): void {
+  const nonInstallmentISOs = raw
+    .filter((row) => !isInterInstallmentTipo(row.tipo))
+    .map((row) => parseBrDate(row.data))
+    .filter((iso): iso is string => iso !== null);
+
+  const invoiceAnoMes = inferInvoiceAnoMes(
+    nonInstallmentISOs,
+    cardAccount.diaFechamento,
+  );
+  if (!invoiceAnoMes) return;
+
+  for (let i = 0; i < raw.length; i++) {
+    if (isInterInstallmentTipo(raw[i].tipo)) {
+      raw[i] = rewriteInstallmentRow(
+        raw[i],
+        invoiceAnoMes,
+        cardAccount.diaPagamento,
+      );
+    }
+  }
+}
+
 function stripBom(text: string): string {
   return text.replace(/^\uFEFF/, "");
 }
@@ -185,6 +271,8 @@ export function parseCsvText(
   const raw: TransactionRaw[] = [];
 
   if (format === "inter") {
+    const interCard = ensureCardAccount(accounts, "inter").account;
+
     result.data.forEach((rowAny, idx) => {
       const lineNumber = idx + 2;
       const row = mapRowKeys(rowAny);
@@ -224,6 +312,8 @@ export function parseCsvText(
         sourceId,
       });
     });
+
+    applyInterInstallmentRewrites(raw, interCard);
   } else {
     result.data.forEach((rowAny, idx) => {
       const lineNumber = idx + 2;
