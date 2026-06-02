@@ -20,6 +20,8 @@ import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input, Select } from "@/components/ui/Input";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Num } from "@/components/ui/Num";
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo";
+import { g } from "@/lib/glossary";
 
 type Props = {
   open: boolean;
@@ -165,7 +167,9 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
               id="afford-title"
               className="text-[11px] font-semibold tracking-wider uppercase text-muted"
             >
-              Posso comprar isso?
+              <LabelWithInfo info={g("simulacaoAfford")} ariaTopic="Posso comprar isso">
+                Posso comprar isso?
+              </LabelWithInfo>
             </h2>
             <p className="text-xs text-muted mt-0.5">
               Simulação em tempo real — não cria transação.
@@ -294,7 +298,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
             )}
 
             {result.saldo30 && (
-              <ImpactSection title="Saldo mínimo (30 dias)">
+              <ImpactSection title="Saldo mínimo (30 dias)" info={g("menorSaldo")}>
                 <p className="text-xs">
                   <Num className="font-mono tabular-nums">
                     {formatBRL(result.saldo30.menorAntes)}
@@ -312,7 +316,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
             )}
 
             {result.saldo90 && (
-              <ImpactSection title="Saldo mínimo (90 dias)">
+              <ImpactSection title="Saldo mínimo (90 dias)" info={g("saldo90d")}>
                 <p className="text-xs">
                   <Num className="font-mono tabular-nums">
                     {formatBRL(result.saldo90.menorAntes)}
@@ -330,7 +334,10 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
             )}
 
             {result.budget && (
-              <ImpactSection title={`Orçamento · ${result.budget.categoria}`}>
+              <ImpactSection
+                title={`Orçamento · ${result.budget.categoria}`}
+                info={g("orcamentoCategoria")}
+              >
                 <p className="text-xs">
                   {result.budget.pctAntes.toFixed(0)}% →{" "}
                   <span
@@ -356,7 +363,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
             )}
 
             {result.pazFutura && (
-              <ImpactSection title="Paz Futura">
+              <ImpactSection title="Paz Futura" info={g("tranquilidade")}>
                 <p className="text-xs">
                   Em {result.pazFutura.labelMesReferencia}:{" "}
                   {formatMeses(result.pazFutura.mesesAntes)} →{" "}
@@ -397,14 +404,22 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
 
 function ImpactSection({
   title,
+  info,
   children,
 }: {
   title: string;
+  info?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="border border-border rounded-md px-3 py-2 space-y-1">
-      <p className="text-[10px] uppercase tracking-wider text-muted">{title}</p>
+      <LabelWithInfo
+        labelClassName="text-[10px] uppercase tracking-wider text-muted"
+        info={info}
+        ariaTopic={title}
+      >
+        {title}
+      </LabelWithInfo>
       {children}
     </div>
   );

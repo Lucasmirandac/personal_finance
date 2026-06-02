@@ -7,6 +7,7 @@ import { QuickAddModal } from "@/components/QuickAddModal"
 import { TransactionEditModal } from "@/components/TransactionEditModal"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
 import { Badge } from "@/components/ui/Badge"
+import { g } from "@/lib/glossary"
 import { Button } from "@/components/ui/Button"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
@@ -87,10 +88,10 @@ export function TodayTransactionsPanel() {
                       {isCard ? "Cartão" : "Conta"}
                     </Badge>
                     {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
-                      <Badge className="text-[10px]">editado</Badge>
+                      <Badge className="text-[10px]" info={g("editado")}>editado</Badge>
                     )}
                     {isForecastTransaction(tx) && (
-                      <Badge className="text-[10px]">previsto</Badge>
+                      <Badge className="text-[10px]" info={g("previsto")}>previsto</Badge>
                     )}
                   </div>
                   <p className="mt-1 truncate text-sm font-medium">{tx.lancamento}</p>

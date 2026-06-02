@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { Info } from "lucide-react";
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo";
 import { Panel } from "@/components/ui/Panel";
+import { g } from "@/lib/glossary";
 import { Num } from "@/components/ui/Num";
 import { computeDailyAllowance, DailyAllowanceStatus } from "@/lib/dailyAllowance";
 import { formatBRL, formatDateBR } from "@/lib/format";
@@ -40,8 +41,6 @@ function cardBarTone(pct: number): string {
 export function DailyAllowancePanel() {
   const { normalized, recurringRules, accounts, structuralCategories } =
     useAppStore();
-  const [infoOpen, setInfoOpen] = useState(false);
-
   const result = useMemo(
     () =>
       computeDailyAllowance({
@@ -61,9 +60,13 @@ export function DailyAllowancePanel() {
   if (!result.temRendaCadastrada) {
     return (
       <Panel className="rounded-3xl p-5 shadow-[var(--shadow-card)] ring-1 ring-border/60">
-        <p className="text-[11px] uppercase tracking-wider text-muted">
+        <LabelWithInfo
+          labelClassName="text-[11px] uppercase tracking-wider text-muted"
+          info={g("saldoDiario")}
+          ariaTopic="Saldo diário disponível"
+        >
           Saldo diário disponível
-        </p>
+        </LabelWithInfo>
         <p className="mt-3 text-sm text-muted leading-relaxed">
           Cadastre sua renda recorrente em{" "}
           <Link
@@ -86,9 +89,13 @@ export function DailyAllowancePanel() {
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-[11px] uppercase tracking-wider text-muted">
+        <LabelWithInfo
+          labelClassName="text-[11px] uppercase tracking-wider text-muted"
+          info={g("saldoDiario")}
+          ariaTopic="Saldo diário disponível"
+        >
           Saldo diário disponível
-        </p>
+        </LabelWithInfo>
         <span
           className={clsx(
             "rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
@@ -144,47 +151,33 @@ export function DailyAllowancePanel() {
 
       <dl className="mt-5 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-3">
-          <dt className="flex items-center gap-1 text-muted">
-            Renda disponível
-            <button
-              type="button"
-              className="inline-flex rounded-full p-0.5 text-muted hover:text-foreground"
-              aria-label="Como calculamos a renda disponível"
-              aria-expanded={infoOpen}
-              onClick={() => setInfoOpen((open) => !open)}
-            >
-              <Info size={14} />
-            </button>
+          <dt className="text-muted">
+            <LabelWithInfo info={g("rendaDisponivel")} ariaTopic="Renda disponível">
+              Renda disponível
+            </LabelWithInfo>
           </dt>
           <dd>
             <Num className="font-mono tabular-nums">{formatBRL(result.rendaDisponivel)}</Num>
           </dd>
         </div>
 
-        {infoOpen && (
-          <div className="rounded-xl bg-surface/80 px-3 py-2 text-xs text-muted leading-relaxed ring-1 ring-border/60">
-            Renda disponível = receitas recorrentes − custos fixos (regras +
-            categorias estruturais do CSV). Ajuste em{" "}
-            <Link href="/recorrentes" className="text-accent underline underline-offset-2">
-              Recorrentes
-            </Link>{" "}
-            ou no{" "}
-            <Link href="/divisor" className="text-accent underline underline-offset-2">
-              Divisor de Águas
-            </Link>
-            .
-          </div>
-        )}
-
         <div className="flex items-center justify-between gap-3">
-          <dt className="text-muted">Já gasto este mês</dt>
+          <dt className="text-muted">
+            <LabelWithInfo info={g("jaGasto")} ariaTopic="Já gasto este mês">
+              Já gasto este mês
+            </LabelWithInfo>
+          </dt>
           <dd>
             <Num className="font-mono tabular-nums">{formatBRL(jaGastoMes)}</Num>
           </dd>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <dt className="text-muted">Sobra do mês</dt>
+          <dt className="text-muted">
+            <LabelWithInfo info={g("sobraDoMes")} ariaTopic="Sobra do mês">
+              Sobra do mês
+            </LabelWithInfo>
+          </dt>
           <dd>
             <Num
               className={clsx(
@@ -212,9 +205,13 @@ export function DailyAllowancePanel() {
 
           <div className="space-y-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="text-[11px] uppercase tracking-wider text-muted">
+              <LabelWithInfo
+                labelClassName="text-[11px] uppercase tracking-wider text-muted"
+                info={g("faturaAberta")}
+                ariaTopic="Cartão (fatura aberta)"
+              >
                 Cartão (fatura aberta)
-              </p>
+              </LabelWithInfo>
               {result.cartoesComFaturaAberta > 1 && (
                 <span className="text-[10px] text-muted">
                   {result.cartoesComFaturaAberta} cartões
@@ -254,7 +251,10 @@ export function DailyAllowancePanel() {
             </div>
 
             <p className="text-xs text-muted">
-              Teto recomendado = renda disponível mensal
+              <LabelWithInfo info={g("tetoCartao")} ariaTopic="Teto recomendado">
+                Teto recomendado
+              </LabelWithInfo>{" "}
+              = renda disponível mensal
               {result.proximoPagamento && (
                 <>
                   {" "}

@@ -1,4 +1,5 @@
 import clsx from "clsx"
+import { InfoTip } from "@/components/ui/InfoTip"
 import { Num } from "@/components/ui/Num"
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
   hint?: string
   delta?: string
   tone?: "default" | "success" | "danger" | "warning" | "info"
+  info?: React.ReactNode
 }
 
 const toneClasses: Record<NonNullable<Props["tone"]>, string> = {
@@ -23,10 +25,16 @@ export function StatTile({
   hint,
   delta,
   tone = "default",
+  info,
 }: Readonly<Props>) {
   return (
     <div className="rounded-2xl bg-surface p-4 ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden">
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+        {info != null && (
+          <InfoTip content={info} label={`Mais informações: ${label}`} />
+        )}
+      </div>
       <Num className={clsx("mt-2 block text-lg font-semibold tracking-tight num-display sm:text-xl", toneClasses[tone])}>
         {value}
       </Num>

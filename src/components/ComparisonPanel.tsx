@@ -22,6 +22,7 @@ import {
 import { TransactionNormalized } from "@/lib/types";
 import { formatBRL, formatBRLAxis, formatMonthLabel, formatPercent } from "@/lib/format";
 import { KpiCard, KpiStrip } from "@/components/KpiCard";
+import { g } from "@/lib/glossary";
 import { ChartCard } from "@/components/charts/ChartCard";
 import {
   DataTable,
@@ -167,6 +168,7 @@ export function ComparisonPanel({ data }: Props) {
         <KpiCard label={anchorLabel} value={formatBRL(totals.current)} tone="danger" />
         <KpiCard
           label={hasPrev ? prevLabel : "Mês anterior"}
+          info={g("deltaAnterior")}
           value={hasPrev ? formatBRL(totals.prev) : "—"}
           hint={
             hasPrev ? (
@@ -178,6 +180,7 @@ export function ComparisonPanel({ data }: Props) {
         />
         <KpiCard
           label={hasPrevYear ? prevYearLabel : "Mesmo mês ano passado"}
+          info={g("deltaAnoPassado")}
           value={hasPrevYear ? formatBRL(totals.prevYear) : "—"}
           hint={
             hasPrevYear ? (
@@ -191,7 +194,11 @@ export function ComparisonPanel({ data }: Props) {
       </KpiStrip>
 
       {chartData.length > 0 && (hasPrev || hasPrevYear) && (
-        <ChartCard title="Top categorias" subtitle="Top 10 por gasto no mês de referência">
+        <ChartCard
+          title="Top categorias"
+          subtitle="Top 10 por gasto no mês de referência"
+          info={g("gastosPorCategoria")}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}

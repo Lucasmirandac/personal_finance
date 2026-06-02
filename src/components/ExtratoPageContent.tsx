@@ -6,6 +6,8 @@ import { QuickAddModal } from "@/components/QuickAddModal"
 import { TransactionEditModal } from "@/components/TransactionEditModal"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
 import { Badge } from "@/components/ui/Badge"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
+import { g, type GlossaryKey } from "@/lib/glossary"
 import { Button } from "@/components/ui/Button"
 import { Input, Select } from "@/components/ui/Input"
 import { Num } from "@/components/ui/Num"
@@ -95,7 +97,11 @@ export function ExtratoPageContent() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-muted">Extrato</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Movimentos de conta</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            <LabelWithInfo info={g("extrato")} ariaTopic="Movimentos de conta">
+              Movimentos de conta
+            </LabelWithInfo>
+          </h1>
           <p className="mt-1 text-sm text-muted">
             Conta-corrente, carteira e poupança em um fluxo separado dos cartões.
           </p>
@@ -138,9 +144,14 @@ export function ExtratoPageContent() {
           </label>
 
           <div className="grid grid-cols-3 gap-2 text-sm md:min-w-[24rem]">
-            <Summary label="Entradas" value={totals.income} tone="success" />
-            <Summary label="Saídas" value={-totals.outcome} tone="danger" />
-            <Summary label="Saldo" value={totals.net} tone={totals.net >= 0 ? "success" : "danger"} />
+            <Summary label="Entradas" value={totals.income} tone="success" infoKey="entradasExtrato" />
+            <Summary label="Saídas" value={-totals.outcome} tone="danger" infoKey="saidasExtrato" />
+            <Summary
+              label="Saldo"
+              value={totals.net}
+              tone={totals.net >= 0 ? "success" : "danger"}
+              infoKey="saldoExtrato"
+            />
           </div>
         </div>
       </Panel>
@@ -179,11 +190,13 @@ export function ExtratoPageContent() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-medium">{tx.lancamento}</p>
                           {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
-                            <Badge className="text-[10px]">editado</Badge>
+                            <Badge className="text-[10px]" info={g("editado")}>editado</Badge>
                           )}
-                          {recurring && <Badge className="text-[10px]">recorrente</Badge>}
+                          {recurring && (
+                            <Badge className="text-[10px]" info={g("recorrente")}>recorrente</Badge>
+                          )}
                           {isForecastTransaction(tx) && (
-                            <Badge className="text-[10px]">previsto</Badge>
+                            <Badge className="text-[10px]" info={g("previsto")}>previsto</Badge>
                           )}
                         </div>
                         <p className="mt-0.5 text-xs text-muted">
@@ -245,14 +258,22 @@ function Summary({
   label,
   value,
   tone,
+  infoKey,
 }: Readonly<{
   label: string
   value: number
   tone: "success" | "danger"
+  infoKey?: GlossaryKey
 }>) {
   return (
     <div className="rounded-2xl bg-surface-2/70 p-3">
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <LabelWithInfo
+        labelClassName="text-[10px] uppercase tracking-wider text-muted"
+        info={infoKey ? g(infoKey) : undefined}
+        ariaTopic={label}
+      >
+        {label}
+      </LabelWithInfo>
       <Num className={tone === "success" ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>
         {formatBRL(value)}
       </Num>

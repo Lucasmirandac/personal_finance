@@ -6,6 +6,7 @@ import { DEFAULT_RULES, Rules } from "@/lib/types"
 import { NatureBadge } from "@/components/NatureBadge"
 import { StatTile } from "@/components/ui/StatTile"
 import { formatBRL, formatInt } from "@/lib/format"
+import { g } from "@/lib/glossary"
 import { Button } from "@/components/ui/Button"
 import { Chip } from "@/components/ui/Chip"
 import {
@@ -153,10 +154,10 @@ export function ClassificacaoPanel() {
             <span className="text-[11px] text-muted">Salve para aplicar</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatTile label="Gasto" value={formatBRL(preview.total)} />
-            <StatTile label="Consumo" value={formatInt(preview.countGasto)} />
-            <StatTile label="Pagamentos" value={formatInt(preview.countPag)} />
-            <StatTile label="Estornos" value={formatInt(preview.countEst)} />
+            <StatTile label="Gasto" value={formatBRL(preview.total)} info={g("gasto")} />
+            <StatTile label="Consumo" value={formatInt(preview.countGasto)} info={g("gasto")} />
+            <StatTile label="Pagamentos" value={formatInt(preview.countPag)} info={g("pagamentoFatura")} />
+            <StatTile label="Estornos" value={formatInt(preview.countEst)} info={g("estorno")} />
           </div>
           {preview.excludedSamples.length > 0 && (
             <div className="rounded-2xl ring-1 ring-border/60 overflow-x-auto">

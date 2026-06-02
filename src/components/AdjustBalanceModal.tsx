@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { MoneyInput } from "@/components/ui/MoneyInput";
 import { Num } from "@/components/ui/Num";
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo";
+import { g } from "@/lib/glossary";
 import { X } from "lucide-react";
 
 type Props = {
@@ -189,7 +191,11 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
         </div>
 
         <fieldset className="space-y-2">
-          <legend className="text-xs text-muted">Como aplicar a diferença</legend>
+          <legend className="text-xs text-muted">
+            <LabelWithInfo info={g("diferencaSaldo")} ariaTopic="Como aplicar a diferença">
+              Como aplicar a diferença
+            </LabelWithInfo>
+          </legend>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="radio"
@@ -225,7 +231,10 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
                 >
                   <div className="font-medium text-sm">{a.nome}</div>
                   <p className="text-xs text-muted">
-                    Projetado hoje:{" "}
+                    <LabelWithInfo info={g("saldoProjetadoHoje")} ariaTopic="Projetado hoje">
+                      Projetado hoje
+                    </LabelWithInfo>
+                    :{" "}
                     <Num>{formatBRL(p?.projected ?? 0)}</Num>
                   </p>
                   <label className="block space-y-1">

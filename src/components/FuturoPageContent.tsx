@@ -8,6 +8,7 @@ import { BalanceProjectionChart } from "@/components/charts/BalanceProjectionCha
 import { UpcomingTimeline } from "@/components/painel/UpcomingTimeline"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { StatTile } from "@/components/ui/StatTile"
+import { g } from "@/lib/glossary"
 import { Panel } from "@/components/ui/Panel"
 import { formatBRL, formatDateBR } from "@/lib/format"
 import { useAppStore } from "@/lib/store"
@@ -110,17 +111,18 @@ export function FuturoPageContent() {
 
       {summary && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} />
-          <StatTile label="Em 30d" value={formatBRL(snapshot30?.balance)} />
-          <StatTile label="Em 90d" value={formatBRL(snapshot90?.balance)} />
+          <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} info={g("saldo7d")} />
+          <StatTile label="Em 30d" value={formatBRL(snapshot30?.balance)} info={g("saldo30d")} />
+          <StatTile label="Em 90d" value={formatBRL(snapshot90?.balance)} info={g("saldo90d")} />
           <StatTile
             label="Menor saldo"
             value={formatBRL(summary.menorSaldo)}
             hint={summary.menorSaldoData ?? undefined}
             tone={summary.menorSaldo >= 0 ? "default" : "danger"}
+            info={g("menorSaldo")}
           />
-          <StatTile label="Receitas" value={formatBRL(upcomingIncome)} tone="success" />
-          <StatTile label="Saídas" value={formatBRL(upcomingOutcome)} tone="danger" />
+          <StatTile label="Receitas" value={formatBRL(upcomingIncome)} tone="success" info={g("entradas")} />
+          <StatTile label="Saídas" value={formatBRL(Math.abs(upcomingOutcome))} tone="danger" info={g("saidas")} />
         </div>
       )}
 
@@ -130,6 +132,7 @@ export function FuturoPageContent() {
             <ChartCard
               title="Projeção de saldo"
               subtitle="Compras de cartão entram no dia de pagamento da fatura"
+              info={g("projecaoSaldo")}
               className="rounded-3xl"
             >
               <BalanceProjectionChart data={series} />

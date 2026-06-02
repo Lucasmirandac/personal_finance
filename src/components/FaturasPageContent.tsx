@@ -6,6 +6,8 @@ import { ChevronDown, ChevronRight, CreditCard } from "lucide-react"
 import { TransactionEditModal } from "@/components/TransactionEditModal"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
 import { Badge } from "@/components/ui/Badge"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
+import { g, type GlossaryKey } from "@/lib/glossary"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { todayIso } from "@/lib/dates"
@@ -93,7 +95,11 @@ export function FaturasPageContent() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-muted">Faturas</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Compras por cartão</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            <LabelWithInfo info={g("faturas")} ariaTopic="Compras por cartão">
+              Compras por cartão
+            </LabelWithInfo>
+          </h1>
           <p className="mt-1 text-sm text-muted">
             Edite compras no contexto da fatura, separadas dos movimentos de conta.
           </p>
@@ -128,9 +134,9 @@ export function FaturasPageContent() {
           </Panel>
 
           <div className="grid gap-3 md:grid-cols-3">
-            <CycleSummary label="Fatura em foco" group={currentCycle} />
-            <CycleSummary label="Compras" group={currentCycle} mode="count" />
-            <CycleSummary label="Pagamento" group={currentCycle} mode="date" />
+            <CycleSummary label="Fatura em foco" infoKey="faturaEmFoco" group={currentCycle} />
+            <CycleSummary label="Compras" infoKey="comprasFatura" group={currentCycle} mode="count" />
+            <CycleSummary label="Pagamento" infoKey="pagamentoDia" group={currentCycle} mode="date" />
           </div>
 
           <div className="space-y-3">
@@ -177,10 +183,12 @@ export function FaturasPageContent() {
 
 function CycleSummary({
   label,
+  infoKey,
   group,
   mode = "total",
 }: Readonly<{
   label: string
+  infoKey?: GlossaryKey
   group: CardCycleGroup | null
   mode?: "total" | "count" | "date"
 }>) {
@@ -198,7 +206,13 @@ function CycleSummary({
 
   return (
     <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <LabelWithInfo
+        labelClassName="text-[10px] uppercase tracking-wider text-muted"
+        info={infoKey ? g(infoKey) : undefined}
+        ariaTopic={label}
+      >
+        {label}
+      </LabelWithInfo>
       <p className="mt-1 text-lg font-semibold tracking-tight">{value}</p>
       {group && mode === "total" && (
         <p className="mt-1 text-xs text-muted">
@@ -243,7 +257,15 @@ function CyclePanel({
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-semibold tracking-tight">Fatura {formatDateBR(group.payDate)}</span>
-            <Badge>{status}</Badge>
+            <Badge
+              info={
+                group.payDate >= today
+                  ? g("faturaAbertaBadge")
+                  : g("faturaFechadaBadge")
+              }
+            >
+              {status}
+            </Badge>
           </span>
           <span className="mt-0.5 block text-xs text-muted">
             {group.account.nome} · {formatInt(group.transactions.length)} compra
@@ -275,7 +297,7 @@ function CyclePanel({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-medium">{tx.lancamento}</p>
                     {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
-                      <Badge className="text-[10px]">editado</Badge>
+                      <Badge className="text-[10px]" info={g("editado")}>editado</Badge>
                     )}
                   </div>
                   <p className="mt-0.5 text-xs text-muted">

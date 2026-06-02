@@ -1,4 +1,5 @@
 import clsx from "clsx"
+import { InfoTip } from "@/components/ui/InfoTip"
 
 export type BadgeVariant =
   | "default"
@@ -11,6 +12,7 @@ export type BadgeVariant =
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   variant?: BadgeVariant
   dot?: boolean
+  info?: React.ReactNode
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
@@ -27,12 +29,13 @@ export function Badge({
   dot = false,
   className,
   children,
+  info,
   ...props
 }: Props) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-surface-2 border border-border",
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-surface-2 border border-border",
         dot && "before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-current before:shrink-0",
         variantClasses[variant],
         className,
@@ -40,6 +43,17 @@ export function Badge({
       {...props}
     >
       {children}
+      {info != null && (
+        <InfoTip
+          content={info}
+          label={
+            typeof children === "string"
+              ? `Mais informações: ${children}`
+              : "Mais informações"
+          }
+          className="-mr-0.5"
+        />
+      )}
     </span>
   )
 }

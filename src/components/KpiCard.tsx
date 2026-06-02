@@ -12,6 +12,7 @@ type Props = {
   label: string;
   value: string;
   hint?: React.ReactNode;
+  info?: React.ReactNode;
   tone?: "default" | "accent" | "warning" | "success" | "danger";
   delta?: Delta;
   compact?: boolean;
@@ -21,6 +22,7 @@ export function KpiCard({
   label,
   value,
   hint,
+  info,
   tone = "default",
   delta,
   compact = false,
@@ -39,7 +41,7 @@ export function KpiCard({
   return (
     <div className={clsx(compact ? "py-2" : "")}>
       <div className="flex items-center justify-between gap-2">
-        <SectionTitle>{label}</SectionTitle>
+        <SectionTitle info={info}>{label}</SectionTitle>
         {delta && (
           <Num
             className={clsx(

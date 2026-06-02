@@ -26,6 +26,8 @@ import { NatureBadge } from "@/components/NatureBadge";
 import { QuickAddModal } from "@/components/QuickAddModal";
 import { TransactionEditModal } from "@/components/TransactionEditModal";
 import { Badge } from "@/components/ui/Badge";
+import { TableHeaderLabel } from "@/components/ui/TableHeaderLabel";
+import { g } from "@/lib/glossary";
 import { Button } from "@/components/ui/Button";
 import {
   DataTable,
@@ -184,22 +186,22 @@ export default function TransacoesPage() {
       },
       {
         accessorKey: "natureza",
-        header: "Natureza",
+        header: () => <TableHeaderLabel infoKey="natureza">Natureza</TableHeaderLabel>,
         cell: ({ row }) => (
           <span className="inline-flex items-center gap-1.5 flex-wrap">
             <NatureBadge natureza={row.original.natureza} />
             {isEdited(row.original.id, edits, installmentGroupEdits, row.original) && (
-              <Badge className="text-[10px]">editado</Badge>
+              <Badge className="text-[10px]" info={g("editado")}>editado</Badge>
             )}
             {isForecastTransaction(row.original) && (
-              <Badge className="text-[10px]">previsto</Badge>
+              <Badge className="text-[10px]" info={g("previsto")}>previsto</Badge>
             )}
           </span>
         ),
       },
       {
         accessorKey: "valorOriginal",
-        header: "Valor orig.",
+        header: () => <TableHeaderLabel infoKey="valorOriginal">Valor orig.</TableHeaderLabel>,
         cell: ({ getValue, row }) => (
           <Num
             className={clsx(
@@ -212,7 +214,7 @@ export default function TransacoesPage() {
       },
       {
         accessorKey: "valorAnalise",
-        header: "Valor análise",
+        header: () => <TableHeaderLabel infoKey="valorAnalise">Valor análise</TableHeaderLabel>,
         cell: ({ getValue, row }) => (
           <Num
             className={clsx(
@@ -224,7 +226,10 @@ export default function TransacoesPage() {
         ),
       },
       { accessorKey: "diaSemana", header: "Dia" },
-      { accessorKey: "faixaValor", header: "Faixa" },
+      {
+        accessorKey: "faixaValor",
+        header: () => <TableHeaderLabel infoKey="faixaValor">Faixa</TableHeaderLabel>,
+      },
       {
         id: "actions",
         header: "Ações",

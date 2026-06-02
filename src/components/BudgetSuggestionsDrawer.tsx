@@ -15,6 +15,8 @@ import {
 import { useAppStore } from "@/lib/store"
 import { formatBRL } from "@/lib/format"
 import { Button } from "@/components/ui/Button"
+import { InfoTip } from "@/components/ui/InfoTip"
+import { g } from "@/lib/glossary"
 import { DrawerBackdrop } from "@/components/ui/Drawer"
 import { MoneyInput } from "@/components/ui/MoneyInput"
 import { Num } from "@/components/ui/Num"
@@ -324,7 +326,11 @@ function SuggestionRow({
         <span className="flex-1 min-w-0">
           <span className="font-medium text-sm block">{suggestion.categoria}</span>
           <span className="text-xs text-muted block mt-0.5">
-            Mediana de{" "}
+            <span className="inline-flex items-center gap-0.5">
+              Mediana
+              <InfoTip content={g("mediana")} label="Mais informações: Mediana" />
+            </span>{" "}
+            de{" "}
             <Num className="num-display font-mono">
               {formatBRL(suggestion.baseMedianaMensal)}
             </Num>{" "}

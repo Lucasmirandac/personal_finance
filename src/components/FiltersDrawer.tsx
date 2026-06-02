@@ -8,6 +8,7 @@ import { MultiSelect } from "./MultiSelect";
 import { DateRangePicker } from "./DateRangePicker";
 import { FAIXA_LABELS } from "@/lib/normalize";
 import { countActiveFilters } from "@/lib/filters";
+import { g } from "@/lib/glossary";
 import { Button } from "@/components/ui/Button";
 import { DrawerBackdrop } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
@@ -127,6 +128,7 @@ export function FiltersDrawer({
           />
           <MultiSelect
             label="Natureza"
+            info={g("natureza")}
             options={NATUREZAS.map((n) => ({ value: n, label: n }))}
             values={filters.naturezas}
             onChange={(v) =>
@@ -135,6 +137,7 @@ export function FiltersDrawer({
           />
           <MultiSelect
             label="Faixa de valor"
+            info={g("faixaValor")}
             options={faixas}
             values={filters.faixas}
             onChange={(v) => onChange({ ...filters, faixas: v })}

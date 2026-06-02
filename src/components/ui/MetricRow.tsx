@@ -1,4 +1,5 @@
 import clsx from "clsx"
+import { InfoTip } from "@/components/ui/InfoTip"
 
 type Props = {
   icon: React.ReactNode
@@ -6,6 +7,7 @@ type Props = {
   sublabel?: string
   value: React.ReactNode
   tone?: "default" | "success" | "danger" | "warning" | "info"
+  info?: React.ReactNode
 }
 
 const toneClasses: Record<NonNullable<Props["tone"]>, string> = {
@@ -22,6 +24,7 @@ export function MetricRow({
   sublabel,
   value,
   tone = "default",
+  info,
 }: Readonly<Props>) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -35,7 +38,12 @@ export function MetricRow({
           {icon}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{label}</p>
+          <div className="flex min-w-0 items-center gap-1">
+            <p className="truncate text-sm font-medium">{label}</p>
+            {info != null && (
+              <InfoTip content={info} label={`Mais informações: ${label}`} />
+            )}
+          </div>
           {sublabel && <p className="truncate text-xs text-muted">{sublabel}</p>}
         </div>
       </div>

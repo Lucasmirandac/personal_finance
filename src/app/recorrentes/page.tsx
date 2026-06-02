@@ -9,6 +9,8 @@ import { RecurringForm, RecurringFormValues } from "@/components/RecurringForm"
 import { SubscriptionsPanel } from "@/components/SubscriptionsPanel"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
+import { g, type GlossaryKey } from "@/lib/glossary"
 import { Num } from "@/components/ui/Num"
 import { RecurringKind, RecurringRule } from "@/lib/types"
 import { Pencil, Plus, Trash2 } from "lucide-react"
@@ -85,6 +87,7 @@ export default function RecorrentesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <RuleSection
           title="Receitas"
+          infoKey="receita"
           subtitle="Entradas mensais como salário"
           rules={receitas}
           kind="receita"
@@ -108,6 +111,7 @@ export default function RecorrentesPage() {
         />
         <RuleSection
           title="Despesas fixas"
+          infoKey="custoFixo"
           subtitle="Saídas mensais como aluguel e boletos"
           rules={despesas}
           kind="despesa_fixa"
@@ -137,6 +141,7 @@ export default function RecorrentesPage() {
 type RuleSectionProps = {
   title: string
   subtitle: string
+  infoKey?: GlossaryKey
   rules: RecurringRule[]
   kind: RecurringKind
   creating: boolean
@@ -152,6 +157,7 @@ type RuleSectionProps = {
 function RuleSection({
   title,
   subtitle,
+  infoKey,
   rules,
   kind,
   creating,
@@ -169,7 +175,13 @@ function RuleSection({
     <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden">
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">{title}</p>
+          <LabelWithInfo
+            labelClassName="text-[11px] uppercase tracking-wider text-muted"
+            info={infoKey ? g(infoKey) : undefined}
+            ariaTopic={title}
+          >
+            {title}
+          </LabelWithInfo>
           <p className="text-xs text-muted mt-0.5">{subtitle}</p>
         </div>
         {!showForm && (

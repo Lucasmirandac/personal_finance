@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo";
 
 type Option = { value: string; label?: string };
 
@@ -11,6 +12,7 @@ type Props = {
   values: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  info?: React.ReactNode;
 };
 
 export function MultiSelect({
@@ -19,6 +21,7 @@ export function MultiSelect({
   values,
   onChange,
   placeholder = "Todos",
+  info,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -46,7 +49,9 @@ export function MultiSelect({
 
   return (
     <div className="flex flex-col gap-1" ref={wrapRef}>
-      <span className="text-xs text-muted">{label}</span>
+      <LabelWithInfo labelClassName="text-xs text-muted" info={info} ariaTopic={label}>
+        {label}
+      </LabelWithInfo>
       <div className="relative">
         <button
           type="button"

@@ -12,6 +12,8 @@ import {
 import { useAppStore } from "@/lib/store"
 import { formatInt } from "@/lib/format"
 import { Button } from "@/components/ui/Button"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
+import { g } from "@/lib/glossary"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { Textarea } from "@/components/ui/Input"
 import { Download, Upload, AlertTriangle, CheckCircle2, XCircle } from "lucide-react"
@@ -304,7 +306,9 @@ export function BackupPanel() {
             </p>
 
             <div className="space-y-2">
-              <p className="text-xs text-muted">Modo de restauração</p>
+              <LabelWithInfo labelClassName="text-xs text-muted" info={g("mesclar")} ariaTopic="Modo de restauração">
+                Modo de restauração
+              </LabelWithInfo>
               <SegmentedControl<BackupImportMode>
                 value={mode}
                 onChange={setMode}

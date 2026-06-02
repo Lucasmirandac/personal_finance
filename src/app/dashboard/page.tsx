@@ -48,6 +48,7 @@ import { Num } from "@/components/ui/Num";
 import { Panel } from "@/components/ui/Panel";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { TableHeaderLabel } from "@/components/ui/TableHeaderLabel";
 import {
   formatBRL,
   formatDateRangeCaption,
@@ -56,6 +57,7 @@ import {
 } from "@/lib/format";
 import { exportTreatedCsv, exportWorkbook } from "@/lib/exporters";
 import { countActiveFilters } from "@/lib/filters";
+import { g } from "@/lib/glossary";
 import {
   budgetUsageForMonth,
   currentMonthIso,
@@ -281,22 +283,25 @@ function DashboardPageInner() {
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatTile label="Receitas" value={formatBRL(kpis.totalReceitas)} tone="success" />
+        <StatTile label="Receitas" value={formatBRL(kpis.totalReceitas)} tone="success" info={g("receita")} />
         <StatTile
           label="Despesas"
           value={formatBRL(kpis.totalDespesas)}
           hint={`Cartão ${formatBRL(expenseComp.cartao.total)} · Fixas ${formatBRL(expenseComp.fixas.total)}`}
           tone="danger"
+          info={g("gasto")}
         />
         <StatTile
           label="Saldo"
           value={formatBRL(kpis.saldo)}
           tone={kpis.saldo >= 0 ? "success" : "warning"}
+          info={g("saldoExtrato")}
         />
         <StatTile
           label="Gasto no cartão"
           value={formatBRL(kpis.totalGasto)}
           hint={`${formatInt(kpis.countConsumo)} transações`}
+          info={g("gastoCartao")}
         />
       </div>
 
@@ -314,13 +319,14 @@ function DashboardPageInner() {
             <ChartCard
               title="Evolução mensal"
               subtitle="Receitas, despesas e saldo"
+              info={g("evolucaoMensal")}
             >
               <MonthlyChart data={months} />
             </ChartCard>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { label: "Ticket médio", value: formatBRL(kpis.ticketMedio) },
+                { label: "Ticket médio", value: formatBRL(kpis.ticketMedio), info: g("ticketMedio") },
                 {
                   label: "Maior compra",
                   value: kpis.maiorCompra ? formatBRL(kpis.maiorCompra.valor) : "—",
@@ -329,10 +335,11 @@ function DashboardPageInner() {
                 {
                   label: "Excluídos",
                   value: formatInt(kpis.countExcluidos),
+                  info: g("excluidos"),
                 },
-                { label: "Total bruto", value: formatBRL(kpis.totalBruto) },
+                { label: "Total bruto", value: formatBRL(kpis.totalBruto), info: g("totalBruto") },
               ].map((k) => (
-                <StatTile key={k.label} label={k.label} value={k.value} hint={k.hint} />
+                <StatTile key={k.label} label={k.label} value={k.value} hint={k.hint} info={k.info} />
               ))}
             </div>
 
@@ -365,10 +372,10 @@ function DashboardPageInner() {
         {tab === "cartao" && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <ChartCard title="Transações por mês" subtitle="Contagem de consumo">
+              <ChartCard title="Transações por mês" subtitle="Contagem de consumo" info={g("transacoesPorMes")}>
                 <MonthlyCountChart data={months} />
               </ChartCard>
-              <ChartCard title="Por dia da semana" subtitle="Distribuição de gastos">
+              <ChartCard title="Por dia da semana" subtitle="Distribuição de gastos" info={g("gastosPorDiaSemana")}>
                 <WeekdayChart data={weekdays} />
               </ChartCard>
             </div>
@@ -463,6 +470,7 @@ function DashboardPageInner() {
               <ChartCard
                 title="Gastos por dia da semana"
                 subtitle="Total no período filtrado"
+                info={g("gastosPorDiaSemana")}
               >
                 <WeekdayChart data={habitWeekdays} />
               </ChartCard>
@@ -493,7 +501,7 @@ function DashboardPageInner() {
 
         {tab === "categorias" && (
           <div className="space-y-4">
-            <ChartCard title="Gastos por categoria" subtitle="Top 10">
+            <ChartCard title="Gastos por categoria" subtitle="Top 10" info={g("gastosPorCategoria")}>
               <CategoryChart data={cats} />
             </ChartCard>
 
@@ -503,7 +511,9 @@ function DashboardPageInner() {
                   <tr>
                     <DataTableHead>Categoria</DataTableHead>
                     <DataTableHead align="right">Total</DataTableHead>
-                    <DataTableHead align="right">Tx</DataTableHead>
+                    <DataTableHead align="right">
+                      <TableHeaderLabel infoKey="tx">Tx</TableHeaderLabel>
+                    </DataTableHead>
                     <DataTableHead>%</DataTableHead>
                   </tr>
                 </thead>
@@ -557,13 +567,17 @@ function DashboardPageInner() {
                     <DataTableHead>Estabelecimento</DataTableHead>
                     {estView === "recurring" ? (
                       <>
-                        <DataTableHead align="right">Tx</DataTableHead>
+                        <DataTableHead align="right">
+                      <TableHeaderLabel infoKey="tx">Tx</TableHeaderLabel>
+                    </DataTableHead>
                         <DataTableHead align="right">Total</DataTableHead>
                       </>
                     ) : (
                       <>
                         <DataTableHead align="right">Total</DataTableHead>
-                        <DataTableHead align="right">Tx</DataTableHead>
+                        <DataTableHead align="right">
+                      <TableHeaderLabel infoKey="tx">Tx</TableHeaderLabel>
+                    </DataTableHead>
                       </>
                     )}
                   </tr>

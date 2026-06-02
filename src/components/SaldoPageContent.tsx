@@ -15,7 +15,9 @@ import { DrawerBackdrop, DrawerPanel } from "@/components/ui/Drawer"
 import { Panel } from "@/components/ui/Panel"
 import { Button } from "@/components/ui/Button"
 import { Num } from "@/components/ui/Num"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
 import { formatBRL, formatDateBR, formatLongDate, formatRelativeDays } from "@/lib/format"
+import { g } from "@/lib/glossary"
 import { buildPainelAlerts, PainelAlert } from "@/lib/alerts"
 import { useAppStore } from "@/lib/store"
 import {
@@ -260,7 +262,13 @@ function TodayHero({
 
         <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted">Saldo atual</p>
+            <LabelWithInfo
+              labelClassName="text-[11px] uppercase tracking-wider text-muted"
+              info={g("saldoAtual")}
+              ariaTopic="Saldo atual"
+            >
+              Saldo atual
+            </LabelWithInfo>
             <Num className="mt-2 block text-5xl font-semibold tracking-tight num-display sm:text-6xl">
               {formatBRL(todayBalance)}
             </Num>
@@ -286,6 +294,7 @@ function TodayHero({
           <div className="grid gap-2">
             <TodayMetric
               label="Próximo compromisso"
+              info={g("proximoCompromisso")}
               value={nextBill ? formatBRL(Math.abs(nextBill.amount)) : "Sem saídas"}
               hint={
                 nextBill
@@ -296,6 +305,7 @@ function TodayHero({
             />
             <TodayMetric
               label="Saldo em 30 dias"
+              info={g("saldo30d")}
               value={formatBRL(snapshot30?.balance)}
               hint={snapshot30 ? formatDateBR(snapshot30.date) : "Sem projeção"}
               tone={(snapshot30?.balance ?? 0) >= 0 ? "success" : "danger"}
@@ -338,14 +348,15 @@ function ActionSummary({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} />
-        <StatTile label="Entradas" value={formatBRL(upcomingIncome)} tone="success" />
-        <StatTile label="Saídas" value={formatBRL(Math.abs(upcomingOutcome))} tone="danger" />
+        <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} info={g("saldo7d")} />
+        <StatTile label="Entradas" value={formatBRL(upcomingIncome)} tone="success" info={g("entradas")} />
+        <StatTile label="Saídas" value={formatBRL(Math.abs(upcomingOutcome))} tone="danger" info={g("saidas")} />
         <StatTile
           label="Menor saldo"
           value={formatBRL(summary?.menorSaldo)}
           hint={summary?.menorSaldoData ?? undefined}
           tone={(summary?.menorSaldo ?? 0) >= 0 ? "default" : "danger"}
+          info={g("menorSaldo")}
         />
       </div>
     </div>
@@ -371,7 +382,13 @@ function AccountsSummary({
     <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted">Contas</p>
+          <LabelWithInfo
+            labelClassName="text-xs uppercase tracking-[0.22em] text-muted"
+            info={g("contasResumo")}
+            ariaTopic="Contas"
+          >
+            Contas
+          </LabelWithInfo>
           <h2 className="mt-1 text-xl font-semibold tracking-tight">{formatBRL(totalAccounts)}</h2>
           <p className="text-xs text-muted">
             Referência {formatDateBR(anchor.data)} · {cardAccountsCount} cartão{cardAccountsCount === 1 ? "" : "ões"}
@@ -410,15 +427,23 @@ function TodayMetric({
   value,
   hint,
   tone,
+  info,
 }: Readonly<{
   label: string
   value: string
   hint: string
   tone: "success" | "danger"
+  info?: React.ReactNode
 }>) {
   return (
     <div className="rounded-2xl bg-surface/72 p-3 ring-1 ring-border/70">
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <LabelWithInfo
+        labelClassName="text-[10px] uppercase tracking-wider text-muted"
+        info={info}
+        ariaTopic={label}
+      >
+        {label}
+      </LabelWithInfo>
       <Num className={clsx("mt-1 block text-xl font-semibold num-display", tone === "success" ? "text-success" : "text-danger")}>
         {value}
       </Num>

@@ -11,6 +11,8 @@ import {
 import { useAppStore } from "@/lib/store"
 import { Account, AccountKind } from "@/lib/types"
 import { Badge } from "@/components/ui/Badge"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
+import { g } from "@/lib/glossary"
 import { Button } from "@/components/ui/Button"
 import { DrawerBackdrop } from "@/components/ui/Drawer"
 import { Input, Select } from "@/components/ui/Input"
@@ -352,7 +354,9 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
-                  <span className="text-xs text-muted">Saldo inicial (R$)</span>
+                  <LabelWithInfo labelClassName="text-xs text-muted" info={g("saldoInicial")} ariaTopic="Saldo inicial">
+                    Saldo inicial (R$)
+                  </LabelWithInfo>
                   <MoneyInput
                     value={form.saldoInicial}
                     onChange={(next) =>
@@ -361,7 +365,9 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                   />
                 </label>
                 <label className="block space-y-1">
-                  <span className="text-xs text-muted">Data referência</span>
+                  <LabelWithInfo labelClassName="text-xs text-muted" info={g("dataReferencia")} ariaTopic="Data referência">
+                    Data referência
+                  </LabelWithInfo>
                   <Input
                     type="date"
                     value={form.dataReferencia}
@@ -401,7 +407,9 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block space-y-1">
-                      <span className="text-xs text-muted">Dia fechamento</span>
+                      <LabelWithInfo labelClassName="text-xs text-muted" info={g("fechamento")} ariaTopic="Dia fechamento">
+                        Dia fechamento
+                      </LabelWithInfo>
                       <IntegerInput
                         min={1}
                         max={31}
@@ -412,7 +420,9 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                       />
                     </label>
                     <label className="block space-y-1">
-                      <span className="text-xs text-muted">Dia pagamento</span>
+                      <LabelWithInfo labelClassName="text-xs text-muted" info={g("pagamentoDia")} ariaTopic="Dia pagamento">
+                        Dia pagamento
+                      </LabelWithInfo>
                       <IntegerInput
                         min={1}
                         max={31}
@@ -439,7 +449,13 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
       )}
 
       <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
-        <p className="text-[11px] uppercase tracking-wider text-muted">Horizonte de projeção</p>
+        <LabelWithInfo
+          labelClassName="text-[11px] uppercase tracking-wider text-muted"
+          info={g("horizonteProjecao")}
+          ariaTopic="Horizonte de projeção"
+        >
+          Horizonte de projeção
+        </LabelWithInfo>
         <div className="flex items-center gap-3 flex-wrap">
           <SegmentedControl
             value={String(horizon)}

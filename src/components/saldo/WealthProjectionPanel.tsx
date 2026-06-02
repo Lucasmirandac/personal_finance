@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { WealthChart } from "@/components/charts/WealthChart";
+import { InfoTip } from "@/components/ui/InfoTip";
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo";
 import { StatTile } from "@/components/ui/StatTile";
+import { g } from "@/lib/glossary";
 import { Panel } from "@/components/ui/Panel";
 import { Num } from "@/components/ui/Num";
 import { formatBRL } from "@/lib/format";
@@ -95,7 +98,9 @@ export function WealthProjectionPanel() {
     <section className="space-y-4">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold tracking-tight">
-          Projeção de Paz Futura
+          <LabelWithInfo info={g("projecaoPazFutura")} ariaTopic="Projeção de Paz Futura">
+            Projeção de Paz Futura
+          </LabelWithInfo>
         </h2>
         <p className="text-sm text-muted max-w-2xl">
           Evolução patrimonial nos próximos 12 meses, mantendo sua meta de
@@ -106,8 +111,9 @@ export function WealthProjectionPanel() {
       <Panel className="p-4 space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <label htmlFor="wealth-meta-slider" className="text-xs text-muted">
+            <label htmlFor="wealth-meta-slider" className="inline-flex items-center gap-1 text-xs text-muted">
               Meta de poupança
+              <InfoTip content={g("metaPoupanca")} label="Mais informações: Meta de poupança" />
             </label>
             <span className="text-sm font-semibold tabular-nums">{metaPercent}%</span>
           </div>
@@ -152,17 +158,20 @@ export function WealthProjectionPanel() {
       </Panel>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Aporte mensal" value={formatBRL(aporteMensal)} tone="success" />
+        <StatTile label="Aporte mensal" value={formatBRL(aporteMensal)} tone="success" info={g("aporte")} />
         <StatTile
           label="Aporte em 12 meses"
           value={formatBRL(summary.aporteTotal)}
+          info={g("aporte")}
         />
         <StatTile
           label="Patrimônio projetado"
           value={formatBRL(summary.patrimonioFinal)}
+          info={g("patrimonioProjetado")}
         />
         <StatTile
           label="Tranquilidade (final)"
+          info={g("tranquilidade")}
           value={
             hasCustosFixos
               ? formatMesesTranquilidade(summary.mesesTranquilidadeFinal)
@@ -179,6 +188,7 @@ export function WealthProjectionPanel() {
       <ChartCard
         title="Evolução patrimonial"
         subtitle={`Patrimônio inicial ${formatBRL(patrimonioInicial)} · linha tracejada`}
+        info={g("patrimonio")}
       >
         <WealthChart data={points} patrimonioInicial={patrimonioInicial} />
       </ChartCard>

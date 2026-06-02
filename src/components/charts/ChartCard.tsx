@@ -1,14 +1,16 @@
 import clsx from "clsx"
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
 
 type Props = {
   title: string
   subtitle?: string
+  info?: React.ReactNode
   children: React.ReactNode
   right?: React.ReactNode
   className?: string
 }
 
-export function ChartCard({ title, subtitle, children, right, className }: Readonly<Props>) {
+export function ChartCard({ title, subtitle, info, children, right, className }: Readonly<Props>) {
   return (
     <div
       className={clsx(
@@ -18,7 +20,13 @@ export function ChartCard({ title, subtitle, children, right, className }: Reado
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">{title}</p>
+          <LabelWithInfo
+            labelClassName="text-[11px] uppercase tracking-wider text-muted"
+            info={info}
+            ariaTopic={title}
+          >
+            {title}
+          </LabelWithInfo>
           {subtitle && <p className="text-xs text-muted mt-0.5">{subtitle}</p>}
         </div>
         {right}

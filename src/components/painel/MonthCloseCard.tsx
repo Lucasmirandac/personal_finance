@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
+import { LabelWithInfo } from "@/components/ui/LabelWithInfo";
 import { Panel } from "@/components/ui/Panel";
+import { g } from "@/lib/glossary";
 import { Button } from "@/components/ui/Button";
 import { Num } from "@/components/ui/Num";
 import { formatBRL } from "@/lib/format";
@@ -26,10 +28,12 @@ function formatCloseMonthTitle(anoMes: string): string {
 
 function CategoryList({
   title,
+  info,
   items,
   tone,
 }: Readonly<{
   title: string;
+  info?: string;
   items: Array<{
     categoria: string;
     gasto: number;
@@ -41,9 +45,13 @@ function CategoryList({
   if (items.length === 0) {
     return (
       <div>
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted">
+        <LabelWithInfo
+          labelClassName="text-[11px] font-medium uppercase tracking-wider text-muted"
+          info={info}
+          ariaTopic={title}
+        >
           {title}
-        </p>
+        </LabelWithInfo>
         <p className="mt-2 text-xs text-muted">Nenhuma categoria nesta faixa.</p>
       </div>
     );
@@ -51,14 +59,16 @@ function CategoryList({
 
   return (
     <div>
-      <p
-        className={clsx(
+      <LabelWithInfo
+        labelClassName={clsx(
           "text-[11px] font-medium uppercase tracking-wider",
           tone === "danger" ? "text-danger" : "text-success",
         )}
+        info={info}
+        ariaTopic={title}
       >
         {title}
-      </p>
+      </LabelWithInfo>
       <ul className="mt-2 space-y-2">
         {items.map((item) => (
           <li key={item.categoria} className="text-xs text-foreground">
@@ -130,9 +140,13 @@ export function MonthCloseCard() {
     <Panel className="rounded-3xl p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-border/60">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-muted">
+          <LabelWithInfo
+            labelClassName="text-[11px] uppercase tracking-[0.22em] text-muted"
+            info={g("fechamento")}
+            ariaTopic="Fechamento"
+          >
             Fechamento
-          </p>
+          </LabelWithInfo>
           <h2 className="mt-1 text-xl font-semibold tracking-tight">
             {formatCloseMonthTitle(pendingAnoMes)}
           </h2>
@@ -153,9 +167,13 @@ export function MonthCloseCard() {
           </p>
         ) : (
           <div>
-            <p className="text-xs uppercase tracking-wider text-muted">
+            <LabelWithInfo
+              labelClassName="text-xs uppercase tracking-wider text-muted"
+              info={positive ? g("sobraDoMes") : g("deficitMes")}
+              ariaTopic={positive ? "Sobra do mês" : "Déficit do mês"}
+            >
               {positive ? "Sobra do mês" : "Déficit do mês"}
-            </p>
+            </LabelWithInfo>
             <p
               className={clsx(
                 "mt-1 text-3xl font-semibold tracking-tight",
@@ -179,11 +197,13 @@ export function MonthCloseCard() {
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <CategoryList
             title="Mais estouraram"
+            info={g("maisEstouraram")}
             items={summary.top3Estouro}
             tone="danger"
           />
           <CategoryList
             title="Mais sobraram"
+            info={g("maisSobraram")}
             items={summary.top3Sobra}
             tone="success"
           />
