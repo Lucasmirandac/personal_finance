@@ -22,9 +22,81 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { Num } from "@/components/ui/Num"
 import { ArrowLeft, CheckCircle2, Plus, Star, Trash2, Pencil, XCircle } from "lucide-react"
 
-const KINDS: AccountKind[] = ["cc", "poupanca", "carteira", "cartao"]
+const ALL_KINDS: AccountKind[] = ["cc", "poupanca", "carteira", "cartao"]
+const CASH_KINDS: AccountKind[] = ["cc", "poupanca", "carteira"]
+
+export type AccountsPanelScope = "all" | "cash" | "cards"
 
 const HORIZONS = [30, 60, 90, 180] as const
+
+const SCOPE_COPY: Record<
+  AccountsPanelScope,
+  {
+    title: string
+    subtitle: string
+    addLabel: string
+    emptyList: string
+    formNew: string
+    formEdit: string
+    nameRequired: string
+    deleteConfirm: string
+  }
+> = {
+  all: {
+    title: "Contas",
+    subtitle: "Contas correntes, poupança, carteira e cartões vinculados ao CSV.",
+    addLabel: "Nova conta",
+    emptyList: "Nenhuma conta cadastrada. Crie a Conta Principal com seu saldo atual.",
+    formNew: "Nova conta",
+    formEdit: "Editar conta",
+    nameRequired: "Informe o nome da conta.",
+    deleteConfirm: "Excluir esta conta?",
+  },
+  cash: {
+    title: "Contas",
+    subtitle: "Conta corrente, poupança e carteira — formam o saldo de caixa.",
+    addLabel: "Nova conta",
+    emptyList: "Nenhuma conta de dinheiro cadastrada. Informe seu saldo atual.",
+    formNew: "Nova conta",
+    formEdit: "Editar conta",
+    nameRequired: "Informe o nome da conta.",
+    deleteConfirm: "Excluir esta conta?",
+  },
+  cards: {
+    title: "Cartões",
+    subtitle: "Cartões de crédito, fatura e datas de fechamento e pagamento.",
+    addLabel: "Novo cartão",
+    emptyList: "Nenhum cartão cadastrado. Vincule ao CSV importado (Inter ou Nubank).",
+    formNew: "Novo cartão",
+    formEdit: "Editar cartão",
+    nameRequired: "Informe o nome do cartão.",
+    deleteConfirm: "Excluir este cartão?",
+  },
+}
+
+function kindsForScope(scope: AccountsPanelScope): AccountKind[] {
+  if (scope === "cash") return CASH_KINDS
+  if (scope === "cards") return ["cartao"]
+  return ALL_KINDS
+}
+
+function emptyForm(scope: AccountsPanelScope): FormState {
+  return {
+    nome: "",
+    kind: scope === "cards" ? "cartao" : "cc",
+    saldoInicial: "0",
+    dataReferencia: new Date().toISOString().slice(0, 10),
+    diaFechamento: "10",
+    diaPagamento: "20",
+    fonteCsv: "",
+  }
+}
+
+function accountsForScope(accounts: Account[], scope: AccountsPanelScope): Account[] {
+  if (scope === "cash") return accounts.filter((a) => a.kind !== "cartao")
+  if (scope === "cards") return accounts.filter((a) => a.kind === "cartao")
+  return accounts
+}
 
 const KIND_DOT: Record<AccountKind, string> = {
   cc: "bg-[var(--system-blue)]",
@@ -43,21 +115,12 @@ type FormState = {
   fonteCsv: "inter" | "nubank" | ""
 }
 
-const emptyForm = (): FormState => ({
-  nome: "",
-  kind: "cc",
-  saldoInicial: "0",
-  dataReferencia: new Date().toISOString().slice(0, 10),
-  diaFechamento: "10",
-  diaPagamento: "20",
-  fonteCsv: "",
-})
-
 type Props = {
   onClose?: () => void
+  scope?: AccountsPanelScope
 }
 
-export function AccountsPanel({ onClose }: Readonly<Props>) {
+export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
   const {
     accounts,
     dataset,
@@ -71,12 +134,21 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
   } = useAppStore()
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm] = useState<FormState>(emptyForm)
+  const [form, setForm] = useState<FormState>(() => emptyForm(scope))
   const [error, setError] = useState<string | null>(null)
   const [savingHorizon, setSavingHorizon] = useState(false)
   const [horizonSaved, setHorizonSaved] = useState(false)
   const horizonResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const horizon = settings.projectionHorizonDays
+  const copy = SCOPE_COPY[scope]
+  const formKinds = kindsForScope(scope)
+  const visibleAccounts = useMemo(
+    () => accountsForScope(accounts, scope),
+    [accounts, scope],
+  )
+  const showHorizon = scope !== "cards"
+  const showDefaultStar = scope !== "cards"
+  const isCardForm = scope === "cards" || form.kind === "cartao"
 
   useEffect(() => {
     return () => {
@@ -96,7 +168,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
 
   function openNew() {
     setEditingId(null)
-    setForm(emptyForm())
+    setForm(emptyForm(scope))
     setError(null)
     setFormOpen(true)
   }
@@ -125,18 +197,20 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
       return
     }
     if (!form.nome.trim()) {
-      setError("Informe o nome da conta.")
+      setError(copy.nameRequired)
       return
     }
 
+    const kind = scope === "cards" ? "cartao" : form.kind
+
     const partial: Partial<Account> = {
       nome: form.nome.trim(),
-      kind: form.kind,
+      kind,
       saldoInicial: saldo,
       dataReferencia: form.dataReferencia,
     }
 
-    if (form.kind === "cartao") {
+    if (kind === "cartao") {
       partial.diaFechamento = Math.min(
         31,
         Math.max(1, Number(form.diaFechamento) || 10),
@@ -156,8 +230,8 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
         if (!existing) return
         await updateAccount({ ...existing, ...partial })
       } else {
-        const acc = createDefaultAccount(form.kind, form.nome.trim(), partial)
-        if (accounts.length === 0) acc.isDefault = true
+        const acc = createDefaultAccount(kind, form.nome.trim(), partial)
+        if (accounts.length === 0 && kind !== "cartao") acc.isDefault = true
         await addAccount(acc)
       }
       setFormOpen(false)
@@ -172,7 +246,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
       setError(`Conta com ${count} transação(ões) — desative em vez de excluir.`)
       return
     }
-    if (!window.confirm("Excluir esta conta?")) return
+    if (!window.confirm(copy.deleteConfirm)) return
     try {
       await removeAccount(id)
     } catch (err) {
@@ -214,10 +288,8 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">Contas</p>
-          <p className="text-xs text-muted mt-0.5">
-            Contas correntes, poupança, carteira e cartões vinculados ao CSV.
-          </p>
+          <p className="text-[11px] uppercase tracking-wider text-muted">{copy.title}</p>
+          <p className="text-xs text-muted mt-0.5">{copy.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           {onClose && (
@@ -228,7 +300,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
           )}
           <Button variant="primary" size="sm" className="rounded-full" onClick={openNew}>
             <Plus size={13} />
-            Nova conta
+            {copy.addLabel}
           </Button>
         </div>
       </div>
@@ -243,15 +315,13 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
         </div>
       )}
 
-      {accounts.length === 0 ? (
+      {visibleAccounts.length === 0 ? (
         <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-4">
-          <p className="text-sm text-muted">
-            Nenhuma conta cadastrada. Crie a Conta Principal com seu saldo atual.
-          </p>
+          <p className="text-sm text-muted">{copy.emptyList}</p>
         </div>
       ) : (
         <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden divide-y divide-border/60">
-          {accounts.map((a) => (
+          {visibleAccounts.map((a) => (
             <div
               key={a.id}
               className={clsx(
@@ -282,7 +352,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                 </Num>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {!a.isDefault && a.ativa && (
+                {showDefaultStar && !a.isDefault && a.ativa && a.kind !== "cartao" && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -327,7 +397,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
           >
             <div className="space-y-3">
               <p className="text-[11px] uppercase tracking-wider text-muted">
-                {editingId ? "Editar conta" : "Nova conta"}
+                {editingId ? copy.formEdit : copy.formNew}
               </p>
               <label className="block space-y-1">
                 <span className="text-xs text-muted">Nome</span>
@@ -337,21 +407,23 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                   required
                 />
               </label>
-              <label className="block space-y-1">
-                <span className="text-xs text-muted">Tipo</span>
-                <Select
-                  value={form.kind}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, kind: e.target.value as AccountKind }))
-                  }
-                >
-                  {KINDS.map((k) => (
-                    <option key={k} value={k}>
-                      {ACCOUNT_KIND_LABELS[k]}
-                    </option>
-                  ))}
-                </Select>
-              </label>
+              {scope !== "cards" && (
+                <label className="block space-y-1">
+                  <span className="text-xs text-muted">Tipo</span>
+                  <Select
+                    value={form.kind}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, kind: e.target.value as AccountKind }))
+                    }
+                  >
+                    {formKinds.map((k) => (
+                      <option key={k} value={k}>
+                        {ACCOUNT_KIND_LABELS[k]}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1">
                   <LabelWithInfo labelClassName="text-xs text-muted" info={g("saldoInicial")} ariaTopic="Saldo inicial">
@@ -377,7 +449,7 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
                   />
                 </label>
               </div>
-              {form.kind === "cartao" && (
+              {isCardForm && (
                 <>
                   <label className="block space-y-1">
                     <span className="text-xs text-muted">Vincular ao CSV</span>
@@ -448,41 +520,43 @@ export function AccountsPanel({ onClose }: Readonly<Props>) {
         </DrawerBackdrop>
       )}
 
-      <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
-        <LabelWithInfo
-          labelClassName="text-[11px] uppercase tracking-wider text-muted"
-          info={g("horizonteProjecao")}
-          ariaTopic="Horizonte de projeção"
-        >
-          Horizonte de projeção
-        </LabelWithInfo>
-        <div className="flex items-center gap-3 flex-wrap">
-          <SegmentedControl
-            value={String(horizon)}
-            onChange={handleHorizonChange}
-            options={HORIZONS.map((h) => ({ value: String(h), label: `${h}d` }))}
-            size="sm"
-          />
-          {savingHorizon && (
-            <span className="text-xs text-muted">Salvando…</span>
-          )}
-          {horizonSaved && !savingHorizon && (
-            <span
-              className="inline-flex items-center gap-1 text-xs text-[var(--system-green)]"
-              role="status"
-              aria-live="polite"
-            >
-              <CheckCircle2 size={12} />
-              Salvo
-            </span>
+      {showHorizon && (
+        <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
+          <LabelWithInfo
+            labelClassName="text-[11px] uppercase tracking-wider text-muted"
+            info={g("horizonteProjecao")}
+            ariaTopic="Horizonte de projeção"
+          >
+            Horizonte de projeção
+          </LabelWithInfo>
+          <div className="flex items-center gap-3 flex-wrap">
+            <SegmentedControl
+              value={String(horizon)}
+              onChange={handleHorizonChange}
+              options={HORIZONS.map((h) => ({ value: String(h), label: `${h}d` }))}
+              size="sm"
+            />
+            {savingHorizon && (
+              <span className="text-xs text-muted">Salvando…</span>
+            )}
+            {horizonSaved && !savingHorizon && (
+              <span
+                className="inline-flex items-center gap-1 text-xs text-[var(--system-green)]"
+                role="status"
+                aria-live="polite"
+              >
+                <CheckCircle2 size={12} />
+                Salvo
+              </span>
+            )}
+          </div>
+          {def && def.kind !== "cartao" && (
+            <p className="text-xs text-muted">
+              Conta padrão para Quick Add: <strong>{def.nome}</strong>
+            </p>
           )}
         </div>
-        {def && (
-          <p className="text-xs text-muted">
-            Conta padrão para Quick Add: <strong>{def.nome}</strong>
-          </p>
-        )}
-      </div>
+      )}
     </div>
   )
 }

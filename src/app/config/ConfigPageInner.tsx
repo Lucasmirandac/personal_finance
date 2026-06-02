@@ -18,6 +18,7 @@ const CONFIG_TABS = [
   { id: "classificacao", label: "Classificação" },
   { id: "apelidos", label: "Apelidos" },
   { id: "contas", label: "Contas" },
+  { id: "cartoes", label: "Cartões" },
   { id: "orcamentos", label: "Orçamentos" },
   { id: "conquistas", label: "Conquistas" },
   { id: "backup", label: "Backup" },
@@ -30,7 +31,8 @@ const TAB_SUBTITLES: Record<ConfigTab, string> = {
   importar: "Importe CSVs e gerencie suas fontes de dados.",
   classificacao: "Padrões de classificação de lançamentos.",
   apelidos: "Agrupe variantes de estabelecimentos.",
-  contas: "Contas, saldos e horizonte de projeção.",
+  contas: "Conta corrente, poupança e carteira.",
+  cartoes: "Cartões de crédito, fatura e datas de fechamento e pagamento.",
   orcamentos: "Limites mensais por categoria.",
   conquistas: "Marcos de rotina e meses com sobra.",
   backup: "Exporte ou restaure seus dados.",
@@ -42,6 +44,7 @@ function parseTab(v: string | null): ConfigTab {
     v === "classificacao" ||
     v === "apelidos" ||
     v === "contas" ||
+    v === "cartoes" ||
     v === "importar" ||
     v === "orcamentos" ||
     v === "conquistas" ||
@@ -50,7 +53,6 @@ function parseTab(v: string | null): ConfigTab {
   ) {
     return v
   }
-  if (v === "cartoes") return "contas"
   return "importar"
 }
 
@@ -111,7 +113,8 @@ export default function ConfigPageInner() {
             </div>
           ))}
 
-        {tab === "contas" && <AccountsPanel />}
+        {tab === "contas" && <AccountsPanel scope="cash" />}
+        {tab === "cartoes" && <AccountsPanel scope="cards" />}
 
         {tab === "orcamentos" && <BudgetsPanel />}
 

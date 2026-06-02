@@ -20,6 +20,7 @@ export const CONFIG_LINKS = [
   { href: "/config?tab=importar", label: "Importar" },
   { href: "/config?tab=classificacao", label: "Classificação" },
   { href: "/config?tab=contas", label: "Contas" },
+  { href: "/config?tab=cartoes", label: "Cartões" },
   { href: "/recorrentes", label: "Recorrentes" },
   { href: "/transacoes", label: "Transações (avançado)" },
   { href: "/config?tab=backup", label: "Backup" },

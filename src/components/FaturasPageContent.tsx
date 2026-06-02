@@ -108,7 +108,7 @@ export function FaturasPageContent() {
 
       {cardAccounts.length === 0 ? (
         <Panel className="rounded-3xl p-6 text-sm text-muted shadow-[var(--shadow-card)]">
-          Nenhum cartão ativo configurado. Cadastre cartões em Configurações &gt; Contas.
+          Nenhum cartão ativo configurado. Cadastre cartões em Configurações &gt; Cartões.
         </Panel>
       ) : (
         <>
