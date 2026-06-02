@@ -175,9 +175,9 @@ function resolveStatus(input: {
 /**
  * Daily spending allowance for the current month.
  *
- * Recommended card ceiling (`tetoCartaoRecomendado`) equals monthly available
- * income (salary minus fixed bills) — a safe upper bound if all variable spend
- * went through the card.
+ * Recommended card ceiling (`tetoCartaoRecomendado`) is the safe room for new
+ * card spend this month: monthly available income minus the open invoice already
+ * committed from prior cycles.
  */
 export function computeDailyAllowance(
   input: ComputeDailyAllowanceInput,
@@ -229,11 +229,13 @@ export function computeDailyAllowance(
   const diarioBaseline =
     rendaDisponivel > 0 ? round2(rendaDisponivel / diasDoMes) : 0;
 
-  /** Recommended card spending ceiling = monthly available income after fixed costs. */
-  const tetoCartaoRecomendado = rendaDisponivel;
+  /** Safe room for new card spend = available income minus open invoice. */
+  const tetoCartaoRecomendado = round2(
+    Math.max(0, rendaDisponivel - faturaAbertaCartao),
+  );
   const faturaAbertaPct =
-    tetoCartaoRecomendado > 0
-      ? round2((faturaAbertaCartao / tetoCartaoRecomendado) * 100)
+    rendaDisponivel > 0
+      ? round2((faturaAbertaCartao / rendaDisponivel) * 100)
       : faturaAbertaCartao > 0
         ? 100
         : 0;

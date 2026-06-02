@@ -224,7 +224,7 @@ export function DailyAllowancePanel() {
                 {formatBRL(result.faturaAbertaCartao)}
               </Num>
               <span className="text-sm text-muted">
-                / {formatBRL(result.tetoCartaoRecomendado)}{" "}
+                / {formatBRL(result.rendaDisponivel)}{" "}
                 <span
                   className={clsx(
                     result.faturaAbertaPct >= 100 && "text-danger",
@@ -251,10 +251,11 @@ export function DailyAllowancePanel() {
             </div>
 
             <p className="text-xs text-muted">
-              <LabelWithInfo info={g("tetoCartao")} ariaTopic="Teto recomendado">
-                Teto recomendado
+              <LabelWithInfo info={g("tetoCartao")} ariaTopic="Teto para novos gastos">
+                Teto para novos gastos
               </LabelWithInfo>{" "}
-              = renda disponível mensal
+              = {formatBRL(result.tetoCartaoRecomendado)} (renda disponível −
+              fatura em aberto)
               {result.proximoPagamento && (
                 <>
                   {" "}

@@ -153,4 +153,79 @@ describe("computeDailyAllowance", () => {
     });
     expect(after.faturaAbertaCartao).toBe(0);
   });
+
+  it("sets tetoCartaoRecomendado to renda disponivel minus open invoice", () => {
+    const interCard = {
+      id: "card-inter",
+      nome: "Inter",
+      kind: "cartao" as const,
+      saldoInicial: 0,
+      dataReferencia: "2026-01-01",
+      ativa: true,
+      criadaEm: "2026-01-01T00:00:00.000Z",
+      fonteCsv: "inter" as const,
+      diaFechamento: 30,
+      diaPagamento: 7,
+    };
+    const installment = tx("2026-06-07", 1_500, {
+      id: "parcela",
+      fonte: "inter",
+      sourceId: "src-inter",
+      natureza: "Gasto",
+      valorAnalise: 1_500,
+      tipo: "Parcela 2/3",
+      accountId: "card-inter",
+    });
+
+    const result = computeDailyAllowance({
+      normalized: [installment],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [interCard],
+      structuralCategories: [],
+      today: new Date("2026-06-01T12:00:00.000Z"),
+    });
+
+    expect(result.rendaDisponivel).toBe(8_000);
+    expect(result.faturaAbertaCartao).toBe(1_500);
+    expect(result.tetoCartaoRecomendado).toBe(6_500);
+    expect(result.faturaAbertaPct).toBe(18.75);
+  });
+
+  it("floors tetoCartaoRecomendado at zero when open invoice exceeds renda disponivel", () => {
+    const interCard = {
+      id: "card-inter",
+      nome: "Inter",
+      kind: "cartao" as const,
+      saldoInicial: 0,
+      dataReferencia: "2026-01-01",
+      ativa: true,
+      criadaEm: "2026-01-01T00:00:00.000Z",
+      fonteCsv: "inter" as const,
+      diaFechamento: 30,
+      diaPagamento: 7,
+    };
+    const installment = tx("2026-06-07", 9_000, {
+      id: "parcela",
+      fonte: "inter",
+      sourceId: "src-inter",
+      natureza: "Gasto",
+      valorAnalise: 9_000,
+      tipo: "Parcela 2/3",
+      accountId: "card-inter",
+    });
+
+    const result = computeDailyAllowance({
+      normalized: [installment],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [interCard],
+      structuralCategories: [],
+      today: new Date("2026-06-01T12:00:00.000Z"),
+    });
+
+    expect(result.rendaDisponivel).toBe(8_000);
+    expect(result.faturaAbertaCartao).toBe(9_000);
+    expect(result.tetoCartaoRecomendado).toBe(0);
+    expect(result.faturaAbertaPct).toBe(112.5);
+    expect(result.status).toBe("alerta");
+  });
 });
