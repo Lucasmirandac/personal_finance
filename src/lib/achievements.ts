@@ -115,9 +115,18 @@ function daysBetweenDates(dateA: string, dateB: string): number {
 export function getActivityDates(
   normalized: TransactionNormalized[],
 ): Set<string> {
+  return getActivityDatesUpTo(normalized, new Date());
+}
+
+export function getActivityDatesUpTo(
+  normalized: TransactionNormalized[],
+  today: Date = new Date(),
+): Set<string> {
+  const todayStr = formatDateIso(today);
   const dates = new Set<string>();
   for (const t of normalized) {
-    if (t.dataISO) dates.add(t.dataISO.slice(0, 10));
+    const d = t.dataISO?.slice(0, 10);
+    if (d && d <= todayStr) dates.add(d);
   }
   return dates;
 }
@@ -126,7 +135,7 @@ export function computeStreakDays(
   normalized: TransactionNormalized[],
   today: Date = new Date(),
 ): number {
-  const dates = getActivityDates(normalized);
+  const dates = getActivityDatesUpTo(normalized, today);
   if (dates.size === 0) return 0;
 
   const todayStr = formatDateIso(today);
@@ -150,7 +159,7 @@ export function detectVoltaCerteira(
   normalized: TransactionNormalized[],
   today: Date = new Date(),
 ): boolean {
-  const sorted = [...getActivityDates(normalized)].sort();
+  const sorted = [...getActivityDatesUpTo(normalized, today)].sort();
   if (sorted.length < 2) return false;
 
   const todayStr = formatDateIso(today);

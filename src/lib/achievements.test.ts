@@ -52,6 +52,16 @@ describe("computeStreakDays", () => {
     const today = new Date("2026-06-10T12:00:00.000Z");
     expect(computeStreakDays([tx("2026-06-01")], today)).toBe(0);
   });
+
+  it("ignores future-dated transactions for streak", () => {
+    const today = new Date("2026-06-02T12:00:00.000Z");
+    const normalized = [
+      tx("2026-06-02"),
+      tx("2026-06-01"),
+      tx("2026-06-05"),
+    ];
+    expect(computeStreakDays(normalized, today)).toBe(2);
+  });
 });
 
 describe("detectVoltaCerteira", () => {
@@ -59,6 +69,12 @@ describe("detectVoltaCerteira", () => {
     const today = new Date("2026-06-10T12:00:00.000Z");
     const normalized = [tx("2026-06-01"), tx("2026-06-10")];
     expect(detectVoltaCerteira(normalized, today)).toBe(true);
+  });
+
+  it("ignores future-dated activity", () => {
+    const today = new Date("2026-06-02T12:00:00.000Z");
+    const normalized = [tx("2026-06-01"), tx("2026-06-05")];
+    expect(detectVoltaCerteira(normalized, today)).toBe(false);
   });
 });
 

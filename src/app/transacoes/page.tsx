@@ -16,6 +16,7 @@ import { buildAutoCategorySuggestions } from "@/lib/autoCategorize";
 import { useFilters } from "@/lib/filtersContext";
 import { defaultAccount } from "@/lib/accounts";
 import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits";
+import { isForecastTransaction } from "@/lib/recurring";
 import { isManualQuickRaw } from "@/lib/manualTransactions";
 import { Fonte, TransactionNormalized } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
@@ -189,6 +190,9 @@ export default function TransacoesPage() {
             <NatureBadge natureza={row.original.natureza} />
             {isEdited(row.original.id, edits, installmentGroupEdits, row.original) && (
               <Badge className="text-[10px]">editado</Badge>
+            )}
+            {isForecastTransaction(row.original) && (
+              <Badge className="text-[10px]">previsto</Badge>
             )}
           </span>
         ),

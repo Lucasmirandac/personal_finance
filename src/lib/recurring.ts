@@ -1,6 +1,7 @@
 import { isoToBr } from "./csv";
 import { isoFromParts } from "./dates";
-import { RecurringRule, TransactionRaw } from "./types";
+import { isRecurringRaw } from "./edits";
+import { RecurringRule, TransactionNormalized, TransactionRaw } from "./types";
 
 export function newRecurringId(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -34,22 +35,33 @@ export function monthsBetween(fromIso: string, toIso: string): string[] {
   return months;
 }
 
-function endIsoForRule(rule: RecurringRule, todayIso: string): string {
-  if (rule.fim && rule.fim < todayIso) return rule.fim;
-  return todayIso;
+function todayIsoFromDate(today: Date): string {
+  return isoFromParts(
+    today.getUTCFullYear(),
+    today.getUTCMonth() + 1,
+    today.getUTCDate(),
+  );
+}
+
+export function endOfCurrentMonthIso(today: Date = new Date()): string {
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth() + 1;
+  const lastDay = daysInMonth(year, month);
+  return isoFromParts(year, month, lastDay);
+}
+
+function endIsoForRule(rule: RecurringRule, expansionEndIso: string): string {
+  if (rule.fim && rule.fim < expansionEndIso) return rule.fim;
+  return expansionEndIso;
 }
 
 export function countRecurringOccurrences(
   rule: RecurringRule,
   today: Date = new Date(),
 ): number {
-  const todayIso = isoFromParts(
-    today.getUTCFullYear(),
-    today.getUTCMonth() + 1,
-    today.getUTCDate(),
-  );
+  const todayIso = todayIsoFromDate(today);
   if (!rule.inicio || rule.inicio > todayIso) return 0;
-  const end = endIsoForRule(rule, todayIso);
+  const end = endIsoForRule(rule, endOfCurrentMonthIso(today));
   if (rule.fim && rule.inicio > rule.fim) return 0;
   return monthsBetween(
     rule.inicio.slice(0, 7),
@@ -61,11 +73,8 @@ export function expandRecurringRules(
   rules: RecurringRule[],
   today: Date = new Date(),
 ): TransactionRaw[] {
-  const todayIso = isoFromParts(
-    today.getUTCFullYear(),
-    today.getUTCMonth() + 1,
-    today.getUTCDate(),
-  );
+  const todayIso = todayIsoFromDate(today);
+  const expansionEndIso = endOfCurrentMonthIso(today);
   const raws: TransactionRaw[] = [];
 
   for (const rule of rules) {
@@ -74,7 +83,7 @@ export function expandRecurringRules(
     if (rule.inicio > todayIso) continue;
     if (rule.fim && rule.inicio > rule.fim) continue;
 
-    const endIso = endIsoForRule(rule, todayIso);
+    const endIso = endIsoForRule(rule, expansionEndIso);
     const monthKeys = monthsBetween(
       rule.inicio.slice(0, 7),
       endIso.slice(0, 7),
@@ -86,7 +95,6 @@ export function expandRecurringRules(
       const dataISO = isoFromParts(y, m, day);
       if (dataISO < rule.inicio) continue;
       if (rule.fim && dataISO > rule.fim) continue;
-      if (dataISO > todayIso) continue;
 
       const tipo = rule.kind === "receita" ? "Receita" : "Despesa fixa";
       const valorOriginal =
@@ -107,6 +115,32 @@ export function expandRecurringRules(
   }
 
   return raws;
+}
+
+export function isFutureRecurringRaw(
+  tx: Pick<TransactionRaw, "sourceId" | "data"> & { dataISO?: string },
+  today: Date = new Date(),
+): boolean {
+  if (!isRecurringRaw(tx)) return false;
+  const todayIso = todayIsoFromDate(today);
+  const dataISO =
+    tx.dataISO ??
+    (() => {
+      const [d, m, y] = tx.data.split("/").map(Number);
+      return isoFromParts(y, m, d);
+    })();
+  return dataISO > todayIso;
+}
+
+export function isForecastTransaction(
+  tx: Pick<TransactionNormalized, "sourceId" | "dataISO" | "installment">,
+  today: Date = new Date(),
+): boolean {
+  const todayIso = todayIsoFromDate(today);
+  if (!tx.dataISO || tx.dataISO <= todayIso) return false;
+  if (isRecurringRaw(tx)) return true;
+  if (tx.installment?.estimated) return true;
+  return false;
 }
 
 export function previewRecurringRule(

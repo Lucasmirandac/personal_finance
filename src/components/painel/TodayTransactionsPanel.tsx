@@ -12,6 +12,7 @@ import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { todayIso } from "@/lib/dates"
 import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction } from "@/lib/edits"
+import { isForecastTransaction } from "@/lib/recurring"
 import { formatBRL, formatDateBR } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { useAppStore } from "@/lib/store"
@@ -87,6 +88,9 @@ export function TodayTransactionsPanel() {
                     </Badge>
                     {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
                       <Badge className="text-[10px]">editado</Badge>
+                    )}
+                    {isForecastTransaction(tx) && (
+                      <Badge className="text-[10px]">previsto</Badge>
                     )}
                   </div>
                   <p className="mt-1 truncate text-sm font-medium">{tx.lancamento}</p>

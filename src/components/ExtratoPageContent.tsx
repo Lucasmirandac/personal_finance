@@ -13,6 +13,7 @@ import { Panel } from "@/components/ui/Panel"
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
 import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
 import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits"
+import { isForecastTransaction } from "@/lib/recurring"
 import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { useAppStore } from "@/lib/store"
@@ -181,6 +182,9 @@ export function ExtratoPageContent() {
                             <Badge className="text-[10px]">editado</Badge>
                           )}
                           {recurring && <Badge className="text-[10px]">recorrente</Badge>}
+                          {isForecastTransaction(tx) && (
+                            <Badge className="text-[10px]">previsto</Badge>
+                          )}
                         </div>
                         <p className="mt-0.5 text-xs text-muted">
                           {tx.categoria || "Sem categoria"} · {account?.nome ?? "Conta não definida"} ·{" "}

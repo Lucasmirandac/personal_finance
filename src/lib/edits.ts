@@ -8,7 +8,9 @@ import {
 
 export const EMPTY_EDITS: EditsState = {};
 
-export function isRecurringRaw(raw: TransactionRaw): boolean {
+export function isRecurringRaw(
+  raw: Pick<TransactionRaw, "sourceId">,
+): boolean {
   return (
     raw.sourceId.startsWith("manual:") &&
     raw.sourceId !== "manual:quick" &&
