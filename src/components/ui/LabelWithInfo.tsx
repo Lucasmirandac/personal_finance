@@ -18,7 +18,7 @@ export function LabelWithInfo({
   ariaTopic,
 }: Props) {
   return (
-    <div className={clsx("flex items-center gap-1", className)}>
+    <span className={clsx("inline-flex items-center gap-1", className)}>
       {children != null && <span className={labelClassName}>{children}</span>}
       {info != null && (
         <InfoTip
@@ -30,6 +30,6 @@ export function LabelWithInfo({
           }
         />
       )}
-    </div>
+    </span>
   );
 }
