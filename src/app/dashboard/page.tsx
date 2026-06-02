@@ -61,6 +61,7 @@ import {
   currentMonthIso,
 } from "@/lib/budgets";
 import { BudgetProgressCard } from "@/components/BudgetProgressCard";
+import { BudgetsEmptyState } from "@/components/BudgetsEmptyState";
 import { FileDown, FileSpreadsheet, List } from "lucide-react";
 
 const DASH_TABS = [
@@ -347,17 +348,10 @@ function DashboardPageInner() {
         {tab === "orcamentos" && (
           <div className="space-y-4">
             {budgetUsages.length === 0 ? (
-              <Panel className="rounded-2xl p-4 space-y-2 ring-1 ring-border/60 shadow-[var(--shadow-card)]">
-                <p className="text-sm text-muted">
-                  Nenhum orçamento ativo. Crie limites em Configurações.
-                </p>
-                <Link
-                  href="/config?tab=orcamentos"
-                  className="inline-flex items-center justify-center gap-1.5 font-medium rounded-full border whitespace-nowrap border-foreground bg-foreground text-surface hover:opacity-90 text-xs px-3 py-1.5"
-                >
-                  Configurar orçamentos
-                </Link>
-              </Panel>
+              <BudgetsEmptyState
+                variant="dashboard"
+                onManualCreate={() => router.push("/config?tab=orcamentos")}
+              />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {budgetUsages.map((u) => (

@@ -63,7 +63,7 @@ import {
   loadStructuralCategories,
   saveStructuralCategories,
 } from "./storage";
-import { normalizeBudgetCategory } from "./budgets";
+import { budgetCategoryKey, normalizeBudgetCategory } from "./budgets";
 import {
   Account,
   CategoryBudget,
@@ -451,7 +451,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     async (budget: CategoryBudget) => {
       const dup = budgets.some(
         (b) =>
-          b.categoria.toLowerCase() === budget.categoria.toLowerCase() &&
+          budgetCategoryKey(b.categoria) === budgetCategoryKey(budget.categoria) &&
           b.id !== budget.id,
       );
       if (dup) {
@@ -467,7 +467,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       const dup = budgets.some(
         (b) =>
           b.id !== budget.id &&
-          b.categoria.toLowerCase() === budget.categoria.toLowerCase(),
+          budgetCategoryKey(b.categoria) === budgetCategoryKey(budget.categoria),
       );
       if (dup) {
         throw new Error("Já existe orçamento para esta categoria.");

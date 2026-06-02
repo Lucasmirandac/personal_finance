@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input"
 import { MoneyInput } from "@/components/ui/MoneyInput"
 import { Num } from "@/components/ui/Num"
 import { Plus, Pencil, Trash2, XCircle } from "lucide-react"
+import { BudgetsEmptyState } from "@/components/BudgetsEmptyState"
 
 type FormState = {
   categoria: string
@@ -130,11 +131,7 @@ export function BudgetsPanel() {
       )}
 
       {budgets.length === 0 ? (
-        <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-4">
-          <p className="text-sm text-muted">
-            Crie limites para as categorias que você quer controlar de perto.
-          </p>
-        </div>
+        <BudgetsEmptyState variant="panel" onManualCreate={openNew} />
       ) : (
         <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden divide-y divide-border/60">
           {budgets.map((b) => (
