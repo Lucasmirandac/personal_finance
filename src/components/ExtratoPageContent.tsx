@@ -1,0 +1,245 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { QuickAddModal } from "@/components/QuickAddModal"
+import { TransactionEditModal } from "@/components/TransactionEditModal"
+import { TransactionActions } from "@/components/transaction/TransactionActions"
+import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
+import { Input, Select } from "@/components/ui/Input"
+import { Num } from "@/components/ui/Num"
+import { Panel } from "@/components/ui/Panel"
+import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
+import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
+import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits"
+import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
+import { isManualQuickRaw } from "@/lib/manualTransactions"
+import { useAppStore } from "@/lib/store"
+import {
+  groupTransactionsByDay,
+  isCashTransaction,
+  resolveTransactionAccount,
+  signedFlow,
+} from "@/lib/transactionViews"
+import { TransactionNormalized } from "@/lib/types"
+
+export function ExtratoPageContent() {
+  const {
+    normalized,
+    accounts,
+    edits,
+    findOriginalRaw,
+    editTransaction,
+    revertTransaction,
+    deleteTransaction,
+  } = useAppStore()
+  const [month, setMonth] = useState(todayIso().slice(0, 7))
+  const [accountId, setAccountId] = useState("all")
+  const [editRow, setEditRow] = useState<TransactionNormalized | null>(null)
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+
+  const cashAccounts = useMemo(
+    () => accounts.filter((account) => account.ativa && account.kind !== "cartao"),
+    [accounts],
+  )
+
+  const transactions = useMemo(
+    () =>
+      normalized.filter((tx) => {
+        if (!isCashTransaction(tx, accounts)) return false
+        if (tx.anoMes !== month) return false
+        if (accountId === "all") return true
+        return resolveTransactionAccount(tx, accounts)?.id === accountId
+      }),
+    [normalized, accounts, month, accountId],
+  )
+
+  const groups = useMemo(() => groupTransactionsByDay(transactions), [transactions])
+  const totals = useMemo(
+    () =>
+      transactions.reduce(
+        (acc, tx) => {
+          if (tx.tipoFluxo === "entrada") acc.income += tx.valorFluxo
+          if (tx.tipoFluxo === "saida") acc.outcome += tx.valorFluxo
+          acc.net += signedFlow(tx)
+          return acc
+        },
+        { income: 0, outcome: 0, net: 0 },
+      ),
+    [transactions],
+  )
+
+  const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
+  const editCurrent =
+    editRow && editOriginal
+      ? mergeRawWithEdit(editOriginal, edits[editRow.id])
+      : undefined
+
+  const handleDelete = (tx: TransactionNormalized) => {
+    if (globalThis.confirm("Excluir esta transação da análise? Você pode restaurá-la em Transações.")) {
+      deleteTransaction(tx.id)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-muted">Extrato</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Movimentos de conta</h1>
+          <p className="mt-1 text-sm text-muted">
+            Conta-corrente, carteira e poupança em um fluxo separado dos cartões.
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          className="rounded-full"
+          onClick={() => setQuickAddOpen(true)}
+        >
+          <Plus size={14} />
+          Adicionar
+        </Button>
+      </div>
+
+      <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
+        <div className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-end">
+          <div className="flex items-center gap-2">
+            <Button size="sm" aria-label="Mês anterior" onClick={() => setMonth(addMonthsYyyyMm(month, -1))}>
+              <ChevronLeft size={14} />
+            </Button>
+            <label className="block min-w-40 space-y-1">
+              <span className="text-xs text-muted">Mês</span>
+              <Input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+            </label>
+            <Button size="sm" aria-label="Próximo mês" onClick={() => setMonth(addMonthsYyyyMm(month, 1))}>
+              <ChevronRight size={14} />
+            </Button>
+          </div>
+
+          <label className="block space-y-1">
+            <span className="text-xs text-muted">Conta</span>
+            <Select value={accountId} onChange={(event) => setAccountId(event.target.value)}>
+              <option value="all">Todas as contas</option>
+              {cashAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.nome}
+                </option>
+              ))}
+            </Select>
+          </label>
+
+          <div className="grid grid-cols-3 gap-2 text-sm md:min-w-[24rem]">
+            <Summary label="Entradas" value={totals.income} tone="success" />
+            <Summary label="Saídas" value={-totals.outcome} tone="danger" />
+            <Summary label="Saldo" value={totals.net} tone={totals.net >= 0 ? "success" : "danger"} />
+          </div>
+        </div>
+      </Panel>
+
+      <Panel className="overflow-hidden rounded-3xl shadow-[var(--shadow-card)]">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold tracking-tight">
+            {formatMonthLabel(month)} · {formatInt(transactions.length)} lançamento
+            {transactions.length === 1 ? "" : "s"}
+          </h2>
+        </div>
+
+        <div className="divide-y divide-border">
+          {groups.map((group) => (
+            <section key={group.date}>
+              <div className="flex items-center justify-between bg-surface-2/60 px-4 py-2">
+                <span className="text-xs font-medium text-muted">{formatDateBR(group.date)}</span>
+                <Num className="text-xs text-muted">{formatBRL(group.total)}</Num>
+              </div>
+              <div className="divide-y divide-border/70">
+                {group.transactions.map((tx) => {
+                  const account = resolveTransactionAccount(tx, accounts)
+                  const recurring = isRecurringRaw(tx)
+                  const original = findOriginalRaw(tx.id)
+                  const canRevert =
+                    isEdited(tx.id, edits) &&
+                    !!original &&
+                    !isManualQuickRaw(original)
+                  const flow = signedFlow(tx)
+                  return (
+                    <div
+                      key={tx.id}
+                      className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-medium">{tx.lancamento}</p>
+                          {isEdited(tx.id, edits) && <Badge className="text-[10px]">editado</Badge>}
+                          {recurring && <Badge className="text-[10px]">recorrente</Badge>}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {tx.categoria || "Sem categoria"} · {account?.nome ?? "Conta não definida"} ·{" "}
+                          {account ? ACCOUNT_KIND_LABELS[account.kind] : "Origem manual"}
+                        </p>
+                      </div>
+                      <Num className={flow >= 0 ? "text-sm text-success" : "text-sm text-danger"}>
+                        {formatBRL(flow)}
+                      </Num>
+                      <TransactionActions
+                        tx={tx}
+                        canEdit={!recurring && !!findOriginalRaw(tx.id)}
+                        canRevert={canRevert}
+                        onEdit={setEditRow}
+                        onDelete={handleDelete}
+                        onRevert={(row) => revertTransaction(row.id)}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
+
+          {groups.length === 0 && (
+            <div className="px-4 py-10 text-center text-sm text-muted">
+              Nenhum movimento de conta em {formatMonthLabel(month)}.
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {editRow && editOriginal && editCurrent && (
+        <TransactionEditModal
+          open
+          original={editOriginal}
+          current={editCurrent}
+          canRevert={isEdited(editRow.id, edits) && !isManualQuickRaw(editOriginal)}
+          onSave={(patch) => editTransaction(editRow.id, patch)}
+          onRevert={() => revertTransaction(editRow.id)}
+          onClose={() => setEditRow(null)}
+        />
+      )}
+
+      <QuickAddModal
+        open={quickAddOpen}
+        draft={{ accountId: cashAccounts[0]?.id }}
+        onClose={() => setQuickAddOpen(false)}
+      />
+    </div>
+  )
+}
+
+function Summary({
+  label,
+  value,
+  tone,
+}: Readonly<{
+  label: string
+  value: number
+  tone: "success" | "danger"
+}>) {
+  return (
+    <div className="rounded-2xl bg-surface-2/70 p-3">
+      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <Num className={tone === "success" ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>
+        {formatBRL(value)}
+      </Num>
+    </div>
+  )
+}

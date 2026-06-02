@@ -9,16 +9,19 @@ import { Panel } from "@/components/ui/Panel";
 
 export const MAIN_NAV = [
   { href: "/saldo", label: "Hoje" },
+  { href: "/extrato", label: "Extrato" },
+  { href: "/faturas", label: "Faturas" },
   { href: "/futuro", label: "Futuro" },
   { href: "/divisor", label: "Divisor" },
   { href: "/dashboard", label: "Análise" },
-  { href: "/recorrentes", label: "Recorrentes" },
 ] as const;
 
 export const CONFIG_LINKS = [
   { href: "/config?tab=importar", label: "Importar" },
   { href: "/config?tab=classificacao", label: "Classificação" },
   { href: "/config?tab=contas", label: "Contas" },
+  { href: "/recorrentes", label: "Recorrentes" },
+  { href: "/transacoes", label: "Transações (avançado)" },
   { href: "/config?tab=backup", label: "Backup" },
   { href: "/config?tab=orcamentos", label: "Orçamentos" },
 ] as const;
@@ -29,7 +32,11 @@ function useActiveMatcher() {
     isActive: (href: string) =>
       href === "/" ? path === "/" : path === href || path.startsWith(href + "/"),
     configActive:
-      path === "/config" || path.startsWith("/config/") || path === "/regras",
+      path === "/config" ||
+      path.startsWith("/config/") ||
+      path === "/regras" ||
+      path === "/recorrentes" ||
+      path === "/transacoes",
   };
 }
 

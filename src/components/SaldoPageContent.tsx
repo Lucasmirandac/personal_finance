@@ -7,6 +7,7 @@ import { AccountsPanel } from "@/components/AccountsPanel"
 import { AdjustBalanceModal } from "@/components/AdjustBalanceModal"
 import { AlertsBar } from "@/components/painel/AlertsBar"
 import { DailyAllowancePanel } from "@/components/painel/DailyAllowancePanel"
+import { TodayTransactionsPanel } from "@/components/painel/TodayTransactionsPanel"
 import { StatTile } from "@/components/ui/StatTile"
 import { DrawerBackdrop, DrawerPanel } from "@/components/ui/Drawer"
 import { Panel } from "@/components/ui/Panel"
@@ -27,14 +28,8 @@ import {
 import { todayIso } from "@/lib/dates"
 import { Account, BalanceAnchor, Fonte } from "@/lib/types"
 import {
-  ArrowRight,
-  CalendarDays,
-  Landmark,
-  PiggyBank,
   Plus,
-  Route,
   SlidersHorizontal,
-  Sparkles,
   WalletCards,
 } from "lucide-react"
 
@@ -72,15 +67,15 @@ export function SaldoPageContent() {
       }),
     [normalized, recurringRules, settings, accounts],
   )
+  const today = todayIso()
 
   const upcoming = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
     const events: CashEvent[] = []
     for (const point of series) {
       if (point.date >= today) events.push(...point.events)
     }
     return events.sort((a, b) => (a.date < b.date ? -1 : 1))
-  }, [series])
+  }, [series, today])
 
   const alerts = useMemo(
     () =>
@@ -112,7 +107,6 @@ export function SaldoPageContent() {
 
   const snapshot7 = summary ? projectionSnapshot(series, summary.saldoInicial, 7) : null
   const snapshot30 = summary ? projectionSnapshot(series, summary.saldoInicial, 30) : null
-  const nextEvent = upcoming[0] ?? null
   const nextBill = upcoming.find((event) => event.amount < 0) ?? null
   const activeAccounts = accounts.filter((account) => account.ativa)
   const totalAccounts = activeAccounts.reduce((sum, account) => sum + account.saldoInicial, 0)
@@ -120,6 +114,10 @@ export function SaldoPageContent() {
   const upcomingIncome = upcoming.filter((event) => event.amount > 0).reduce((sum, event) => sum + event.amount, 0)
   const upcomingOutcome = upcoming.filter((event) => event.amount < 0).reduce((sum, event) => sum + event.amount, 0)
   const outlookTone = summary && summary.menorSaldo < 0 ? "danger" : "success"
+  const todayBalance = useMemo(() => {
+    const point = series.find((p) => p.date === today)
+    return point?.balance ?? summary?.saldoInicial ?? 0
+  }, [series, summary, today])
 
   if (!complete || !anchor) {
     return <SetupRequired />
@@ -133,6 +131,9 @@ export function SaldoPageContent() {
           snapshot30={snapshot30}
           nextBill={nextBill}
           outlookTone={outlookTone}
+          todayBalance={todayBalance}
+          anchorDate={anchor.data}
+          anchorValue={anchor.valor}
           onAdjustBalance={() => setAdjustOpen(true)}
         />
 
@@ -151,7 +152,7 @@ export function SaldoPageContent() {
         />
 
         <div className="space-y-4 lg:col-span-5">
-          <FlowPanel nextEvent={nextEvent} activeAccountsCount={activeAccounts.length} />
+          <TodayTransactionsPanel />
           <AccountsSummary
             anchor={anchor}
             activeAccounts={activeAccounts}
@@ -203,14 +204,22 @@ function TodayHero({
   snapshot30,
   nextBill,
   outlookTone,
+  todayBalance,
+  anchorDate,
+  anchorValue,
   onAdjustBalance,
 }: Readonly<{
   summary: ProjectionSummary | null
   snapshot30: ProjectionSnapshot
   nextBill: CashEvent | null
   outlookTone: "success" | "danger"
+  todayBalance: number
+  anchorDate: string
+  anchorValue: number
   onAdjustBalance: () => void
 }>) {
+  const includesActivitySinceAnchor = Math.abs(todayBalance - anchorValue) >= 0.01
+
   return (
     <Panel className="relative overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)] lg:col-span-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--accent)_18%,transparent),transparent_24rem)]" />
@@ -243,8 +252,13 @@ function TodayHero({
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted">Saldo atual</p>
             <Num className="mt-2 block text-5xl font-semibold tracking-tight num-display sm:text-6xl">
-              {formatBRL(summary?.saldoInicial)}
+              {formatBRL(todayBalance)}
             </Num>
+            {includesActivitySinceAnchor && (
+              <p className="mt-2 text-xs text-muted">
+                Inclui lançamentos desde {formatDateBR(anchorDate)}
+              </p>
+            )}
             <p
               className={clsx(
                 "mt-3 inline-flex rounded-full px-3 py-1 text-xs font-medium",
@@ -328,54 +342,6 @@ function ActionSummary({
   )
 }
 
-function FlowPanel({
-  nextEvent,
-  activeAccountsCount,
-}: Readonly<{
-  nextEvent: CashEvent | null
-  activeAccountsCount: number
-}>) {
-  const accountsDescription = `${activeAccountsCount} conta${activeAccountsCount === 1 ? "" : "s"} ativa${activeAccountsCount === 1 ? "" : "s"}`
-
-  return (
-    <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted">Próximos passos</p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight">Explore sem perder contexto</h2>
-        </div>
-        <Sparkles className="text-accent" size={20} />
-      </div>
-      <div className="mt-4 grid gap-2">
-        <FlowLink
-          href="/futuro"
-          icon={<CalendarDays size={18} />}
-          title="Ver o futuro"
-          description={nextEvent ? `Próximo evento: ${nextEvent.description}` : "Projeção, calendário e agenda"}
-        />
-        <FlowLink
-          href="/divisor"
-          icon={<Route size={18} />}
-          title="Divisor de Águas"
-          description="Renda, custos fixos e limite diário"
-        />
-        <FlowLink
-          href="/dashboard?tab=patrimonio"
-          icon={<PiggyBank size={18} />}
-          title="Planejar patrimônio"
-          description="Paz Futura, meta de poupança e evolução em 12 meses"
-        />
-        <FlowLink
-          href="/config?tab=contas"
-          icon={<Landmark size={18} />}
-          title="Ajustar contas"
-          description={accountsDescription}
-        />
-      </div>
-    </Panel>
-  )
-}
-
 function AccountsSummary({
   anchor,
   activeAccounts,
@@ -443,30 +409,3 @@ function TodayMetric({
   )
 }
 
-function FlowLink({
-  href,
-  icon,
-  title,
-  description,
-}: Readonly<{
-  href: string
-  icon: React.ReactNode
-  title: string
-  description: string
-}>) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-2xl bg-surface-2/70 p-3 transition-colors hover:bg-surface-2"
-    >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface text-accent ring-1 ring-border/70">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium">{title}</span>
-        <span className="block truncate text-xs text-muted">{description}</span>
-      </span>
-      <ArrowRight size={16} className="text-muted transition-transform group-hover:translate-x-0.5" />
-    </Link>
-  )
-}

@@ -355,7 +355,7 @@ export default function TransacoesPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Transações</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Transações — visão completa</h1>
           <p className="text-muted text-xs mt-0.5">
             {formatInt(filteredActive.length)} visíveis ·{" "}
             {formatInt(normalized.length)} total
