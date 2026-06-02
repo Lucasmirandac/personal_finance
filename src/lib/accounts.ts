@@ -144,17 +144,18 @@ export function migrateAccountsFromLegacy(
   const accounts: Account[] = [];
   const anchor = settings.balanceAnchor;
 
-  const mainId = newAccountId();
-  accounts.push({
-    id: mainId,
-    nome: "Conta Principal",
-    kind: "cc",
-    saldoInicial: anchor?.valor ?? 0,
-    dataReferencia: anchor?.data ?? today,
-    ativa: true,
-    criadaEm: new Date().toISOString(),
-    isDefault: true,
-  });
+  if (anchor) {
+    accounts.push({
+      id: newAccountId(),
+      nome: "Conta Principal",
+      kind: "cc",
+      saldoInicial: anchor.valor,
+      dataReferencia: anchor.data,
+      ativa: true,
+      criadaEm: new Date().toISOString(),
+      isDefault: true,
+    });
+  }
 
   for (const card of settings.cards) {
     if (card.fonte !== "inter" && card.fonte !== "nubank") continue;

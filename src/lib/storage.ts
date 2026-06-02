@@ -314,6 +314,22 @@ export async function clearAccounts(): Promise<void> {
   await del(KEY_ACCOUNTS);
 }
 
+function isPhantomBootstrapAccount(
+  accounts: Account[],
+  dataset: Dataset,
+  settings: Settings,
+): boolean {
+  if (accounts.length !== 1 || settings.balanceAnchor !== null) return false;
+  if (dataset.sources.length > 0) return false;
+  const a = accounts[0];
+  return (
+    a.kind === "cc" &&
+    a.saldoInicial === 0 &&
+    a.isDefault === true &&
+    a.nome === "Conta Principal"
+  );
+}
+
 /** Migrate legacy settings into accounts if none exist; attach accountIds to dataset. */
 export async function bootstrapAccounts(
   dataset: Dataset,
@@ -321,6 +337,11 @@ export async function bootstrapAccounts(
 ): Promise<{ accounts: Account[]; dataset: Dataset }> {
   let accounts = await loadAccounts();
   let nextDataset = dataset;
+
+  if (isPhantomBootstrapAccount(accounts, dataset, settings)) {
+    await clearAccounts();
+    accounts = [];
+  }
 
   if (accounts.length === 0) {
     accounts = migrateAccountsFromLegacy(settings, dataset);
