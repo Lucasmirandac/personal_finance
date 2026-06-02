@@ -1,8 +1,9 @@
 import Papa from "papaparse";
 import { z } from "zod";
 import { ensureCardAccount } from "./accounts";
+import { addMonthsIso } from "./dates";
 import { newSourceId, newTransactionId } from "./ids";
-import { Account, Fonte, Source, TransactionRaw } from "./types";
+import { Account, Fonte, InstallmentInfo, Source, TransactionRaw } from "./types";
 
 const INTER_HEADERS = [
   "Data",
@@ -127,11 +128,53 @@ export function isoToBr(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-const INTER_INSTALLMENT_TIPO_RE = /^Parcela\s+\d+\s*\/\s*\d+\s*$/i;
+const INTER_INSTALLMENT_TIPO_RE = /^Parcela\s+(\d+)\s*\/\s*(\d+)\s*$/i;
 const COMPRA_SUFFIX_RE = /\s*\(compra\s+\d{2}\/\d{2}\/\d{4}\)\s*$/i;
 
+export function parseInterInstallmentTipo(
+  tipo: string,
+): { current: number; total: number } | null {
+  const match = tipo.trim().match(INTER_INSTALLMENT_TIPO_RE);
+  if (!match) return null;
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  if (!Number.isFinite(current) || !Number.isFinite(total)) return null;
+  if (current < 1 || total < 1 || current > total) return null;
+  return { current, total };
+}
+
 export function isInterInstallmentTipo(tipo: string): boolean {
-  return INTER_INSTALLMENT_TIPO_RE.test(tipo.trim());
+  return parseInterInstallmentTipo(tipo) !== null;
+}
+
+export function buildInstallmentGroupKey(
+  raw: Pick<TransactionRaw, "fonte" | "lancamento" | "categoria" | "valorOriginal">,
+  purchaseDate: string,
+  total: number,
+): string {
+  const baseLancamento = raw.lancamento
+    .replace(COMPRA_SUFFIX_RE, "")
+    .trim()
+    .toLowerCase();
+  return `${raw.fonte}|${purchaseDate}|${baseLancamento}|${raw.categoria}|${raw.valorOriginal}|${total}`;
+}
+
+function attachInstallmentInfo(
+  raw: TransactionRaw,
+  current: number,
+  total: number,
+  purchaseDate: string,
+  estimated: boolean,
+): TransactionRaw {
+  const groupKey = buildInstallmentGroupKey(raw, purchaseDate, total);
+  const installment: InstallmentInfo = {
+    current,
+    total,
+    purchaseDate,
+    groupKey,
+    estimated,
+  };
+  return { ...raw, installment };
 }
 
 function addMonthsToAnoMes(anoMes: string, months: number): string {
@@ -202,15 +245,52 @@ function applyInterInstallmentRewrites(
   );
   if (!invoiceAnoMes) return;
 
+  const extras: TransactionRaw[] = [];
+
   for (let i = 0; i < raw.length; i++) {
-    if (isInterInstallmentTipo(raw[i].tipo)) {
-      raw[i] = rewriteInstallmentRow(
-        raw[i],
-        invoiceAnoMes,
-        cardAccount.diaPagamento,
+    const parsed = parseInterInstallmentTipo(raw[i].tipo);
+    if (!parsed) continue;
+
+    const purchaseDate = raw[i].data.trim();
+    const rewritten = rewriteInstallmentRow(
+      raw[i],
+      invoiceAnoMes,
+      cardAccount.diaPagamento,
+    );
+    raw[i] = attachInstallmentInfo(
+      rewritten,
+      parsed.current,
+      parsed.total,
+      purchaseDate,
+      false,
+    );
+
+    if (parsed.current >= parsed.total) continue;
+
+    const currentPayIso = parseBrDate(raw[i].data);
+    if (!currentPayIso) continue;
+
+    for (let n = parsed.current + 1; n <= parsed.total; n += 1) {
+      const monthsAhead = n - parsed.current;
+      const futureIso = addMonthsIso(currentPayIso, monthsAhead);
+      extras.push(
+        attachInstallmentInfo(
+          {
+            ...raw[i],
+            id: newTransactionId(),
+            data: isoToBr(futureIso),
+            tipo: `Parcela ${n}/${parsed.total}`,
+          },
+          n,
+          parsed.total,
+          purchaseDate,
+          true,
+        ),
       );
     }
   }
+
+  raw.push(...extras);
 }
 
 function stripBom(text: string): string {

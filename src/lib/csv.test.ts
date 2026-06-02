@@ -3,20 +3,40 @@ import {
   inferInvoiceAnoMes,
   isInterInstallmentTipo,
   parseCsvText,
+  parseInterInstallmentTipo,
   rewriteInstallmentRow,
 } from "./csv";
-import type { TransactionRaw } from "./types";
+import type { Account, TransactionRaw } from "./types";
 
-describe("isInterInstallmentTipo", () => {
-  it("accepts Inter installment tipo strings", () => {
-    expect(isInterInstallmentTipo("Parcela 2/3")).toBe(true);
-    expect(isInterInstallmentTipo("PARCELA 5 / 12")).toBe(true);
+const interCard: Account = {
+  id: "inter-card",
+  nome: "Inter",
+  kind: "cartao",
+  saldoInicial: 0,
+  dataReferencia: "2026-06-01",
+  ativa: true,
+  criadaEm: "2026-06-01T00:00:00.000Z",
+  fonteCsv: "inter",
+  diaFechamento: 30,
+  diaPagamento: 7,
+};
+
+describe("parseInterInstallmentTipo", () => {
+  it("parses valid installment tipo strings", () => {
+    expect(parseInterInstallmentTipo("Parcela 2/6")).toEqual({
+      current: 2,
+      total: 6,
+    });
+    expect(parseInterInstallmentTipo("PARCELA 5 / 12")).toEqual({
+      current: 5,
+      total: 12,
+    });
   });
 
   it("rejects non-installment tipo strings", () => {
-    expect(isInterInstallmentTipo("Compra à vista")).toBe(false);
-    expect(isInterInstallmentTipo("Pagamento")).toBe(false);
-    expect(isInterInstallmentTipo("")).toBe(false);
+    expect(parseInterInstallmentTipo("Compra à vista")).toBeNull();
+    expect(parseInterInstallmentTipo("Pagamento")).toBeNull();
+    expect(parseInterInstallmentTipo("")).toBeNull();
   });
 });
 
@@ -79,9 +99,11 @@ describe("parseCsvText inter installments", () => {
 `;
 
   it("rewrites installment rows to the inferred invoice month", () => {
-    const result = parseCsvText(interCsv, "fatura-inter-2026-07.csv");
+    const result = parseCsvText(interCsv, "fatura-inter-2026-07.csv", [
+      interCard,
+    ]);
     expect(result.ok).toBe(true);
-    expect(result.source?.raw).toHaveLength(3);
+    expect(result.source?.raw).toHaveLength(4);
 
     const vista = result.source?.raw.find((row) => row.tipo === "Compra à vista");
     expect(vista?.data).toBe("02/06/2026");
@@ -90,11 +112,48 @@ describe("parseCsvText inter installments", () => {
     const parcelas = result.source?.raw.filter((row) =>
       isInterInstallmentTipo(row.tipo),
     );
-    expect(parcelas).toHaveLength(2);
-    for (const row of parcelas ?? []) {
-      expect(row.data).toBe("20/07/2026");
-    }
-    expect(parcelas?.[0].lancamento).toContain("(compra 26/05/2026)");
-    expect(parcelas?.[1].lancamento).toContain("(compra 01/12/2025)");
+    expect(parcelas).toHaveLength(3);
+    const real = parcelas?.find((row) => row.tipo === "Parcela 2/3");
+    const future = parcelas?.find((row) => row.tipo === "Parcela 3/3");
+    expect(real?.data).toBe("07/07/2026");
+    expect(real?.installment?.estimated).toBe(false);
+    expect(future?.data).toBe("07/08/2026");
+    expect(future?.installment?.estimated).toBe(true);
+    expect(real?.installment?.groupKey).toBe(future?.installment?.groupKey);
+    expect(parcelas?.find((row) => row.tipo === "Parcela 7/7")?.data).toBe(
+      "07/07/2026",
+    );
+  });
+
+  const futureInstallmentsCsv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","DL*UberRides","TRANSPORTE","Compra à vista","R$ 13,12"
+"03/05/2026","DECOLAR","VIAGEM","Parcela 2/6","R$ 245,71"
+`;
+
+  it("generates future estimated installments through the remaining plan", () => {
+    const result = parseCsvText(
+      futureInstallmentsCsv,
+      "fatura-inter-2026-07.csv",
+      [interCard],
+    );
+    const installments = result.source?.raw.filter((row) => row.installment);
+    expect(installments).toHaveLength(5);
+    expect(installments?.map((row) => row.tipo)).toEqual([
+      "Parcela 2/6",
+      "Parcela 3/6",
+      "Parcela 4/6",
+      "Parcela 5/6",
+      "Parcela 6/6",
+    ]);
+    expect(installments?.map((row) => row.data)).toEqual([
+      "07/07/2026",
+      "07/08/2026",
+      "07/09/2026",
+      "07/10/2026",
+      "07/11/2026",
+    ]);
+    expect(installments?.filter((row) => row.installment?.estimated)).toHaveLength(
+      4,
+    );
   });
 });

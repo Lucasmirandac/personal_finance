@@ -26,6 +26,7 @@ import {
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
+import { removeStaleEstimatedInstallments } from "./installmentEstimates";
 import { compileAliases } from "./aliases";
 import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
 import { normalizeTransactions } from "./normalize";
@@ -471,10 +472,23 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           await persistAccounts(nextAccounts, settings);
         }
       }
-      const next: Dataset = { sources: [...dataset.sources, nextSource] };
+      const { dataset: cleanedDataset, removedRawIds } =
+        removeStaleEstimatedInstallments(
+          { sources: dataset.sources },
+          nextSource.raw,
+        );
+      if (removedRawIds.length > 0) {
+        const nextEdits = pruneEditsForRawIds(edits, removedRawIds);
+        if (nextEdits !== edits) {
+          await persistEdits(nextEdits);
+        }
+      }
+      const next: Dataset = {
+        sources: [...cleanedDataset.sources, nextSource],
+      };
       await persistDataset(next);
     },
-    [accounts, dataset.sources, persistAccounts, persistDataset, settings],
+    [accounts, dataset.sources, edits, persistAccounts, persistDataset, persistEdits, settings],
   );
 
   const removeSource = useCallback(

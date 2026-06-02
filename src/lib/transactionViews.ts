@@ -1,5 +1,5 @@
 import { accountForRaw } from "@/lib/accounts"
-import { cycleFor } from "@/lib/projection"
+import { billPayDateForTransaction } from "@/lib/projection"
 import { Account, TransactionNormalized } from "@/lib/types"
 
 export type TransactionDayGroup = {
@@ -79,7 +79,7 @@ export function groupCardTransactionsByCycle(
     if (account?.kind !== "cartao") continue
     const closeDay = account.diaFechamento ?? 10
     const paymentDay = account.diaPagamento ?? 20
-    const payDate = cycleFor(tx.dataISO, {
+    const payDate = billPayDateForTransaction(tx, {
       fonte: account.fonteCsv ?? "manual",
       diaFechamento: closeDay,
       diaPagamento: paymentDay,

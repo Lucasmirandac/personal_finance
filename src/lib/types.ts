@@ -41,6 +41,14 @@ export type RecurringRule = {
   accountId?: string;
 };
 
+export type InstallmentInfo = {
+  current: number;
+  total: number;
+  purchaseDate: string;
+  groupKey: string;
+  estimated: boolean;
+};
+
 export type TransactionRaw = {
   id: string;
   data: string; // dd/mm/yyyy original
@@ -51,6 +59,7 @@ export type TransactionRaw = {
   fonte: Fonte;
   sourceId: string;
   accountId?: string;
+  installment?: InstallmentInfo;
 };
 
 /** Avulsa manual (Quick Add) — persisted separately from CSV. */

@@ -3,6 +3,7 @@ import {
   accountsToCardConfigs,
   hasProjectionSetup,
 } from "./accounts";
+import { isInterInstallmentTipo } from "./csv";
 import { isoFromParts, parseIso, todayIso } from "./dates";
 import { isManualQuickRaw } from "./manualTransactions";
 import { monthsBetween } from "./recurring";
@@ -78,6 +79,19 @@ export function cycleFor(dataISO: string, config: CardConfig): string {
   return isoFromParts(py, pm, payDay);
 }
 
+export function billPayDateForTransaction(
+  tx: Pick<TransactionNormalized, "dataISO" | "fonte" | "tipo" | "installment">,
+  config: CardConfig,
+): string {
+  if (
+    tx.fonte === "inter" &&
+    (tx.installment || isInterInstallmentTipo(tx.tipo))
+  ) {
+    return tx.dataISO;
+  }
+  return cycleFor(tx.dataISO, config);
+}
+
 function cardConfigMap(cards: CardConfig[]): Map<Fonte, CardConfig> {
   const map = new Map<Fonte, CardConfig>();
   for (const c of cards) {
@@ -101,7 +115,7 @@ export function buildFaturaEvents(
     const cfg = configs.get(t.fonte);
     if (!cfg || !t.dataISO) continue;
 
-    const payDate = cycleFor(t.dataISO, cfg);
+    const payDate = billPayDateForTransaction(t, cfg);
     const key = `${t.fonte}|${payDate}`;
     const cur = groups.get(key) ?? { fonte: t.fonte, payDate, total: 0 };
     cur.total += t.valorAnalise;

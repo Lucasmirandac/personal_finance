@@ -97,6 +97,14 @@ export type MergePreview = {
   aliasesToAdd: number;
 };
 
+const installmentInfoSchema = z.object({
+  current: z.number(),
+  total: z.number(),
+  purchaseDate: z.string(),
+  groupKey: z.string(),
+  estimated: z.boolean(),
+});
+
 const transactionRawSchema = z.object({
   id: z.string(),
   data: z.string(),
@@ -107,6 +115,7 @@ const transactionRawSchema = z.object({
   fonte: z.enum(["inter", "nubank", "manual"]),
   sourceId: z.string(),
   accountId: z.string().optional(),
+  installment: installmentInfoSchema.optional(),
 });
 
 const sourceSchema = z.object({
