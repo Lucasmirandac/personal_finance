@@ -16,6 +16,8 @@ import {
   Achievement,
   AchievementId,
   EMPTY_ACHIEVEMENTS,
+  EMPTY_MONTH_CLOSES,
+  MonthCloseEntry,
   ManualTransaction,
   RecurringRule,
   Rules,
@@ -42,6 +44,7 @@ const KEY_SUBSCRIPTION_DISMISSALS = "pf:subscriptionDismissals:v1";
 const KEY_ALIASES = "pf:aliases:v1";
 const KEY_STRUCTURAL_CATEGORIES = "pf:structuralCategories:v1";
 const KEY_ACHIEVEMENTS = "pf:achievements:v1";
+const KEY_MONTH_CLOSES = "pf:monthClose:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -156,6 +159,7 @@ export async function clearAllData(opts?: {
   await clearAliases();
   await clearStructuralCategories();
   await clearAchievements();
+  await clearMonthCloses();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
@@ -615,6 +619,7 @@ const ACHIEVEMENT_IDS: AchievementId[] = [
   "mes-positivo",
   "trio-positivo",
   "cofrinho-calmo",
+  "mes-revisado",
 ];
 
 function isAchievementId(v: unknown): v is AchievementId {
@@ -678,4 +683,82 @@ export async function saveAchievements(
 
 export async function clearAchievements(): Promise<void> {
   await del(KEY_ACHIEVEMENTS);
+}
+
+function mergeMonthCloseEntry(v: unknown): MonthCloseEntry | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<MonthCloseEntry>;
+  if (typeof o.anoMes !== "string" || !/^\d{4}-\d{2}$/.test(o.anoMes)) {
+    return null;
+  }
+  if (typeof o.sobra !== "number" || typeof o.closedAt !== "string") {
+    return null;
+  }
+  const top3estouro: MonthCloseEntry["top3estouro"] = [];
+  if (Array.isArray(o.top3estouro)) {
+    for (const item of o.top3estouro) {
+      if (!item || typeof item !== "object") continue;
+      const c = item as Partial<MonthCloseEntry["top3estouro"][number]>;
+      if (
+        typeof c.categoria !== "string" ||
+        typeof c.gasto !== "number" ||
+        typeof c.limite !== "number" ||
+        typeof c.percentual !== "number"
+      ) {
+        continue;
+      }
+      top3estouro.push({
+        categoria: c.categoria,
+        gasto: c.gasto,
+        limite: c.limite,
+        percentual: c.percentual,
+      });
+    }
+  }
+  return {
+    anoMes: o.anoMes,
+    sobra: o.sobra,
+    top3estouro: top3estouro.slice(0, 3),
+    closedAt: o.closedAt,
+  };
+}
+
+export function mergeMonthCloses(v: unknown): MonthCloseEntry[] {
+  if (!Array.isArray(v)) return [...EMPTY_MONTH_CLOSES];
+  const byMonth = new Map<string, MonthCloseEntry>();
+  for (const item of v) {
+    const entry = mergeMonthCloseEntry(item);
+    if (!entry) continue;
+    const existing = byMonth.get(entry.anoMes);
+    if (!existing || entry.closedAt < existing.closedAt) {
+      byMonth.set(entry.anoMes, entry);
+    }
+  }
+  return [...byMonth.values()].sort((a, b) => a.anoMes.localeCompare(b.anoMes));
+}
+
+export async function loadMonthCloses(): Promise<MonthCloseEntry[]> {
+  try {
+    const v = await get(KEY_MONTH_CLOSES);
+    return mergeMonthCloses(v);
+  } catch {
+    return [...EMPTY_MONTH_CLOSES];
+  }
+}
+
+export async function saveMonthCloses(entries: MonthCloseEntry[]): Promise<void> {
+  await set(KEY_MONTH_CLOSES, mergeMonthCloses(entries));
+}
+
+export async function appendMonthClose(
+  entry: MonthCloseEntry,
+  current: MonthCloseEntry[] = [],
+): Promise<MonthCloseEntry[]> {
+  const merged = mergeMonthCloses([...current, entry]);
+  await saveMonthCloses(merged);
+  return merged;
+}
+
+export async function clearMonthCloses(): Promise<void> {
+  await del(KEY_MONTH_CLOSES);
 }

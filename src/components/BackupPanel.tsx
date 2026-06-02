@@ -30,6 +30,7 @@ export function BackupPanel() {
     establishmentAliases,
     structuralCategories,
     achievements,
+    monthCloses,
     lastBackupAt,
     exportBackup,
     importBackup,
@@ -58,6 +59,7 @@ export function BackupPanel() {
         establishmentAliases,
         structuralCategories,
         achievements,
+        monthCloses,
       }),
     [
       dataset,
@@ -72,6 +74,7 @@ export function BackupPanel() {
       establishmentAliases,
       structuralCategories,
       achievements,
+      monthCloses,
     ],
   )
 
@@ -91,6 +94,7 @@ export function BackupPanel() {
       establishmentAliases,
       structuralCategories,
       achievements,
+      monthCloses,
     }),
     [
       dataset,
@@ -105,6 +109,7 @@ export function BackupPanel() {
       establishmentAliases,
       structuralCategories,
       achievements,
+      monthCloses,
     ],
   )
 

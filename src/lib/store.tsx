@@ -65,6 +65,9 @@ import {
   saveStructuralCategories,
   loadAchievements,
   saveAchievements,
+  loadMonthCloses,
+  appendMonthClose,
+  saveMonthCloses,
 } from "./storage";
 import { evaluateAchievements } from "./achievements";
 import { budgetCategoryKey, normalizeBudgetCategory } from "./budgets";
@@ -79,6 +82,8 @@ import {
   EMPTY_ACHIEVEMENTS,
   EMPTY_BUDGETS,
   EMPTY_DATASET,
+  EMPTY_MONTH_CLOSES,
+  MonthCloseEntry,
   EstablishmentAlias,
   ManualTransaction,
   RecurringRule,
@@ -179,6 +184,8 @@ type Ctx = {
   setStructuralCategories: (categories: string[]) => Promise<void>;
   toggleStructuralCategory: (categoria: string) => Promise<void>;
   achievements: AchievementsSnapshot;
+  monthCloses: MonthCloseEntry[];
+  closeMonth: (entry: MonthCloseEntry) => Promise<void>;
   pendingAchievementToasts: AchievementId[];
   dismissAchievementToast: () => void;
 };
@@ -235,6 +242,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [achievements, setAchievementsState] = useState<AchievementsSnapshot>(
     EMPTY_ACHIEVEMENTS,
   );
+  const [monthCloses, setMonthClosesState] = useState<MonthCloseEntry[]>(
+    EMPTY_MONTH_CLOSES,
+  );
   const [pendingAchievementToasts, setPendingAchievementToasts] = useState<
     AchievementId[]
   >([]);
@@ -242,7 +252,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases, structural, ach] =
+      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases, structural, ach, closes] =
         await Promise.all([
         loadDataset(),
         loadRules(),
@@ -256,6 +266,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         loadAliases(),
         loadStructuralCategories(),
         loadAchievements(),
+        loadMonthCloses(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -280,6 +291,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setEstablishmentAliases(aliases);
       setStructuralCategoriesState(structural);
       setAchievementsState(ach);
+      setMonthClosesState(closes);
       setLoaded(true);
     })();
     return () => {
@@ -405,6 +417,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       recurringRules,
       structuralCategories,
       snapshot: prev,
+      monthCloses,
     });
     const prevIds = new Set(prev.unlocked.map((a) => a.id));
     const nextIds = new Set(result.snapshot.unlocked.map((a) => a.id));
@@ -433,8 +446,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     accounts,
     recurringRules,
     structuralCategories,
+    monthCloses,
     settings.showAchievements,
   ]);
+
+  const closeMonth = useCallback(async (entry: MonthCloseEntry) => {
+    const next = await appendMonthClose(entry, monthCloses);
+    setMonthClosesState(next);
+  }, [monthCloses]);
 
   const addSource = useCallback(
     async (source: Source) => {
@@ -489,6 +508,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setEstablishmentAliases([]);
     setStructuralCategoriesState([]);
     setAchievementsState(EMPTY_ACHIEVEMENTS);
+    setMonthClosesState(EMPTY_MONTH_CLOSES);
     setPendingAchievementToasts([]);
     setLastBackupAt(null);
   }, []);
@@ -584,6 +604,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         establishmentAliases,
         structuralCategories,
         achievements,
+        monthCloses,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -604,6 +625,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveAliases(resolved.establishmentAliases),
         saveStructuralCategories(resolved.structuralCategories),
         saveAchievements(resolved.achievements),
+        saveMonthCloses(resolved.monthCloses),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -628,6 +650,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setStructuralCategoriesState(resolved.structuralCategories);
       setAchievementsState(resolved.achievements);
       achievementsRef.current = resolved.achievements;
+      setMonthClosesState(resolved.monthCloses);
     },
     [
       accounts,
@@ -636,6 +659,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       establishmentAliases,
       structuralCategories,
       achievements,
+      monthCloses,
       dataset,
       edits,
       manualTransactions,
@@ -1040,6 +1064,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setStructuralCategories,
       toggleStructuralCategory,
       achievements,
+      monthCloses,
+      closeMonth,
       pendingAchievementToasts,
       dismissAchievementToast,
     }),
@@ -1099,6 +1125,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setStructuralCategories,
       toggleStructuralCategory,
       achievements,
+      monthCloses,
+      closeMonth,
       pendingAchievementToasts,
       dismissAchievementToast,
     ],

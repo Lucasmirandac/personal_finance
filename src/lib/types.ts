@@ -178,7 +178,24 @@ export type AchievementId =
   | "volta-certeira"
   | "mes-positivo"
   | "trio-positivo"
-  | "cofrinho-calmo";
+  | "cofrinho-calmo"
+  | "mes-revisado";
+
+export type MonthCloseTopCategory = {
+  categoria: string;
+  gasto: number;
+  limite: number;
+  percentual: number;
+};
+
+export type MonthCloseEntry = {
+  anoMes: string;
+  sobra: number;
+  top3estouro: MonthCloseTopCategory[];
+  closedAt: string;
+};
+
+export const EMPTY_MONTH_CLOSES: MonthCloseEntry[] = [];
 
 export type Achievement = {
   id: AchievementId;

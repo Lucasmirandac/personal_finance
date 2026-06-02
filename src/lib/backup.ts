@@ -4,6 +4,7 @@ import {
   loadAccounts,
   loadAchievements,
   loadBudgets,
+  loadMonthCloses,
   loadSubscriptionDismissals,
   loadAliases,
   loadStructuralCategories,
@@ -14,6 +15,7 @@ import {
   loadRules,
   loadSettings,
   mergeAchievementsSnapshot,
+  mergeMonthCloses,
   saveLastBackupAt,
 } from "./storage";
 import {
@@ -26,14 +28,17 @@ import {
   EditsState,
   EMPTY_ACHIEVEMENTS,
   EMPTY_DATASET,
+  EMPTY_MONTH_CLOSES,
   EstablishmentAlias,
   ManualTransaction,
+  MonthCloseEntry,
   RecurringRule,
   Rules,
   Settings,
 } from "./types";
 
-export const BACKUP_VERSION = 6 as const;
+export const BACKUP_VERSION = 7 as const;
+export const BACKUP_VERSION_V6 = 6 as const;
 export const BACKUP_VERSION_V5 = 5 as const;
 export const BACKUP_VERSION_V4 = 4 as const;
 export const BACKUP_VERSION_V3 = 3 as const;
@@ -56,6 +61,7 @@ export type BackupPayload = {
   establishmentAliases: EstablishmentAlias[];
   structuralCategories: string[];
   achievements: AchievementsSnapshot;
+  monthCloses: MonthCloseEntry[];
 };
 
 /** @deprecated use BackupFile */
@@ -69,6 +75,7 @@ export type BackupV1 = {
 export type BackupFile = {
   version:
     | typeof BACKUP_VERSION
+    | typeof BACKUP_VERSION_V6
     | typeof BACKUP_VERSION_V5
     | typeof BACKUP_VERSION_V4
     | typeof BACKUP_VERSION_V3
@@ -175,8 +182,23 @@ const achievementSchema = z.object({
     "mes-positivo",
     "trio-positivo",
     "cofrinho-calmo",
+    "mes-revisado",
   ]),
   unlockedAt: z.string(),
+});
+
+const monthCloseTopCategorySchema = z.object({
+  categoria: z.string(),
+  gasto: z.number(),
+  limite: z.number(),
+  percentual: z.number(),
+});
+
+const monthCloseEntrySchema = z.object({
+  anoMes: z.string(),
+  sobra: z.number(),
+  top3estouro: z.array(monthCloseTopCategorySchema),
+  closedAt: z.string(),
 });
 
 const achievementsSnapshotSchema = z.object({
@@ -195,8 +217,19 @@ const backupDataV6Schema = backupDataV5Schema.extend({
   achievements: achievementsSnapshotSchema.optional(),
 });
 
-const backupV6Schema = z.object({
+const backupDataV7Schema = backupDataV6Schema.extend({
+  monthCloses: z.array(monthCloseEntrySchema).optional(),
+});
+
+const backupV7Schema = z.object({
   version: z.literal(BACKUP_VERSION),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataV7Schema,
+});
+
+const backupV6Schema = z.object({
+  version: z.literal(BACKUP_VERSION_V6),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
   data: backupDataV6Schema,
@@ -288,6 +321,7 @@ export function resolveBackupApplication(
       current.achievements,
       backup.achievements,
     ),
+    monthCloses: mergeMonthCloseLists(current.monthCloses, backup.monthCloses),
     rules: backup.rules,
     settings: backup.settings,
     edits: backup.edits,
@@ -508,8 +542,15 @@ function sanitizeStructuralCategories(raw: unknown[] | undefined): string[] {
   ];
 }
 
+function mergeMonthCloseLists(
+  a: MonthCloseEntry[],
+  b: MonthCloseEntry[],
+): MonthCloseEntry[] {
+  return mergeMonthCloses([...a, ...b]);
+}
+
 function toBackupPayload(
-  parsed: z.infer<typeof backupDataV6Schema>,
+  parsed: z.infer<typeof backupDataV7Schema>,
   version: number,
 ): BackupPayload {
   return {
@@ -537,9 +578,13 @@ function toBackupPayload(
         ? sanitizeStructuralCategories(parsed.structuralCategories)
         : [],
     achievements:
-      version >= BACKUP_VERSION
+      version >= BACKUP_VERSION_V6
         ? mergeAchievementsSnapshot(parsed.achievements)
         : { ...EMPTY_ACHIEVEMENTS },
+    monthCloses:
+      version >= BACKUP_VERSION
+        ? mergeMonthCloses(parsed.monthCloses)
+        : [...EMPTY_MONTH_CLOSES],
   };
 }
 
@@ -557,6 +602,7 @@ export async function exportAllData(): Promise<BackupFile> {
     establishmentAliases,
     structuralCategories,
     achievements,
+    monthCloses,
   ] = await Promise.all([
     loadDataset(),
     loadRules(),
@@ -570,6 +616,7 @@ export async function exportAllData(): Promise<BackupFile> {
     loadAliases(),
     loadStructuralCategories(),
     loadAchievements(),
+    loadMonthCloses(),
   ]);
 
   return {
@@ -589,6 +636,7 @@ export async function exportAllData(): Promise<BackupFile> {
       establishmentAliases,
       structuralCategories,
       achievements,
+      monthCloses,
     },
   };
 }
@@ -615,13 +663,24 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
+  const v7 = backupV7Schema.safeParse(json);
+  if (v7.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v7.data,
+        data: toBackupPayload(v7.data.data, BACKUP_VERSION),
+      },
+    };
+  }
+
   const v6 = backupV6Schema.safeParse(json);
   if (v6.success) {
     return {
       ok: true,
       backup: {
         ...v6.data,
-        data: toBackupPayload(v6.data.data, BACKUP_VERSION),
+        data: toBackupPayload(v6.data.data, BACKUP_VERSION_V6),
       },
     };
   }
@@ -762,6 +821,7 @@ export function emptyBackupPayload(): BackupPayload {
     establishmentAliases: [],
     structuralCategories: [],
     achievements: { ...EMPTY_ACHIEVEMENTS },
+    monthCloses: [...EMPTY_MONTH_CLOSES],
   };
 }
 

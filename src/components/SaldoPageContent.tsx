@@ -8,6 +8,7 @@ import { AdjustBalanceModal } from "@/components/AdjustBalanceModal"
 import { AlertsBar } from "@/components/painel/AlertsBar"
 import { AchievementsCard } from "@/components/AchievementsCard"
 import { DailyAllowancePanel } from "@/components/painel/DailyAllowancePanel"
+import { MonthCloseCard } from "@/components/painel/MonthCloseCard"
 import { TodayTransactionsPanel } from "@/components/painel/TodayTransactionsPanel"
 import { StatTile } from "@/components/ui/StatTile"
 import { DrawerBackdrop, DrawerPanel } from "@/components/ui/Drawer"
@@ -126,6 +127,7 @@ export function SaldoPageContent() {
 
   return (
     <div className="space-y-5 lg:space-y-6">
+      <MonthCloseCard />
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <TodayHero
           summary={summary}

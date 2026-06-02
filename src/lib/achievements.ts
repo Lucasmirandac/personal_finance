@@ -7,6 +7,7 @@ import {
   AchievementId,
   AchievementsSnapshot,
   EMPTY_ACHIEVEMENTS,
+  MonthCloseEntry,
   RecurringRule,
   TransactionNormalized,
 } from "./types";
@@ -65,6 +66,12 @@ export const ACHIEVEMENT_CATALOG: AchievementDefinition[] = [
     description: "Somas de sobras mensais positivas passaram de R$ 500.",
     group: "sobra",
   },
+  {
+    id: "mes-revisado",
+    title: "Mês revisado",
+    description: "Fechou um mês com revisão de orçamento.",
+    group: "rotina",
+  },
 ];
 
 export type ClosedMonthSurplus = {
@@ -79,6 +86,7 @@ export type EvaluateAchievementsInput = {
   recurringRules: RecurringRule[];
   structuralCategories: string[];
   snapshot: AchievementsSnapshot;
+  monthCloses?: MonthCloseEntry[];
   today?: Date;
 };
 
@@ -282,6 +290,7 @@ export function evaluateAchievements(
   if (positiveClosed.length >= 1) candidates.push("mes-positivo");
   if (positiveInYear.length >= 3) candidates.push("trio-positivo");
   if (sobraTotal >= COFRINHO_CALMO_THRESHOLD) candidates.push("cofrinho-calmo");
+  if ((input.monthCloses?.length ?? 0) > 0) candidates.push("mes-revisado");
 
   for (const id of candidates) {
     const result = unlock(snapshot, id, unlockedAt);

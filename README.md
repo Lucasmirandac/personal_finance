@@ -392,12 +392,18 @@ Para limpar tudo: `/config?tab=importar` → "Limpar dados".
 
 ## Privacidade
 
-- Não há rotas de API. Nenhum dado financeiro é enviado para servidores.
+- Não há rotas de API. **Nenhum dado financeiro** (valores, descrições, CSV, backups) é enviado para servidores.
 - CSV é lido via `File.text()` no navegador e processado client-side.
 - Backup gera Blob/ObjectURL no próprio navegador.
-- A única rede esperada é o carregamento da fonte Geist em build/dev (via `next/font/google`).
+- Rede adicional esperada: fonte Geist (`next/font/google`), hospedagem (Vercel Analytics agregado) e, **somente se o usuário aceitar no banner LGPD**, Google Analytics 4 para métricas de uso do produto.
 
-O rodapé do app afirma: *Dados processados no navegador. Nada é enviado para servidores.*
+### Métricas opcionais (GA4)
+
+- Opt-in explícito na primeira visita; pode ser alterado em **Config → Privacidade** (`/config?tab=privacidade`).
+- Variável de ambiente: `NEXT_PUBLIC_GA_MEASUREMENT_ID` (sem valor = GA4 desligado em todos os ambientes).
+- Modo cookieless (`client_storage: 'none'`, IP anonimizado); sem Google Signals nem ads.
+- Eventos permitidos: onboarding, import CSV (sem conteúdo), backup (versão/resultado), orçamentos, fechamento de mês, conquistas (IDs internos), quick add (tipo), consentimento. Ver [`src/lib/analytics.ts`](src/lib/analytics.ts).
+- O rodapé indica quando métricas anônimas estão ativas, com link para gerenciar.
 
 ---
 

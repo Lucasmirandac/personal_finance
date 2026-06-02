@@ -24,6 +24,7 @@ const ICONS: Record<string, LucideIcon> = {
   "mes-positivo": Coins,
   "trio-positivo": Trophy,
   "cofrinho-calmo": Coins,
+  "mes-revisado": Calendar,
 }
 
 export function AchievementsPanel() {

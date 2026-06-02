@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { LaunchSplash } from "@/components/LaunchSplash";
 import { PwaRegister } from "@/components/PwaRegister";
 import { Analytics } from "@vercel/analytics/next";
+import { ConsentBanner } from "@/components/ConsentBanner";
+import { GAScripts } from "@/components/GAScripts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +65,8 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <Analytics />
+        <GAScripts />
+        <ConsentBanner />
         <PwaRegister />
         <AppStoreProvider>
           <LaunchSplash />
