@@ -50,6 +50,18 @@ npm run build
 npm start
 ```
 
+### Suporte / reportar bug
+
+O footer da aplicação inclui **Reportar bug**, que abre o cliente de e-mail do usuário via `mailto:` (nada é enviado automaticamente pelo app).
+
+Configure o destinatário em `.env.local`:
+
+```bash
+NEXT_PUBLIC_SUPPORT_EMAIL=seu-email@exemplo.com
+```
+
+Se não definido, o fallback de desenvolvimento é `bugs@saldoreal.app`. A versão do app (`NEXT_PUBLIC_APP_VERSION`) é injetada automaticamente a partir do `package.json` no build.
+
 ---
 
 ## Páginas

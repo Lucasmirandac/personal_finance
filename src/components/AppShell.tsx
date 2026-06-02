@@ -9,6 +9,7 @@ import {
   BudgetAlertWidget,
   SetupIndicator,
 } from "@/components/HeaderWidgets";
+import { AppFooter } from "@/components/AppFooter";
 import { DesktopNav, MobileNav } from "@/components/NavBar";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import { AffordTrigger } from "@/components/AffordTrigger";
@@ -62,9 +63,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
         {children}
       </main>
 
-      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-[11px] text-muted border-t border-border">
-        Dados processados no navegador. Nada é enviado para servidores.
-      </footer>
+      <AppFooter />
       <QuickAddFab />
       <AffordTrigger />
     </div>
