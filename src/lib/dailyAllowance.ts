@@ -224,7 +224,7 @@ export function computeDailyAllowance(
 
   const diarioRestante =
     rendaDisponivel > 0
-      ? round2(sobraBruta / diasRestantesMes)
+      ? Math.max(0, round2(sobraBruta / diasRestantesMes))
       : 0;
   const diarioBaseline =
     rendaDisponivel > 0 ? round2(rendaDisponivel / diasDoMes) : 0;

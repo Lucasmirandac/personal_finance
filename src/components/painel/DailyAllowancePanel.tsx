@@ -112,6 +112,27 @@ export function DailyAllowancePanel() {
           </Link>
           .
         </p>
+      ) : result.sobraDoMes <= 0 ? (
+        <>
+          <Num className="mt-3 block text-4xl font-semibold tracking-tight num-display sm:text-5xl">
+            {formatBRL(0)}
+          </Num>
+          <p className="mt-1 text-sm text-muted">/dia até o fim do mês</p>
+          <p className="mt-4 text-sm text-muted leading-relaxed">
+            Você já comprometeu toda a renda disponível deste mês. Excesso de{" "}
+            <Num className="font-mono tabular-nums text-danger">
+              {formatBRL(Math.abs(result.sobraDoMes))}
+            </Num>
+            . Veja o que ajustar no{" "}
+            <Link
+              href="/extrato"
+              className="text-accent underline underline-offset-2"
+            >
+              Extrato
+            </Link>
+            .
+          </p>
+        </>
       ) : (
         <>
           <Num className="mt-3 block text-4xl font-semibold tracking-tight num-display sm:text-5xl">

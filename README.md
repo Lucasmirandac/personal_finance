@@ -245,7 +245,7 @@ Calculado em `src/lib/dailyAllowance.ts`:
 
 - **Renda disponível** = receitas recorrentes − custos fixos
 - **Sobra do mês** = renda disponível − gasto variável já feito − fatura aberta do cartão
-- **Saldo diário** = sobra do mês ÷ dias restantes do mês
+- **Saldo diário** = max(0, sobra do mês ÷ dias restantes) — nunca negativo; quando a renda já foi comprometida, mostra R$ 0,00 e o excesso
 - **Teto recomendado do cartão** = renda disponível mensal
 
 Aparece no Painel (`/saldo`), entre saldo atual e contas.
