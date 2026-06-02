@@ -12,7 +12,7 @@ import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
 import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
-import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits"
+import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits"
 import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { useAppStore } from "@/lib/store"
@@ -29,6 +29,7 @@ export function ExtratoPageContent() {
     normalized,
     accounts,
     edits,
+    installmentGroupEdits,
     findOriginalRaw,
     editTransaction,
     revertTransaction,
@@ -73,11 +74,17 @@ export function ExtratoPageContent() {
   const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
   const editCurrent =
     editRow && editOriginal
-      ? mergeRawWithEdit(editOriginal, edits[editRow.id])
+      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
       : undefined
 
   const handleDelete = (tx: TransactionNormalized) => {
-    if (globalThis.confirm("Excluir esta transação da análise? Você pode restaurá-la em Transações.")) {
+    const original = findOriginalRaw(tx.id)
+    const installment = original?.installment ?? tx.installment
+    const message = installmentDeleteConfirmMessage(
+      installment,
+      "Excluir esta transação da análise? Você pode restaurá-la em Transações.",
+    )
+    if (globalThis.confirm(message)) {
       deleteTransaction(tx.id)
     }
   }
@@ -158,7 +165,7 @@ export function ExtratoPageContent() {
                   const recurring = isRecurringRaw(tx)
                   const original = findOriginalRaw(tx.id)
                   const canRevert =
-                    isEdited(tx.id, edits) &&
+                    canRevertTransaction(tx.id, edits, installmentGroupEdits, original) &&
                     !!original &&
                     !isManualQuickRaw(original)
                   const flow = signedFlow(tx)
@@ -170,7 +177,9 @@ export function ExtratoPageContent() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-medium">{tx.lancamento}</p>
-                          {isEdited(tx.id, edits) && <Badge className="text-[10px]">editado</Badge>}
+                          {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
+                            <Badge className="text-[10px]">editado</Badge>
+                          )}
                           {recurring && <Badge className="text-[10px]">recorrente</Badge>}
                         </div>
                         <p className="mt-0.5 text-xs text-muted">
@@ -209,7 +218,10 @@ export function ExtratoPageContent() {
           open
           original={editOriginal}
           current={editCurrent}
-          canRevert={isEdited(editRow.id, edits) && !isManualQuickRaw(editOriginal)}
+          canRevert={
+            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
+            !isManualQuickRaw(editOriginal)
+          }
           onSave={(patch) => editTransaction(editRow.id, patch)}
           onRevert={() => revertTransaction(editRow.id)}
           onClose={() => setEditRow(null)}

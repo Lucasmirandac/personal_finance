@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { todayIso } from "@/lib/dates"
-import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits"
+import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction } from "@/lib/edits"
 import { formatBRL, formatDateBR } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { useAppStore } from "@/lib/store"
@@ -27,6 +27,7 @@ export function TodayTransactionsPanel() {
     normalized,
     accounts,
     edits,
+    installmentGroupEdits,
     findOriginalRaw,
     editTransaction,
     revertTransaction,
@@ -45,7 +46,7 @@ export function TodayTransactionsPanel() {
   const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
   const editCurrent =
     editRow && editOriginal
-      ? mergeRawWithEdit(editOriginal, edits[editRow.id])
+      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
       : undefined
 
   return (
@@ -67,7 +68,10 @@ export function TodayTransactionsPanel() {
           const account = resolveTransactionAccount(tx, accounts)
           const recurring = isRecurringRaw(tx)
           const original = findOriginalRaw(tx.id)
-          const canRevert = isEdited(tx.id, edits) && !!original && !isManualQuickRaw(original)
+          const canRevert =
+            canRevertTransaction(tx.id, edits, installmentGroupEdits, original) &&
+            !!original &&
+            !isManualQuickRaw(original)
           const flow = signedFlow(tx)
           const isCard = account?.kind === "cartao"
           let badgeVariant: "gasto" | "receita" | "fixa" = "fixa"
@@ -81,7 +85,9 @@ export function TodayTransactionsPanel() {
                     <Badge variant={badgeVariant}>
                       {isCard ? "Cartão" : "Conta"}
                     </Badge>
-                    {isEdited(tx.id, edits) && <Badge className="text-[10px]">editado</Badge>}
+                    {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
+                      <Badge className="text-[10px]">editado</Badge>
+                    )}
                   </div>
                   <p className="mt-1 truncate text-sm font-medium">{tx.lancamento}</p>
                   <p className="text-xs text-muted">
@@ -129,7 +135,10 @@ export function TodayTransactionsPanel() {
           open
           original={editOriginal}
           current={editCurrent}
-          canRevert={isEdited(editRow.id, edits) && !isManualQuickRaw(editOriginal)}
+          canRevert={
+            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
+            !isManualQuickRaw(editOriginal)
+          }
           onSave={(patch) => editTransaction(editRow.id, patch)}
           onRevert={() => revertTransaction(editRow.id)}
           onClose={() => setEditRow(null)}

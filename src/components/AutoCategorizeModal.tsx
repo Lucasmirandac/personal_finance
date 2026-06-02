@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CategorySuggestion } from "@/lib/autoCategorize";
 import { isEdited } from "@/lib/edits";
 import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
-import { EditsState, TransactionNormalized } from "@/lib/types";
+import { EditsState, InstallmentGroupEditsState, TransactionNormalized } from "@/lib/types";
 import { formatBRL, formatInt } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,7 @@ type Props = {
   suggestions: CategorySuggestion[];
   transactionsById: Map<string, TransactionNormalized>;
   edits: EditsState;
+  installmentGroupEdits: InstallmentGroupEditsState;
   onClose: () => void;
   onApply: (selectedRawIds: string[]) => Promise<void>;
 };
@@ -56,6 +57,7 @@ export function AutoCategorizeModal({
   suggestions,
   transactionsById,
   edits,
+  installmentGroupEdits,
   onClose,
   onApply,
 }: Props) {
@@ -91,7 +93,7 @@ export function AutoCategorizeModal({
 
   const selectedCount = selected.size;
   const editedSelectedCount = [...selected].filter((id) =>
-    isEdited(id, edits),
+    isEdited(id, edits, installmentGroupEdits, transactionsById.get(id)),
   ).length;
 
   function toggleOne(id: string) {

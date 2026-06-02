@@ -19,10 +19,14 @@ import {
 import {
   applyEdits,
   buildEditEntry,
+  buildGroupEditEntry,
   countDeleted,
   EMPTY_EDITS,
   getDeletedRaws,
+  hasGroupFieldEdits,
   isRecurringRaw,
+  pickGroupPatch,
+  pickIndividualPatch,
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
@@ -54,6 +58,8 @@ import {
   saveBudgets,
   saveDataset,
   saveEdits,
+  saveInstallmentGroupEdits,
+  loadInstallmentGroupEdits,
   saveManualTransactions,
   saveRecurring,
   saveRules,
@@ -83,7 +89,9 @@ import {
   EMPTY_ACHIEVEMENTS,
   EMPTY_BUDGETS,
   EMPTY_DATASET,
+  EMPTY_INSTALLMENT_GROUP_EDITS,
   EMPTY_MONTH_CLOSES,
+  InstallmentGroupEditsState,
   MonthCloseEntry,
   EstablishmentAlias,
   ManualTransaction,
@@ -119,6 +127,7 @@ type Ctx = {
   accounts: Account[];
   manualTransactions: ManualTransaction[];
   edits: EditsState;
+  installmentGroupEdits: InstallmentGroupEditsState;
   deletedCount: number;
   normalized: TransactionNormalized[];
   deletedNormalized: TransactionNormalized[];
@@ -229,6 +238,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     ManualTransaction[]
   >([]);
   const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
+  const [installmentGroupEdits, setInstallmentGroupEdits] =
+    useState<InstallmentGroupEditsState>(EMPTY_INSTALLMENT_GROUP_EDITS);
   const [budgets, setBudgetsState] = useState<CategoryBudget[]>(EMPTY_BUDGETS);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [subscriptionDismissals, setSubscriptionDismissals] = useState<
@@ -253,13 +264,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases, structural, ach, closes] =
+      const [d, r, rec, s, e, groupEdits, manual, bud, lastBk, dismissals, aliases, structural, ach, closes] =
         await Promise.all([
         loadDataset(),
         loadRules(),
         loadRecurring(),
         loadSettings(),
         loadEdits(),
+        loadInstallmentGroupEdits(),
         loadManualTransactions(),
         loadBudgets(),
         loadLastBackupAt(),
@@ -286,6 +298,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setAccounts(accs);
       setManualTransactions(manual);
       setEdits(e);
+      setInstallmentGroupEdits(groupEdits);
       setBudgetsState(bud);
       setLastBackupAt(lastBk);
       setSubscriptionDismissals(dismissals);
@@ -325,6 +338,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     await saveEdits(next);
     setEdits(next);
   }, []);
+
+  const persistInstallmentGroupEdits = useCallback(
+    async (next: InstallmentGroupEditsState) => {
+      await saveInstallmentGroupEdits(next);
+      setInstallmentGroupEdits(next);
+    },
+    [],
+  );
 
   const persistRecurring = useCallback(async (next: RecurringRule[]) => {
     const normalized = next.map(normalizeRecurringRule);
@@ -378,9 +399,17 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [importedRaw, manualTransactions, recurringRaw],
   );
 
+  const rawIdsForGroupKey = useCallback(
+    (groupKey: string): string[] =>
+      allRaw
+        .filter((r) => r.installment?.groupKey === groupKey)
+        .map((r) => r.id),
+    [allRaw],
+  );
+
   const { effective } = useMemo(
-    () => applyEdits(allRaw, edits),
-    [allRaw, edits],
+    () => applyEdits(allRaw, edits, installmentGroupEdits),
+    [allRaw, edits, installmentGroupEdits],
   );
 
   const compiledAliases = useMemo(
@@ -394,12 +423,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   }, [effective, rules, compiledAliases]);
 
   const deletedNormalized = useMemo<TransactionNormalized[]>(() => {
-    const deleted = getDeletedRaws(allRaw, edits);
+    const deleted = getDeletedRaws(allRaw, edits, installmentGroupEdits);
     if (deleted.length === 0) return [];
     return normalizeTransactions(deleted, rules, compiledAliases);
-  }, [allRaw, edits, rules, compiledAliases]);
+  }, [allRaw, edits, installmentGroupEdits, rules, compiledAliases]);
 
-  const deletedCount = useMemo(() => countDeleted(edits), [edits]);
+  const deletedCount = useMemo(
+    () => countDeleted(allRaw, edits, installmentGroupEdits),
+    [allRaw, edits, installmentGroupEdits],
+  );
 
   const achievementsRef = useRef(achievements);
   achievementsRef.current = achievements;
@@ -611,6 +643,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         recurring: recurringRules,
         settings,
         edits,
+        installmentGroupEdits,
         accounts,
         manualTransactions,
         budgets,
@@ -632,6 +665,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveRecurring(resolved.recurring),
         saveSettings(resolved.settings),
         saveEdits(resolved.edits),
+        saveInstallmentGroupEdits(resolved.installmentGroupEdits),
         saveAccounts(resolved.accounts),
         saveManualTransactions(resolved.manualTransactions),
         saveBudgets(resolved.budgets),
@@ -658,6 +692,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setAccounts(accs);
       setManualTransactions(resolved.manualTransactions);
       setEdits(resolved.edits);
+      setInstallmentGroupEdits(resolved.installmentGroupEdits);
       setBudgetsState(resolved.budgets);
       setSubscriptionDismissals(resolved.subscriptionDismissals);
       setEstablishmentAliases(resolved.establishmentAliases);
@@ -676,6 +711,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       monthCloses,
       dataset,
       edits,
+      installmentGroupEdits,
       manualTransactions,
       recurringRules,
       rules,
@@ -942,13 +978,45 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       if (raw && isRecurringRaw(raw)) {
         return;
       }
+      const groupKey = raw?.installment?.groupKey;
+      if (groupKey) {
+        const groupPatch = pickGroupPatch(patch);
+        const individualPatch = pickIndividualPatch(patch);
+        const groupKeys = Object.keys(groupPatch);
+        const individualKeys = Object.keys(individualPatch);
+        if (groupKeys.length > 0) {
+          await persistInstallmentGroupEdits({
+            ...installmentGroupEdits,
+            [groupKey]: buildGroupEditEntry(
+              groupKey,
+              installmentGroupEdits[groupKey],
+              groupPatch,
+            ),
+          });
+        }
+        if (individualKeys.length > 0) {
+          await persistEdits({
+            ...edits,
+            [rawId]: buildEditEntry(rawId, edits[rawId], individualPatch),
+          });
+        }
+        return;
+      }
       const next = {
         ...edits,
         [rawId]: buildEditEntry(rawId, edits[rawId], patch),
       };
       await persistEdits(next);
     },
-    [edits, findOriginalRaw, manualTransactions, persistEdits, updateManualTransaction],
+    [
+      edits,
+      findOriginalRaw,
+      installmentGroupEdits,
+      manualTransactions,
+      persistEdits,
+      persistInstallmentGroupEdits,
+      updateManualTransaction,
+    ],
   );
 
   const revertTransaction = useCallback(
@@ -956,12 +1024,30 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       if (manualTransactions.some((t) => t.id === rawId && isManualQuickRaw(t))) {
         return;
       }
+      const raw = findOriginalRaw(rawId);
+      const groupKey = raw?.installment?.groupKey;
+      if (groupKey && installmentGroupEdits[groupKey]) {
+        const rawIds = rawIdsForGroupKey(groupKey);
+        await persistEdits(pruneEditsForRawIds(edits, rawIds));
+        const nextGroupEdits = { ...installmentGroupEdits };
+        delete nextGroupEdits[groupKey];
+        await persistInstallmentGroupEdits(nextGroupEdits);
+        return;
+      }
       if (!edits[rawId]) return;
       const next = { ...edits };
       delete next[rawId];
       await persistEdits(next);
     },
-    [edits, manualTransactions, persistEdits],
+    [
+      edits,
+      findOriginalRaw,
+      installmentGroupEdits,
+      manualTransactions,
+      persistEdits,
+      persistInstallmentGroupEdits,
+      rawIdsForGroupKey,
+    ],
   );
 
   const deleteTransaction = useCallback(
@@ -969,6 +1055,25 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       const manual = manualTransactions.find((t) => t.id === rawId);
       if (manual && isManualQuickRaw(manual)) {
         await removeManualTransaction(rawId);
+        return;
+      }
+      const raw = findOriginalRaw(rawId);
+      const groupKey = raw?.installment?.groupKey;
+      if (groupKey) {
+        const rawIds = rawIdsForGroupKey(groupKey);
+        const prunedEdits = pruneEditsForRawIds(edits, rawIds);
+        if (prunedEdits !== edits) {
+          await persistEdits(prunedEdits);
+        }
+        await persistInstallmentGroupEdits({
+          ...installmentGroupEdits,
+          [groupKey]: {
+            ...installmentGroupEdits[groupKey],
+            groupKey,
+            editedAt: new Date().toISOString(),
+            deleted: true,
+          },
+        });
         return;
       }
       const next = {
@@ -990,11 +1095,43 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       };
       await persistEdits(next);
     },
-    [edits, manualTransactions, persistEdits, removeManualTransaction],
+    [
+      edits,
+      findOriginalRaw,
+      installmentGroupEdits,
+      manualTransactions,
+      persistEdits,
+      persistInstallmentGroupEdits,
+      rawIdsForGroupKey,
+      removeManualTransaction,
+    ],
   );
 
   const restoreTransaction = useCallback(
     async (rawId: string) => {
+      const raw = findOriginalRaw(rawId);
+      const groupKey = raw?.installment?.groupKey;
+      if (groupKey) {
+        const existing = installmentGroupEdits[groupKey];
+        if (existing?.deleted) {
+          const { deleted: _d, ...rest } = existing;
+          if (!hasGroupFieldEdits(rest as typeof existing)) {
+            const nextGroupEdits = { ...installmentGroupEdits };
+            delete nextGroupEdits[groupKey];
+            await persistInstallmentGroupEdits(nextGroupEdits);
+            return;
+          }
+          await persistInstallmentGroupEdits({
+            ...installmentGroupEdits,
+            [groupKey]: {
+              ...rest,
+              groupKey,
+              editedAt: new Date().toISOString(),
+            },
+          });
+          return;
+        }
+      }
       const existing = edits[rawId];
       if (!existing) return;
       const { deleted: _d, ...rest } = existing;
@@ -1013,7 +1150,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       };
       await persistEdits(next);
     },
-    [edits, persistEdits],
+    [
+      edits,
+      findOriginalRaw,
+      installmentGroupEdits,
+      persistEdits,
+      persistInstallmentGroupEdits,
+    ],
   );
 
   const hasData =
@@ -1033,6 +1176,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       accounts,
       manualTransactions,
       edits,
+      installmentGroupEdits,
       deletedCount,
       normalized,
       deletedNormalized,
@@ -1094,6 +1238,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       accounts,
       manualTransactions,
       edits,
+      installmentGroupEdits,
       deletedCount,
       normalized,
       deletedNormalized,

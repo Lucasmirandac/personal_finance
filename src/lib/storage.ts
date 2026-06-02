@@ -10,6 +10,7 @@ import {
   Dataset,
   EditsState,
   EMPTY_DATASET,
+  EMPTY_INSTALLMENT_GROUP_EDITS,
   LegacyDataset,
   CategoryBudget,
   AchievementsSnapshot,
@@ -27,6 +28,8 @@ import {
   Source,
   TransactionEdit,
   TransactionRaw,
+  InstallmentGroupEdit,
+  InstallmentGroupEditsState,
   EstablishmentAlias,
 } from "./types";
 
@@ -36,6 +39,7 @@ const KEY_RULES = "pf:rules:v1";
 const KEY_RECURRING = "pf:recurring:v1";
 const KEY_SETTINGS = "pf:settings:v1";
 const KEY_EDITS = "pf:edits:v1";
+const KEY_INSTALLMENT_GROUP_EDITS = "pf:installment-group-edits:v1";
 const KEY_ACCOUNTS = "pf:accounts:v1";
 const KEY_MANUAL = "pf:manual:v1";
 const KEY_LAST_BACKUP = "pf:lastBackup:v1";
@@ -152,6 +156,7 @@ export async function clearAllData(opts?: {
   await clearRecurring();
   await clearSettings();
   await clearEdits();
+  await clearInstallmentGroupEdits();
   await clearAccounts();
   await clearManualTransactions();
   await clearBudgets();
@@ -457,6 +462,48 @@ export async function saveEdits(edits: EditsState): Promise<void> {
 
 export async function clearEdits(): Promise<void> {
   await del(KEY_EDITS);
+}
+
+function mergeInstallmentGroupEdits(v: unknown): InstallmentGroupEditsState {
+  if (!v || typeof v !== "object") return { ...EMPTY_INSTALLMENT_GROUP_EDITS };
+  const o = v as Record<string, unknown>;
+  const out: InstallmentGroupEditsState = {};
+  for (const [key, val] of Object.entries(o)) {
+    if (!val || typeof val !== "object") continue;
+    const e = val as Partial<InstallmentGroupEdit>;
+    if (typeof e.groupKey !== "string" || typeof e.editedAt !== "string") continue;
+    out[key] = {
+      groupKey: e.groupKey,
+      editedAt: e.editedAt,
+      ...(typeof e.lancamento === "string" ? { lancamento: e.lancamento } : {}),
+      ...(typeof e.categoria === "string" ? { categoria: e.categoria } : {}),
+      ...(typeof e.tipo === "string" ? { tipo: e.tipo } : {}),
+      ...(typeof e.valorOriginal === "number"
+        ? { valorOriginal: e.valorOriginal }
+        : {}),
+      ...(e.deleted === true ? { deleted: true } : {}),
+    };
+  }
+  return out;
+}
+
+export async function loadInstallmentGroupEdits(): Promise<InstallmentGroupEditsState> {
+  try {
+    const v = await get(KEY_INSTALLMENT_GROUP_EDITS);
+    return mergeInstallmentGroupEdits(v);
+  } catch {
+    return { ...EMPTY_INSTALLMENT_GROUP_EDITS };
+  }
+}
+
+export async function saveInstallmentGroupEdits(
+  groupEdits: InstallmentGroupEditsState,
+): Promise<void> {
+  await set(KEY_INSTALLMENT_GROUP_EDITS, groupEdits);
+}
+
+export async function clearInstallmentGroupEdits(): Promise<void> {
+  await del(KEY_INSTALLMENT_GROUP_EDITS);
 }
 
 function mergeSettings(v: unknown): Settings {

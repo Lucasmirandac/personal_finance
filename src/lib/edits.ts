@@ -1,4 +1,10 @@
-import { EditsState, TransactionEdit, TransactionRaw } from "./types";
+import {
+  EditsState,
+  InstallmentGroupEdit,
+  InstallmentGroupEditsState,
+  TransactionEdit,
+  TransactionRaw,
+} from "./types";
 
 export const EMPTY_EDITS: EditsState = {};
 
@@ -10,8 +16,28 @@ export function isRecurringRaw(raw: TransactionRaw): boolean {
   );
 }
 
-export function isDeleted(rawId: string, edits: EditsState): boolean {
-  return edits[rawId]?.deleted === true;
+export function hasGroupFieldEdits(
+  edit: InstallmentGroupEdit | undefined,
+): boolean {
+  if (!edit) return false;
+  return (
+    edit.lancamento !== undefined ||
+    edit.categoria !== undefined ||
+    edit.tipo !== undefined ||
+    edit.valorOriginal !== undefined
+  );
+}
+
+export function isDeleted(
+  rawId: string,
+  edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
+  raw?: TransactionRaw,
+): boolean {
+  if (edits[rawId]?.deleted) return true;
+  const groupKey = raw?.installment?.groupKey;
+  if (groupKey && groupEdits[groupKey]?.deleted) return true;
+  return false;
 }
 
 export function hasFieldEdits(edit: TransactionEdit | undefined): boolean {
@@ -25,10 +51,50 @@ export function hasFieldEdits(edit: TransactionEdit | undefined): boolean {
   );
 }
 
-export function isEdited(rawId: string, edits: EditsState): boolean {
+export function isEdited(
+  rawId: string,
+  edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
+  raw?: TransactionRaw,
+): boolean {
   const edit = edits[rawId];
-  if (!edit || edit.deleted) return false;
-  return hasFieldEdits(edit);
+  if (edit && !edit.deleted && hasFieldEdits(edit)) return true;
+  const groupKey = raw?.installment?.groupKey;
+  if (!groupKey) return false;
+  const groupEdit = groupEdits[groupKey];
+  if (!groupEdit || groupEdit.deleted) return false;
+  return hasGroupFieldEdits(groupEdit);
+}
+
+export function canRevertTransaction(
+  rawId: string,
+  edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
+  raw?: TransactionRaw,
+): boolean {
+  if (edits[rawId]) return true;
+  const groupKey = raw?.installment?.groupKey;
+  return !!(groupKey && groupEdits[groupKey]);
+}
+
+export function mergeRawWithGroupEdit(
+  raw: TransactionRaw,
+  groupEdit: InstallmentGroupEdit | undefined,
+): TransactionRaw {
+  if (!groupEdit || isRecurringRaw(raw)) return raw;
+  return {
+    ...raw,
+    ...(groupEdit.lancamento !== undefined
+      ? { lancamento: groupEdit.lancamento }
+      : {}),
+    ...(groupEdit.categoria !== undefined
+      ? { categoria: groupEdit.categoria }
+      : {}),
+    ...(groupEdit.tipo !== undefined ? { tipo: groupEdit.tipo } : {}),
+    ...(groupEdit.valorOriginal !== undefined
+      ? { valorOriginal: groupEdit.valorOriginal }
+      : {}),
+  };
 }
 
 export function mergeRawWithEdit(
@@ -48,9 +114,20 @@ export function mergeRawWithEdit(
   };
 }
 
+export function mergeRawWithAllEdits(
+  raw: TransactionRaw,
+  edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
+): TransactionRaw {
+  const groupKey = raw.installment?.groupKey;
+  const groupEdit = groupKey ? groupEdits[groupKey] : undefined;
+  return mergeRawWithEdit(mergeRawWithGroupEdit(raw, groupEdit), edits[raw.id]);
+}
+
 export function applyEdits(
   raws: TransactionRaw[],
   edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
 ): { effective: TransactionRaw[]; deletedIds: Set<string> } {
   const deletedIds = new Set<string>();
   const effective: TransactionRaw[] = [];
@@ -60,12 +137,24 @@ export function applyEdits(
       effective.push(raw);
       continue;
     }
+    const groupKey = raw.installment?.groupKey;
+    const groupEdit = groupKey ? groupEdits[groupKey] : undefined;
     const edit = edits[raw.id];
+
+    if (groupEdit?.deleted) {
+      deletedIds.add(raw.id);
+      continue;
+    }
     if (edit?.deleted) {
       deletedIds.add(raw.id);
       continue;
     }
-    effective.push(mergeRawWithEdit(raw, edit));
+
+    let merged = raw;
+    if (groupEdit) {
+      merged = mergeRawWithGroupEdit(merged, groupEdit);
+    }
+    effective.push(mergeRawWithEdit(merged, edit));
   }
 
   return { effective, deletedIds };
@@ -74,20 +163,31 @@ export function applyEdits(
 export function getDeletedRaws(
   raws: TransactionRaw[],
   edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
 ): TransactionRaw[] {
   const deleted: TransactionRaw[] = [];
   for (const raw of raws) {
     if (isRecurringRaw(raw)) continue;
+    const groupKey = raw.installment?.groupKey;
+    const groupEdit = groupKey ? groupEdits[groupKey] : undefined;
     const edit = edits[raw.id];
-    if (edit?.deleted) {
-      deleted.push(mergeRawWithEdit(raw, edit));
+    if (groupEdit?.deleted || edit?.deleted) {
+      let merged = raw;
+      if (groupEdit) {
+        merged = mergeRawWithGroupEdit(merged, groupEdit);
+      }
+      deleted.push(mergeRawWithEdit(merged, edit));
     }
   }
   return deleted;
 }
 
-export function countDeleted(edits: EditsState): number {
-  return Object.values(edits).filter((e) => e.deleted).length;
+export function countDeleted(
+  raws: TransactionRaw[],
+  edits: EditsState,
+  groupEdits: InstallmentGroupEditsState = {},
+): number {
+  return applyEdits(raws, edits, groupEdits).deletedIds.size;
 }
 
 export function pruneEditsForRawIds(
@@ -102,9 +202,26 @@ export function pruneEditsForRawIds(
   return next;
 }
 
+export function pruneGroupEditsForGroupKeys(
+  groupEdits: InstallmentGroupEditsState,
+  groupKeys: string[],
+): InstallmentGroupEditsState {
+  if (groupKeys.length === 0) return groupEdits;
+  const next = { ...groupEdits };
+  for (const key of groupKeys) {
+    delete next[key];
+  }
+  return next;
+}
+
 export type TransactionEditPatch = Omit<
   TransactionEdit,
   "rawId" | "editedAt" | "deleted"
+>;
+
+export type InstallmentGroupEditPatch = Pick<
+  TransactionEditPatch,
+  "lancamento" | "categoria" | "tipo" | "valorOriginal"
 >;
 
 export function buildEditEntry(
@@ -129,4 +246,54 @@ export function buildEditEntry(
       : {}),
     ...patch,
   };
+}
+
+export function buildGroupEditEntry(
+  groupKey: string,
+  existing: InstallmentGroupEdit | undefined,
+  patch: InstallmentGroupEditPatch,
+): InstallmentGroupEdit {
+  return {
+    groupKey,
+    editedAt: new Date().toISOString(),
+    ...(existing?.deleted ? { deleted: existing.deleted } : {}),
+    ...(existing?.lancamento !== undefined
+      ? { lancamento: existing.lancamento }
+      : {}),
+    ...(existing?.categoria !== undefined
+      ? { categoria: existing.categoria }
+      : {}),
+    ...(existing?.tipo !== undefined ? { tipo: existing.tipo } : {}),
+    ...(existing?.valorOriginal !== undefined
+      ? { valorOriginal: existing.valorOriginal }
+      : {}),
+    ...patch,
+  };
+}
+
+export function pickGroupPatch(
+  patch: TransactionEditPatch,
+): InstallmentGroupEditPatch {
+  const out: InstallmentGroupEditPatch = {};
+  if (patch.lancamento !== undefined) out.lancamento = patch.lancamento;
+  if (patch.categoria !== undefined) out.categoria = patch.categoria;
+  if (patch.tipo !== undefined) out.tipo = patch.tipo;
+  if (patch.valorOriginal !== undefined) out.valorOriginal = patch.valorOriginal;
+  return out;
+}
+
+export function pickIndividualPatch(
+  patch: TransactionEditPatch,
+): TransactionEditPatch {
+  const out: TransactionEditPatch = {};
+  if (patch.data !== undefined) out.data = patch.data;
+  return out;
+}
+
+export function installmentDeleteConfirmMessage(
+  installment: TransactionRaw["installment"],
+  fallback: string,
+): string {
+  if (!installment) return fallback;
+  return `Excluir todas as parcelas dessa compra (${installment.current}/${installment.total})? Você pode restaurá-las em Transações.`;
 }

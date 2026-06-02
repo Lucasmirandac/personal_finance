@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { todayIso } from "@/lib/dates"
-import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits"
+import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits"
 import { formatBRL, formatDateBR, formatInt } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { useAppStore } from "@/lib/store"
@@ -26,6 +26,7 @@ export function FaturasPageContent() {
     normalized,
     accounts,
     edits,
+    installmentGroupEdits,
     findOriginalRaw,
     editTransaction,
     revertTransaction,
@@ -68,7 +69,7 @@ export function FaturasPageContent() {
   const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
   const editCurrent =
     editRow && editOriginal
-      ? mergeRawWithEdit(editOriginal, edits[editRow.id])
+      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
       : undefined
 
   const toggleCycle = (key: string) => {
@@ -76,7 +77,13 @@ export function FaturasPageContent() {
   }
 
   const handleDelete = (tx: TransactionNormalized) => {
-    if (globalThis.confirm("Excluir esta compra da análise? Você pode restaurá-la em Transações.")) {
+    const original = findOriginalRaw(tx.id)
+    const installment = original?.installment ?? tx.installment
+    const message = installmentDeleteConfirmMessage(
+      installment,
+      "Excluir esta compra da análise? Você pode restaurá-la em Transações.",
+    )
+    if (globalThis.confirm(message)) {
       deleteTransaction(tx.id)
     }
   }
@@ -134,6 +141,7 @@ export function FaturasPageContent() {
                 open={expanded[group.key] ?? index === 0}
                 onToggle={() => toggleCycle(group.key)}
                 edits={edits}
+                installmentGroupEdits={installmentGroupEdits}
                 findOriginalRaw={findOriginalRaw}
                 onEdit={setEditRow}
                 onDelete={handleDelete}
@@ -154,7 +162,10 @@ export function FaturasPageContent() {
           open
           original={editOriginal}
           current={editCurrent}
-          canRevert={isEdited(editRow.id, edits) && !isManualQuickRaw(editOriginal)}
+          canRevert={
+            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
+            !isManualQuickRaw(editOriginal)
+          }
           onSave={(patch) => editTransaction(editRow.id, patch)}
           onRevert={() => revertTransaction(editRow.id)}
           onClose={() => setEditRow(null)}
@@ -203,6 +214,7 @@ function CyclePanel({
   open,
   onToggle,
   edits,
+  installmentGroupEdits,
   findOriginalRaw,
   onEdit,
   onDelete,
@@ -212,6 +224,7 @@ function CyclePanel({
   open: boolean
   onToggle: () => void
   edits: ReturnType<typeof useAppStore>["edits"]
+  installmentGroupEdits: ReturnType<typeof useAppStore>["installmentGroupEdits"]
   findOriginalRaw: ReturnType<typeof useAppStore>["findOriginalRaw"]
   onEdit: (tx: TransactionNormalized) => void
   onDelete: (tx: TransactionNormalized) => void
@@ -249,7 +262,10 @@ function CyclePanel({
             const account = resolveTransactionAccount(tx, [group.account])
             const recurring = isRecurringRaw(tx)
             const original = findOriginalRaw(tx.id)
-            const canRevert = isEdited(tx.id, edits) && !!original && !isManualQuickRaw(original)
+            const canRevert =
+              canRevertTransaction(tx.id, edits, installmentGroupEdits, original) &&
+              !!original &&
+              !isManualQuickRaw(original)
             return (
               <div
                 key={tx.id}
@@ -258,7 +274,9 @@ function CyclePanel({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-medium">{tx.lancamento}</p>
-                    {isEdited(tx.id, edits) && <Badge className="text-[10px]">editado</Badge>}
+                    {isEdited(tx.id, edits, installmentGroupEdits, original ?? tx) && (
+                      <Badge className="text-[10px]">editado</Badge>
+                    )}
                   </div>
                   <p className="mt-0.5 text-xs text-muted">
                     {formatDateBR(tx.dataISO)} · {tx.categoria || "Sem categoria"} · {account?.nome ?? group.account.nome}

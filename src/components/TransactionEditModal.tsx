@@ -144,6 +144,15 @@ export function TransactionEditModal({
           </Button>
         </div>
 
+        {current.installment && (
+          <div className="rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
+            Esta é uma compra parcelada ({current.installment.current}/
+            {current.installment.total}). As alterações em Lançamento, Categoria,
+            Tipo e Valor serão aplicadas a todas as {current.installment.total}{" "}
+            parcelas. A Data continua individual desta parcela.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <label className="block space-y-1">
             <span className="text-xs text-muted">Data</span>

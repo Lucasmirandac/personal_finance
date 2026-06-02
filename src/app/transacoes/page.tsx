@@ -15,7 +15,7 @@ import { applyFilters } from "@/lib/aggregations";
 import { buildAutoCategorySuggestions } from "@/lib/autoCategorize";
 import { useFilters } from "@/lib/filtersContext";
 import { defaultAccount } from "@/lib/accounts";
-import { isEdited, isRecurringRaw, mergeRawWithEdit } from "@/lib/edits";
+import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits";
 import { isManualQuickRaw } from "@/lib/manualTransactions";
 import { Fonte, TransactionNormalized } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
@@ -74,6 +74,7 @@ export default function TransacoesPage() {
     deletedNormalized,
     deletedCount,
     edits,
+    installmentGroupEdits,
     rules,
     accounts,
     findOriginalRaw,
@@ -186,7 +187,7 @@ export default function TransacoesPage() {
         cell: ({ row }) => (
           <span className="inline-flex items-center gap-1.5 flex-wrap">
             <NatureBadge natureza={row.original.natureza} />
-            {isEdited(row.original.id, edits) && (
+            {isEdited(row.original.id, edits, installmentGroupEdits, row.original) && (
               <Badge className="text-[10px]">editado</Badge>
             )}
           </span>
@@ -280,7 +281,7 @@ export default function TransacoesPage() {
               >
                 <Pencil size={13} />
               </Button>
-              {isEdited(tx.id, edits) && (
+              {canRevertTransaction(tx.id, edits, installmentGroupEdits, findOriginalRaw(tx.id) ?? tx) && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -297,11 +298,12 @@ export default function TransacoesPage() {
                 aria-label="Excluir transação"
                 title="Excluir"
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      "Excluir esta transação da análise? Você pode restaurá-la depois.",
-                    )
-                  ) {
+                  const original = findOriginalRaw(tx.id);
+                  const message = installmentDeleteConfirmMessage(
+                    original?.installment ?? tx.installment,
+                    "Excluir esta transação da análise? Você pode restaurá-la depois.",
+                  );
+                  if (window.confirm(message)) {
                     deleteTransaction(tx.id);
                   }
                 }}
@@ -313,7 +315,7 @@ export default function TransacoesPage() {
         },
       },
     ],
-    [accounts, edits, deleteTransaction, restoreTransaction, revertTransaction],
+    [accounts, edits, installmentGroupEdits, findOriginalRaw, deleteTransaction, restoreTransaction, revertTransaction],
   );
 
   const table = useReactTable({
@@ -336,7 +338,7 @@ export default function TransacoesPage() {
   const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined;
   const editCurrent =
     editRow && editOriginal
-      ? mergeRawWithEdit(editOriginal, edits[editRow.id])
+      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
       : undefined;
 
   async function applyAutoCategorize(selectedRawIds: string[]) {
@@ -415,7 +417,10 @@ export default function TransacoesPage() {
           open
           original={editOriginal}
           current={editCurrent}
-          canRevert={isEdited(editRow.id, edits) && !isManualQuickRaw(editOriginal)}
+          canRevert={
+            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
+            !isManualQuickRaw(editOriginal)
+          }
           onSave={(patch) => editTransaction(editRow.id, patch)}
           onRevert={() => revertTransaction(editRow.id)}
           onClose={() => setEditRow(null)}
@@ -436,6 +441,7 @@ export default function TransacoesPage() {
         suggestions={autoSuggestions}
         transactionsById={transactionsById}
         edits={edits}
+        installmentGroupEdits={installmentGroupEdits}
         onClose={() => setAutoCategorizeOpen(false)}
         onApply={applyAutoCategorize}
       />

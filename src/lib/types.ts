@@ -78,6 +78,20 @@ export type TransactionEdit = {
 
 export type EditsState = Record<string, TransactionEdit>;
 
+export type InstallmentGroupEdit = {
+  groupKey: string;
+  editedAt: string;
+  lancamento?: string;
+  categoria?: string;
+  tipo?: string;
+  valorOriginal?: number;
+  deleted?: boolean;
+};
+
+export type InstallmentGroupEditsState = Record<string, InstallmentGroupEdit>;
+
+export const EMPTY_INSTALLMENT_GROUP_EDITS: InstallmentGroupEditsState = {};
+
 export type TransactionNormalized = TransactionRaw & {
   estabelecimento: string;
   valorAnalise: number;
