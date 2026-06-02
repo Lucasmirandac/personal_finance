@@ -13,6 +13,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { DesktopNav, MobileNav } from "@/components/NavBar";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import { AffordTrigger } from "@/components/AffordTrigger";
+import { AchievementToastHost } from "@/components/AchievementToastHost";
 import { Database } from "lucide-react";
 
 const chipBase =
@@ -66,6 +67,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
       <AppFooter />
       <QuickAddFab />
       <AffordTrigger />
+      <AchievementToastHost />
     </div>
   );
 }

@@ -12,6 +12,10 @@ import {
   EMPTY_DATASET,
   LegacyDataset,
   CategoryBudget,
+  AchievementsSnapshot,
+  Achievement,
+  AchievementId,
+  EMPTY_ACHIEVEMENTS,
   ManualTransaction,
   RecurringRule,
   Rules,
@@ -37,6 +41,7 @@ const KEY_BUDGETS = "pf:budgets:v1";
 const KEY_SUBSCRIPTION_DISMISSALS = "pf:subscriptionDismissals:v1";
 const KEY_ALIASES = "pf:aliases:v1";
 const KEY_STRUCTURAL_CATEGORIES = "pf:structuralCategories:v1";
+const KEY_ACHIEVEMENTS = "pf:achievements:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -150,6 +155,7 @@ export async function clearAllData(opts?: {
   await clearSubscriptionDismissals();
   await clearAliases();
   await clearStructuralCategories();
+  await clearAchievements();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
@@ -452,7 +458,19 @@ function mergeSettings(v: unknown): Settings {
     typeof o.projectionHorizonDays === "number" && o.projectionHorizonDays > 0
       ? o.projectionHorizonDays
       : DEFAULT_SETTINGS.projectionHorizonDays;
-  return { cards, balanceAnchor, projectionHorizonDays: horizon };
+  const saldoView =
+    o.saldoView === "overview" || o.saldoView === "calendar"
+      ? o.saldoView
+      : undefined;
+  const showAchievements =
+    typeof o.showAchievements === "boolean" ? o.showAchievements : true;
+  return {
+    cards,
+    balanceAnchor,
+    projectionHorizonDays: horizon,
+    ...(saldoView ? { saldoView } : {}),
+    showAchievements,
+  };
 }
 
 export async function loadSettings(): Promise<Settings> {
@@ -587,4 +605,77 @@ export async function saveStructuralCategories(categories: string[]): Promise<vo
 
 export async function clearStructuralCategories(): Promise<void> {
   await del(KEY_STRUCTURAL_CATEGORIES);
+}
+
+const ACHIEVEMENT_IDS: AchievementId[] = [
+  "primeiro-passo",
+  "semana-viva",
+  "mes-fiel",
+  "volta-certeira",
+  "mes-positivo",
+  "trio-positivo",
+  "cofrinho-calmo",
+];
+
+function isAchievementId(v: unknown): v is AchievementId {
+  return typeof v === "string" && ACHIEVEMENT_IDS.includes(v as AchievementId);
+}
+
+function mergeAchievement(v: unknown): Achievement | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<Achievement>;
+  if (!isAchievementId(o.id) || typeof o.unlockedAt !== "string") return null;
+  return { id: o.id, unlockedAt: o.unlockedAt };
+}
+
+export function mergeAchievementsSnapshot(v: unknown): AchievementsSnapshot {
+  if (!v || typeof v !== "object") return { ...EMPTY_ACHIEVEMENTS };
+  const o = v as Partial<AchievementsSnapshot>;
+  const unlocked: Achievement[] = [];
+  if (Array.isArray(o.unlocked)) {
+    for (const item of o.unlocked) {
+      const a = mergeAchievement(item);
+      if (a) unlocked.push(a);
+    }
+  }
+  const byId = new Map<AchievementId, Achievement>();
+  for (const a of unlocked) {
+    const existing = byId.get(a.id);
+    if (!existing || a.unlockedAt < existing.unlockedAt) {
+      byId.set(a.id, a);
+    }
+  }
+  const meta = o.meta;
+  return {
+    unlocked: [...byId.values()].sort((a, b) =>
+      a.unlockedAt.localeCompare(b.unlockedAt),
+    ),
+    meta: {
+      lastSobraTotal:
+        meta && typeof meta.lastSobraTotal === "number"
+          ? meta.lastSobraTotal
+          : 0,
+      lastStreak:
+        meta && typeof meta.lastStreak === "number" ? meta.lastStreak : 0,
+    },
+  };
+}
+
+export async function loadAchievements(): Promise<AchievementsSnapshot> {
+  try {
+    const v = await get(KEY_ACHIEVEMENTS);
+    return mergeAchievementsSnapshot(v);
+  } catch {
+    return { ...EMPTY_ACHIEVEMENTS };
+  }
+}
+
+export async function saveAchievements(
+  snapshot: AchievementsSnapshot,
+): Promise<void> {
+  await set(KEY_ACHIEVEMENTS, mergeAchievementsSnapshot(snapshot));
+}
+
+export async function clearAchievements(): Promise<void> {
+  await del(KEY_ACHIEVEMENTS);
 }

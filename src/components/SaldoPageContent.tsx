@@ -6,6 +6,7 @@ import clsx from "clsx"
 import { AccountsPanel } from "@/components/AccountsPanel"
 import { AdjustBalanceModal } from "@/components/AdjustBalanceModal"
 import { AlertsBar } from "@/components/painel/AlertsBar"
+import { AchievementsCard } from "@/components/AchievementsCard"
 import { DailyAllowancePanel } from "@/components/painel/DailyAllowancePanel"
 import { TodayTransactionsPanel } from "@/components/painel/TodayTransactionsPanel"
 import { StatTile } from "@/components/ui/StatTile"
@@ -153,6 +154,7 @@ export function SaldoPageContent() {
 
         <div className="space-y-4 lg:col-span-5">
           <TodayTransactionsPanel />
+          <AchievementsCard />
           <AccountsSummary
             anchor={anchor}
             activeAccounts={activeAccounts}

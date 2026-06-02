@@ -7,6 +7,7 @@ import { ClassificacaoPanel } from "@/components/ClassificacaoPanel"
 import { AccountsPanel } from "@/components/AccountsPanel"
 import { BackupPanel } from "@/components/BackupPanel"
 import { BudgetsPanel } from "@/components/BudgetsPanel"
+import { AchievementsPanel } from "@/components/AchievementsPanel"
 import { AliasesPanel } from "@/components/AliasesPanel"
 import { EmptyState } from "@/components/EmptyState"
 import { useAppStore } from "@/lib/store"
@@ -16,8 +17,9 @@ const CONFIG_TABS = [
   { id: "classificacao", label: "Classificação" },
   { id: "apelidos", label: "Apelidos" },
   { id: "contas", label: "Contas" },
-  { id: "backup", label: "Backup" },
   { id: "orcamentos", label: "Orçamentos" },
+  { id: "conquistas", label: "Conquistas" },
+  { id: "backup", label: "Backup" },
 ] as const
 
 type ConfigTab = (typeof CONFIG_TABS)[number]["id"]
@@ -27,8 +29,9 @@ const TAB_SUBTITLES: Record<ConfigTab, string> = {
   classificacao: "Padrões de classificação de lançamentos.",
   apelidos: "Agrupe variantes de estabelecimentos.",
   contas: "Contas, saldos e horizonte de projeção.",
-  backup: "Exporte ou restaure seus dados.",
   orcamentos: "Limites mensais por categoria.",
+  conquistas: "Marcos de rotina e meses com sobra.",
+  backup: "Exporte ou restaure seus dados.",
 }
 
 function parseTab(v: string | null): ConfigTab {
@@ -37,8 +40,9 @@ function parseTab(v: string | null): ConfigTab {
     v === "apelidos" ||
     v === "contas" ||
     v === "importar" ||
-    v === "backup" ||
-    v === "orcamentos"
+    v === "orcamentos" ||
+    v === "conquistas" ||
+    v === "backup"
   ) {
     return v
   }
@@ -105,9 +109,11 @@ export default function ConfigPageInner() {
 
         {tab === "contas" && <AccountsPanel />}
 
-        {tab === "backup" && <BackupPanel />}
-
         {tab === "orcamentos" && <BudgetsPanel />}
+
+        {tab === "conquistas" && <AchievementsPanel />}
+
+        {tab === "backup" && <BackupPanel />}
       </div>
     </div>
   )

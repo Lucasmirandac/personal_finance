@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -62,14 +63,20 @@ import {
   saveAliases,
   loadStructuralCategories,
   saveStructuralCategories,
+  loadAchievements,
+  saveAchievements,
 } from "./storage";
+import { evaluateAchievements } from "./achievements";
 import { budgetCategoryKey, normalizeBudgetCategory } from "./budgets";
 import {
   Account,
+  AchievementId,
+  AchievementsSnapshot,
   CategoryBudget,
   Dataset,
   EditsState,
   EMPTY_ACCOUNTS,
+  EMPTY_ACHIEVEMENTS,
   EMPTY_BUDGETS,
   EMPTY_DATASET,
   EstablishmentAlias,
@@ -171,6 +178,9 @@ type Ctx = {
   structuralCategories: string[];
   setStructuralCategories: (categories: string[]) => Promise<void>;
   toggleStructuralCategory: (categoria: string) => Promise<void>;
+  achievements: AchievementsSnapshot;
+  pendingAchievementToasts: AchievementId[];
+  dismissAchievementToast: () => void;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -222,11 +232,17 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [structuralCategories, setStructuralCategoriesState] = useState<
     string[]
   >([]);
+  const [achievements, setAchievementsState] = useState<AchievementsSnapshot>(
+    EMPTY_ACHIEVEMENTS,
+  );
+  const [pendingAchievementToasts, setPendingAchievementToasts] = useState<
+    AchievementId[]
+  >([]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases, structural] =
+      const [d, r, rec, s, e, manual, bud, lastBk, dismissals, aliases, structural, ach] =
         await Promise.all([
         loadDataset(),
         loadRules(),
@@ -239,6 +255,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         loadSubscriptionDismissals(),
         loadAliases(),
         loadStructuralCategories(),
+        loadAchievements(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -262,6 +279,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setSubscriptionDismissals(dismissals);
       setEstablishmentAliases(aliases);
       setStructuralCategoriesState(structural);
+      setAchievementsState(ach);
       setLoaded(true);
     })();
     return () => {
@@ -370,6 +388,54 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const deletedCount = useMemo(() => countDeleted(edits), [edits]);
 
+  const achievementsRef = useRef(achievements);
+  achievementsRef.current = achievements;
+
+  const dismissAchievementToast = useCallback(() => {
+    setPendingAchievementToasts((q) => q.slice(1));
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const prev = achievementsRef.current;
+    const result = evaluateAchievements({
+      normalized,
+      manualTransactions,
+      accounts,
+      recurringRules,
+      structuralCategories,
+      snapshot: prev,
+    });
+    const prevIds = new Set(prev.unlocked.map((a) => a.id));
+    const nextIds = new Set(result.snapshot.unlocked.map((a) => a.id));
+    const unlockedChanged =
+      prevIds.size !== nextIds.size ||
+      [...nextIds].some((id) => !prevIds.has(id));
+    const metaChanged =
+      result.snapshot.meta.lastStreak !== prev.meta.lastStreak ||
+      result.snapshot.meta.lastSobraTotal !== prev.meta.lastSobraTotal;
+    if (unlockedChanged || metaChanged) {
+      achievementsRef.current = result.snapshot;
+      void saveAchievements(result.snapshot).then(() =>
+        setAchievementsState(result.snapshot),
+      );
+    }
+    if (result.newlyUnlocked.length > 0 && settings.showAchievements !== false) {
+      setPendingAchievementToasts((q) => [
+        ...q,
+        ...result.newlyUnlocked.map((a) => a.id),
+      ]);
+    }
+  }, [
+    loaded,
+    normalized,
+    manualTransactions,
+    accounts,
+    recurringRules,
+    structuralCategories,
+    settings.showAchievements,
+  ]);
+
   const addSource = useCallback(
     async (source: Source) => {
       let nextAccounts = accounts;
@@ -422,6 +488,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setSubscriptionDismissals([]);
     setEstablishmentAliases([]);
     setStructuralCategoriesState([]);
+    setAchievementsState(EMPTY_ACHIEVEMENTS);
+    setPendingAchievementToasts([]);
     setLastBackupAt(null);
   }, []);
 
@@ -515,6 +583,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         subscriptionDismissals,
         establishmentAliases,
         structuralCategories,
+        achievements,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -534,6 +603,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveSubscriptionDismissals(resolved.subscriptionDismissals),
         saveAliases(resolved.establishmentAliases),
         saveStructuralCategories(resolved.structuralCategories),
+        saveAchievements(resolved.achievements),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -556,6 +626,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setSubscriptionDismissals(resolved.subscriptionDismissals);
       setEstablishmentAliases(resolved.establishmentAliases);
       setStructuralCategoriesState(resolved.structuralCategories);
+      setAchievementsState(resolved.achievements);
+      achievementsRef.current = resolved.achievements;
     },
     [
       accounts,
@@ -563,6 +635,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       subscriptionDismissals,
       establishmentAliases,
       structuralCategories,
+      achievements,
       dataset,
       edits,
       manualTransactions,
@@ -966,6 +1039,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       structuralCategories,
       setStructuralCategories,
       toggleStructuralCategory,
+      achievements,
+      pendingAchievementToasts,
+      dismissAchievementToast,
     }),
     [
       loaded,
@@ -1022,6 +1098,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       structuralCategories,
       setStructuralCategories,
       toggleStructuralCategory,
+      achievements,
+      pendingAchievementToasts,
+      dismissAchievementToast,
     ],
   );
 

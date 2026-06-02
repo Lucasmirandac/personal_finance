@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { mergeAchievementSnapshots } from "./achievements";
 import {
   loadAccounts,
+  loadAchievements,
   loadBudgets,
   loadSubscriptionDismissals,
   loadAliases,
@@ -11,15 +13,18 @@ import {
   loadRecurring,
   loadRules,
   loadSettings,
+  mergeAchievementsSnapshot,
   saveLastBackupAt,
 } from "./storage";
 import {
   Account,
+  AchievementsSnapshot,
   CategoryBudget,
   Dataset,
   DEFAULT_RULES,
   DEFAULT_SETTINGS,
   EditsState,
+  EMPTY_ACHIEVEMENTS,
   EMPTY_DATASET,
   EstablishmentAlias,
   ManualTransaction,
@@ -28,7 +33,8 @@ import {
   Settings,
 } from "./types";
 
-export const BACKUP_VERSION = 5 as const;
+export const BACKUP_VERSION = 6 as const;
+export const BACKUP_VERSION_V5 = 5 as const;
 export const BACKUP_VERSION_V4 = 4 as const;
 export const BACKUP_VERSION_V3 = 3 as const;
 export const BACKUP_VERSION_V2 = 2 as const;
@@ -49,6 +55,7 @@ export type BackupPayload = {
   subscriptionDismissals: string[];
   establishmentAliases: EstablishmentAlias[];
   structuralCategories: string[];
+  achievements: AchievementsSnapshot;
 };
 
 /** @deprecated use BackupFile */
@@ -62,6 +69,7 @@ export type BackupV1 = {
 export type BackupFile = {
   version:
     | typeof BACKUP_VERSION
+    | typeof BACKUP_VERSION_V5
     | typeof BACKUP_VERSION_V4
     | typeof BACKUP_VERSION_V3
     | typeof BACKUP_VERSION_V2
@@ -158,12 +166,44 @@ const backupDataV4Schema = backupDataV3Schema.extend({
   establishmentAliases: z.array(aliasSchema).optional(),
 });
 
+const achievementSchema = z.object({
+  id: z.enum([
+    "primeiro-passo",
+    "semana-viva",
+    "mes-fiel",
+    "volta-certeira",
+    "mes-positivo",
+    "trio-positivo",
+    "cofrinho-calmo",
+  ]),
+  unlockedAt: z.string(),
+});
+
+const achievementsSnapshotSchema = z.object({
+  unlocked: z.array(achievementSchema),
+  meta: z.object({
+    lastSobraTotal: z.number(),
+    lastStreak: z.number(),
+  }),
+});
+
 const backupDataV5Schema = backupDataV4Schema.extend({
   structuralCategories: z.array(z.string()).optional(),
 });
 
-const backupV5Schema = z.object({
+const backupDataV6Schema = backupDataV5Schema.extend({
+  achievements: achievementsSnapshotSchema.optional(),
+});
+
+const backupV6Schema = z.object({
   version: z.literal(BACKUP_VERSION),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataV6Schema,
+});
+
+const backupV5Schema = z.object({
+  version: z.literal(BACKUP_VERSION_V5),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
   data: backupDataV5Schema,
@@ -244,6 +284,10 @@ export function resolveBackupApplication(
         ...backup.structuralCategories,
       ]),
     ],
+    achievements: mergeAchievementSnapshots(
+      current.achievements,
+      backup.achievements,
+    ),
     rules: backup.rules,
     settings: backup.settings,
     edits: backup.edits,
@@ -465,7 +509,7 @@ function sanitizeStructuralCategories(raw: unknown[] | undefined): string[] {
 }
 
 function toBackupPayload(
-  parsed: z.infer<typeof backupDataV5Schema>,
+  parsed: z.infer<typeof backupDataV6Schema>,
   version: number,
 ): BackupPayload {
   return {
@@ -489,9 +533,13 @@ function toBackupPayload(
         ? sanitizeAliases(parsed.establishmentAliases)
         : [],
     structuralCategories:
-      version >= BACKUP_VERSION
+      version >= BACKUP_VERSION_V5
         ? sanitizeStructuralCategories(parsed.structuralCategories)
         : [],
+    achievements:
+      version >= BACKUP_VERSION
+        ? mergeAchievementsSnapshot(parsed.achievements)
+        : { ...EMPTY_ACHIEVEMENTS },
   };
 }
 
@@ -508,6 +556,7 @@ export async function exportAllData(): Promise<BackupFile> {
     subscriptionDismissals,
     establishmentAliases,
     structuralCategories,
+    achievements,
   ] = await Promise.all([
     loadDataset(),
     loadRules(),
@@ -520,6 +569,7 @@ export async function exportAllData(): Promise<BackupFile> {
     loadSubscriptionDismissals(),
     loadAliases(),
     loadStructuralCategories(),
+    loadAchievements(),
   ]);
 
   return {
@@ -538,6 +588,7 @@ export async function exportAllData(): Promise<BackupFile> {
       subscriptionDismissals,
       establishmentAliases,
       structuralCategories,
+      achievements,
     },
   };
 }
@@ -564,13 +615,24 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
+  const v6 = backupV6Schema.safeParse(json);
+  if (v6.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v6.data,
+        data: toBackupPayload(v6.data.data, BACKUP_VERSION),
+      },
+    };
+  }
+
   const v5 = backupV5Schema.safeParse(json);
   if (v5.success) {
     return {
       ok: true,
       backup: {
         ...v5.data,
-        data: toBackupPayload(v5.data.data, BACKUP_VERSION),
+        data: toBackupPayload(v5.data.data, BACKUP_VERSION_V5),
       },
     };
   }
@@ -623,6 +685,7 @@ export function parseBackup(text: string): ParseBackupResult {
   }
 
   const first =
+    v6.error.issues[0] ??
     v5.error.issues[0] ??
     v4.error.issues[0] ??
     v3.error.issues[0] ??
@@ -698,6 +761,7 @@ export function emptyBackupPayload(): BackupPayload {
     subscriptionDismissals: [],
     establishmentAliases: [],
     structuralCategories: [],
+    achievements: { ...EMPTY_ACHIEVEMENTS },
   };
 }
 

@@ -160,12 +160,42 @@ export type Settings = {
   balanceAnchor: BalanceAnchor | null;
   projectionHorizonDays: number;
   saldoView?: SaldoView;
+  /** When false, achievement UI is hidden; unlocks still persist locally. */
+  showAchievements?: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   cards: [],
   balanceAnchor: null,
   projectionHorizonDays: 90,
+  showAchievements: true,
+};
+
+export type AchievementId =
+  | "primeiro-passo"
+  | "semana-viva"
+  | "mes-fiel"
+  | "volta-certeira"
+  | "mes-positivo"
+  | "trio-positivo"
+  | "cofrinho-calmo";
+
+export type Achievement = {
+  id: AchievementId;
+  unlockedAt: string;
+};
+
+export type AchievementsSnapshot = {
+  unlocked: Achievement[];
+  meta: {
+    lastSobraTotal: number;
+    lastStreak: number;
+  };
+};
+
+export const EMPTY_ACHIEVEMENTS: AchievementsSnapshot = {
+  unlocked: [],
+  meta: { lastSobraTotal: 0, lastStreak: 0 },
 };
 
 export const EMPTY_ACCOUNTS: Account[] = [];
