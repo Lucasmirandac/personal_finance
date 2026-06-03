@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { todayIso, yyyyMmFromIso } from "@/lib/dates";
 import { formatBRL } from "@/lib/format";
 import { previewRecurringRule } from "@/lib/recurring";
 import { RecurringKind, RecurringRule } from "@/lib/types";
@@ -41,7 +42,9 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
     initial ? String(initial.valor) : "",
   );
   const [diaMes, setDiaMes] = useState(initialDiaMes(initial));
-  const [inicio, setInicio] = useState(initial?.inicio ?? "2026-01-01");
+  const [inicio, setInicio] = useState(
+    initial?.inicio ?? `${yyyyMmFromIso(todayIso())}-01`,
+  );
   const [fim, setFim] = useState(initial?.fim ?? "");
   const [error, setError] = useState<string | null>(null);
 
