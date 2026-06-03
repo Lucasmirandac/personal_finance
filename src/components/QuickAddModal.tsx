@@ -19,6 +19,10 @@ import {
   findBudgetForCategory,
   projectUsageAfterExpense,
 } from "@/lib/budgets";
+import {
+  cardLimitUsageForAccount,
+  projectCardLimitAfterExpense,
+} from "@/lib/cardLimits";
 import { useAppStore, QuickAddDraft } from "@/lib/store";
 import type { TransactionNormalized } from "@/lib/types";
 import clsx from "clsx";
@@ -238,6 +242,49 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
     };
   }, [isReceita, budgets, categoria, budgetUsages, expensePreview]);
 
+  const cardLimitNotice = useMemo(() => {
+    if (isReceita) return null;
+    if (selectedAccount?.kind !== "cartao") return null;
+
+    const usage = cardLimitUsageForAccount(
+      selectedAccount,
+      normalized,
+      accounts,
+    );
+    if (!usage) return null;
+
+    if (expensePreview && expensePreview > 0) {
+      const projected = projectCardLimitAfterExpense(usage, expensePreview);
+      if (
+        projected.percentual > usage.percentual ||
+        projected.status !== usage.status
+      ) {
+        return {
+          kind: "projected" as const,
+          accountNome: usage.accountNome,
+          fromPct: usage.percentual,
+          toPct: projected.percentual,
+          gasto: projected.gasto,
+          limite: usage.limite,
+        };
+      }
+    }
+
+    return {
+      kind: "current" as const,
+      accountNome: usage.accountNome,
+      gasto: usage.gasto,
+      limite: usage.limite,
+      status: usage.status,
+    };
+  }, [
+    isReceita,
+    selectedAccount,
+    normalized,
+    accounts,
+    expensePreview,
+  ]);
+
   const incomePreview = useMemo(() => {
     if (!isReceita || parsedValor === null || parsedValor <= 0) return null;
     const account = activeAccounts.find((a) => a.id === accountId);
@@ -261,6 +308,17 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           : "neutral"
       : budgetNotice?.kind === "current"
         ? budgetNotice.status
+        : "neutral";
+
+  const cardLimitNoticeTone =
+    cardLimitNotice?.kind === "projected"
+      ? cardLimitNotice.toPct >= 100
+        ? "danger"
+        : cardLimitNotice.toPct >= 80
+          ? "warning"
+          : "neutral"
+      : cardLimitNotice?.kind === "current"
+        ? cardLimitNotice.status
         : "neutral";
 
   const copy = isReceita
@@ -653,6 +711,35 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
                   {budgetNotice.fromPct.toFixed(0)}% para{" "}
                   {budgetNotice.toPct.toFixed(0)}% (
                   {fmtBrl(budgetNotice.gasto)}/{fmtBrl(budgetNotice.limite)}).
+                </>
+              )}
+            </p>
+          )}
+
+          {cardLimitNotice && (
+            <p
+              className={clsx(
+                "text-xs rounded-md px-2 py-1.5 border",
+                cardLimitNoticeTone === "danger"
+                  ? "text-danger border-danger/30"
+                  : cardLimitNoticeTone === "warning"
+                    ? "text-warning border-warning/30"
+                    : "text-muted border-border",
+              )}
+            >
+              {cardLimitNotice.kind === "current" && (
+                <>
+                  Fatura de {cardLimitNotice.accountNome}:{" "}
+                  {fmtBrl(cardLimitNotice.gasto)}/{fmtBrl(cardLimitNotice.limite)}{" "}
+                  do teto definido.
+                </>
+              )}
+              {cardLimitNotice.kind === "projected" && (
+                <>
+                  Com este gasto, {cardLimitNotice.accountNome} passa de{" "}
+                  {cardLimitNotice.fromPct.toFixed(0)}% para{" "}
+                  {cardLimitNotice.toPct.toFixed(0)}% do teto (
+                  {fmtBrl(cardLimitNotice.gasto)}/{fmtBrl(cardLimitNotice.limite)}).
                 </>
               )}
             </p>

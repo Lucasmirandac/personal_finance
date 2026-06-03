@@ -25,6 +25,8 @@ export type Account = {
   fonteCsv?: "inter" | "nubank";
   diaFechamento?: number;
   diaPagamento?: number;
+  /** User-defined monthly spending ceiling for this card (per invoice cycle). */
+  limiteMensal?: number;
 };
 
 export type RecurringRule = {

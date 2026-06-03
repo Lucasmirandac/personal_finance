@@ -32,7 +32,7 @@ const TAB_SUBTITLES: Record<ConfigTab, string> = {
   classificacao: "Padrões de classificação de lançamentos.",
   apelidos: "Agrupe variantes de estabelecimentos.",
   contas: "Conta corrente, poupança e carteira.",
-  cartoes: "Cartões de crédito, fatura e datas de fechamento e pagamento.",
+  cartoes: "Cartões de crédito, fatura, datas de fechamento e teto mensal de gastos.",
   orcamentos: "Limites mensais por categoria.",
   conquistas: "Marcos de rotina e meses com sobra.",
   backup: "Exporte ou restaure seus dados.",

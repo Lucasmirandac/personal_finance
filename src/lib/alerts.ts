@@ -1,4 +1,5 @@
 import { budgetAlertSummary, budgetUsageForMonth } from "./budgets"
+import { cardLimitAlertSummary, cardLimitUsages } from "./cardLimits"
 import { daysSince } from "./backup"
 import { todayIso } from "./dates"
 import { getSetupSteps } from "./setupStatus"
@@ -116,6 +117,31 @@ export const buildPainelAlerts = ({
       title: "Orçamento perto do limite",
       detail: `${budgetAlert.warning} categoria(s) passando de 80%`,
       href: "/dashboard?tab=orcamentos",
+    })
+  }
+
+  const cardLimitUsagesList = cardLimitUsages(normalized, accounts, today)
+  const cardLimitAlert = cardLimitAlertSummary(cardLimitUsagesList)
+  if (cardLimitAlert.danger > 0) {
+    alerts.push({
+      id: "card-limit-danger",
+      severity: "critical",
+      accent: "red",
+      icon: "wallet",
+      title: "Teto do cartão estourado",
+      detail: `${cardLimitAlert.danger} cartão(ões) acima do teto definido`,
+      href: "/faturas",
+    })
+  }
+  if (cardLimitAlert.warning > 0) {
+    alerts.push({
+      id: "card-limit-warning",
+      severity: "warning",
+      accent: "yellow",
+      icon: "wallet",
+      title: "Cartão perto do teto",
+      detail: `${cardLimitAlert.warning} cartão(ões) passando de 80% do teto`,
+      href: "/faturas",
     })
   }
 

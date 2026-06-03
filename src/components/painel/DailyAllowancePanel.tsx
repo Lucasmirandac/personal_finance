@@ -8,6 +8,7 @@ import { Panel } from "@/components/ui/Panel";
 import { g } from "@/lib/glossary";
 import { Num } from "@/components/ui/Num";
 import { computeDailyAllowance, DailyAllowanceStatus } from "@/lib/dailyAllowance";
+import { cardLimitUsages } from "@/lib/cardLimits";
 import { formatBRL, formatDateBR } from "@/lib/format";
 import { useAppStore } from "@/lib/store";
 
@@ -50,6 +51,14 @@ export function DailyAllowancePanel() {
         structuralCategories,
       }),
     [normalized, recurringRules, accounts, structuralCategories],
+  );
+
+  const cardLimitAlerts = useMemo(
+    () =>
+      cardLimitUsages(normalized, accounts).filter(
+        (usage) => usage.status !== "ok",
+      ),
+    [normalized, accounts],
   );
 
   const styles = statusStyles[result.status];
@@ -264,6 +273,45 @@ export function DailyAllowancePanel() {
                 </>
               )}
             </p>
+
+            {cardLimitAlerts.length > 0 && (
+              <div className="rounded-xl bg-surface/70 px-3 py-2 space-y-2">
+                <LabelWithInfo
+                  labelClassName="text-[10px] uppercase tracking-wider text-muted"
+                  info={g("tetoCartaoUso")}
+                  ariaTopic="Teto definido por cartão"
+                >
+                  Teto definido por cartão
+                </LabelWithInfo>
+                {cardLimitAlerts.map((usage) => (
+                  <div key={usage.accountId} className="space-y-1">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
+                      <span className="font-medium">{usage.accountNome}</span>
+                      <span
+                        className={clsx(
+                          usage.status === "danger" && "text-danger",
+                          usage.status === "warning" && "text-warning",
+                        )}
+                      >
+                        {formatBRL(usage.gasto)} / {formatBRL(usage.limite)} (
+                        {usage.percentual.toFixed(0)}%)
+                      </span>
+                    </div>
+                    <div className="h-1 bg-surface-2 rounded-sm overflow-hidden">
+                      <div
+                        className={clsx(
+                          "h-full rounded-sm transition-[width] duration-200",
+                          cardBarTone(usage.percentual),
+                        )}
+                        style={{
+                          width: `${Math.min(100, Math.max(0, usage.percentual))}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

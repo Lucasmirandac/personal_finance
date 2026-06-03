@@ -362,6 +362,35 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
               </ImpactSection>
             )}
 
+            {result.cardLimit && (
+              <ImpactSection
+                title={`Teto do cartão · ${result.cardLimit.accountNome}`}
+                info={g("tetoCartaoDefinido")}
+              >
+                <p className="text-xs">
+                  {result.cardLimit.pctAntes.toFixed(0)}% →{" "}
+                  <span
+                    className={clsx(
+                      result.cardLimit.statusDepois === "danger" && "text-danger",
+                      result.cardLimit.statusDepois === "warning" && "text-warning",
+                    )}
+                  >
+                    {result.cardLimit.pctDepois.toFixed(0)}%
+                  </span>
+                  {" "}
+                  (
+                  <Num className="font-mono tabular-nums">
+                    {formatBRL(result.cardLimit.gastoDepois)}
+                  </Num>
+                  /
+                  <Num className="font-mono tabular-nums">
+                    {formatBRL(result.cardLimit.limite)}
+                  </Num>
+                  )
+                </p>
+              </ImpactSection>
+            )}
+
             {result.pazFutura && (
               <ImpactSection title="Paz Futura" info={g("tranquilidade")}>
                 <p className="text-xs">

@@ -11,6 +11,7 @@ import { g, type GlossaryKey } from "@/lib/glossary"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { todayIso } from "@/lib/dates"
+import { usageFromCycle } from "@/lib/cardLimits"
 import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits"
 import { formatBRL, formatDateBR, formatInt } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
@@ -181,6 +182,25 @@ export function FaturasPageContent() {
   )
 }
 
+function formatCycleSummaryValue(
+  group: CardCycleGroup | null,
+  mode: "total" | "count" | "date",
+): string {
+  if (!group) return "—"
+  if (mode === "count") {
+    const purchaseLabel = group.transactions.length === 1 ? "compra" : "compras"
+    return `${formatInt(group.transactions.length)} ${purchaseLabel}`
+  }
+  if (mode === "date") return formatDateBR(group.payDate)
+  return formatBRL(group.total)
+}
+
+function limitUsageBarClass(status: NonNullable<ReturnType<typeof usageFromCycle>>["status"]): string {
+  if (status === "danger") return "bg-danger"
+  if (status === "warning") return "bg-warning"
+  return "bg-success"
+}
+
 function CycleSummary({
   label,
   infoKey,
@@ -192,17 +212,8 @@ function CycleSummary({
   group: CardCycleGroup | null
   mode?: "total" | "count" | "date"
 }>) {
-  let value = group ? formatBRL(group.total) : "—"
-  if (mode === "count") {
-    const purchaseLabel =
-      group?.transactions.length === 1 ? "compra" : "compras"
-    value = group
-      ? `${formatInt(group.transactions.length)} ${purchaseLabel}`
-      : "—"
-  }
-  if (mode === "date") {
-    value = group ? formatDateBR(group.payDate) : "—"
-  }
+  const limitUsage = group ? usageFromCycle(group.account, group) : null
+  const value = formatCycleSummaryValue(group, mode)
 
   return (
     <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
@@ -215,9 +226,42 @@ function CycleSummary({
       </LabelWithInfo>
       <p className="mt-1 text-lg font-semibold tracking-tight">{value}</p>
       {group && mode === "total" && (
-        <p className="mt-1 text-xs text-muted">
-          Fecha dia {group.closeDay} · paga dia {group.paymentDay}
-        </p>
+        <>
+          <p className="mt-1 text-xs text-muted">
+            Fecha dia {group.closeDay} · paga dia {group.paymentDay}
+          </p>
+          {limitUsage && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
+                <LabelWithInfo info={g("tetoCartaoUso")} ariaTopic="Teto definido">
+                  Teto {formatBRL(limitUsage.limite)}
+                </LabelWithInfo>
+                <span
+                  className={clsx(
+                    limitUsage.status === "danger" && "text-danger",
+                    limitUsage.status === "warning" && "text-warning",
+                  )}
+                >
+                  {formatBRL(limitUsage.gasto)} ({limitUsage.percentual.toFixed(0)}%)
+                </span>
+              </div>
+              <div className="h-1 bg-surface-2 rounded-sm overflow-hidden">
+                <div
+                  className={clsx(
+                    "h-full rounded-sm transition-[width] duration-200",
+                    limitUsageBarClass(limitUsage.status),
+                  )}
+                  style={{
+                    width: `${Math.min(100, Math.max(0, limitUsage.percentual))}%`,
+                  }}
+                />
+              </div>
+              <p className="text-[11px] text-muted">
+                Restam {formatBRL(limitUsage.restante)}
+              </p>
+            </div>
+          )}
+        </>
       )}
     </Panel>
   )
@@ -246,14 +290,11 @@ function CyclePanel({
 }>) {
   const today = todayIso()
   const status = group.payDate >= today ? "Aberta / próxima" : "Fechada"
+  const limitUsage = usageFromCycle(group.account, group)
 
   return (
     <Panel className="overflow-hidden rounded-3xl shadow-[var(--shadow-card)]">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-2/60"
-        onClick={onToggle}
-      >
+      <div className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-semibold tracking-tight">Fatura {formatDateBR(group.payDate)}</span>
@@ -266,17 +307,33 @@ function CyclePanel({
             >
               {status}
             </Badge>
+            {limitUsage && limitUsage.status !== "ok" && (
+              <Badge
+                className={clsx(
+                  limitUsage.status === "danger" && "text-danger",
+                  limitUsage.status === "warning" && "text-warning",
+                )}
+              >
+                {limitUsage.status === "danger" ? "Teto estourado" : "Perto do teto"}
+              </Badge>
+            )}
           </span>
           <span className="mt-0.5 block text-xs text-muted">
             {group.account.nome} · {formatInt(group.transactions.length)} compra
             {group.transactions.length === 1 ? "" : "s"} · pagamento dia {group.paymentDay}
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          className="flex shrink-0 items-center gap-3 rounded-full px-2 py-1 hover:bg-surface-2/60"
+          aria-expanded={open}
+          aria-label={open ? "Recolher fatura" : "Expandir fatura"}
+          onClick={onToggle}
+        >
           <Num className="text-sm font-semibold">{formatBRL(group.total)}</Num>
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </span>
-      </button>
+        </button>
+      </div>
 
       {open && (
         <div className="divide-y divide-border border-t border-border">

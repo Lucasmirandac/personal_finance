@@ -1,5 +1,9 @@
 import { defaultAccount } from "./accounts";
 import {
+  cardLimitUsageForAccount,
+  projectCardLimitAfterExpense,
+} from "./cardLimits";
+import {
   budgetUsageForMonth,
   BudgetStatus,
   currentMonthIso,
@@ -68,6 +72,16 @@ export type AffordResult = {
   saldo90: AffordSaldoImpact | null;
   budget: null | {
     categoria: string;
+    limite: number;
+    gastoAntes: number;
+    gastoDepois: number;
+    pctAntes: number;
+    pctDepois: number;
+    statusAntes: BudgetStatus;
+    statusDepois: BudgetStatus;
+  };
+  cardLimit: null | {
+    accountNome: string;
     limite: number;
     gastoAntes: number;
     gastoDepois: number;
@@ -237,6 +251,47 @@ function computeBudgetImpact(
   };
 }
 
+function computeCardLimitImpact(
+  account: Account,
+  faturas: AffordFaturaLine[],
+  normalized: TransactionNormalized[],
+  accounts: Account[],
+): AffordResult["cardLimit"] {
+  if (account.kind !== "cartao") return null;
+
+  const usage = cardLimitUsageForAccount(account, normalized, accounts);
+  if (!usage) return null;
+
+  const incremento = faturas
+    .filter((f) => f.isCartao && usage.payDate && f.payDate === usage.payDate)
+    .reduce((sum, f) => sum + f.valorParcela, 0);
+
+  if (incremento <= 0) {
+    return {
+      accountNome: usage.accountNome,
+      limite: usage.limite,
+      gastoAntes: usage.gasto,
+      gastoDepois: usage.gasto,
+      pctAntes: usage.percentual,
+      pctDepois: usage.percentual,
+      statusAntes: usage.status,
+      statusDepois: usage.status,
+    };
+  }
+
+  const projected = projectCardLimitAfterExpense(usage, incremento);
+  return {
+    accountNome: usage.accountNome,
+    limite: usage.limite,
+    gastoAntes: usage.gasto,
+    gastoDepois: projected.gasto,
+    pctAntes: usage.percentual,
+    pctDepois: projected.percentual,
+    statusAntes: usage.status,
+    statusDepois: projected.status,
+  };
+}
+
 function computePazFuturaImpact(
   valor: number,
   accounts: Account[],
@@ -296,6 +351,7 @@ function computeSemaforo(input: {
   saldoInicial: number;
   saldo30: AffordSaldoImpact | null;
   budget: AffordResult["budget"];
+  cardLimit: AffordResult["cardLimit"];
   pazFutura: AffordResult["pazFutura"];
 }): { semaforo: AffordResult["semaforo"]; motivos: string[] } {
   const motivos: string[] = [];
@@ -330,6 +386,20 @@ function computeSemaforo(input: {
     }
   }
 
+  if (input.cardLimit) {
+    if (input.cardLimit.statusDepois === "danger") {
+      setWorst("vermelho");
+      motivos.push(
+        `Teto de ${input.cardLimit.accountNome} estoura (${input.cardLimit.pctDepois.toFixed(0)}%).`,
+      );
+    } else if (input.cardLimit.statusDepois === "warning") {
+      setWorst("amarelo");
+      motivos.push(
+        `Teto de ${input.cardLimit.accountNome} passa de 80% (${input.cardLimit.pctDepois.toFixed(0)}%).`,
+      );
+    }
+  }
+
   if (input.pazFutura) {
     if (input.pazFutura.perdaMeses > 1) {
       setWorst("vermelho");
@@ -345,7 +415,7 @@ function computeSemaforo(input: {
   }
 
   if (motivos.length === 0) {
-    motivos.push("Cabe sem aperto no saldo, orçamento e meta de Paz Futura.");
+    motivos.push("Cabe sem aperto no saldo, orçamento, teto do cartão e meta de Paz Futura.");
   }
 
   return { semaforo, motivos };
@@ -417,6 +487,12 @@ export function simulateAffordability(
   }
 
   const budget = computeBudgetImpact(draft, faturas, normalized, budgets);
+  const cardLimit = computeCardLimitImpact(
+    account,
+    faturas,
+    normalized,
+    accounts,
+  );
   const pazFutura = computePazFuturaImpact(
     draft.valor,
     accounts,
@@ -429,6 +505,7 @@ export function simulateAffordability(
     saldoInicial,
     saldo30,
     budget,
+    cardLimit,
     pazFutura,
   });
 
@@ -439,6 +516,7 @@ export function simulateAffordability(
     saldo30,
     saldo90,
     budget,
+    cardLimit,
     pazFutura,
     semaforo,
     motivos,

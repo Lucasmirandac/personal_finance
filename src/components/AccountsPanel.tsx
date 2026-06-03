@@ -64,7 +64,7 @@ const SCOPE_COPY: Record<
   },
   cards: {
     title: "Cartões",
-    subtitle: "Cartões de crédito, fatura e datas de fechamento e pagamento.",
+    subtitle: "Cartões de crédito, fatura, datas de fechamento e teto mensal de gastos.",
     addLabel: "Novo cartão",
     emptyList: "Nenhum cartão cadastrado. Vincule ao CSV importado (Inter ou Nubank).",
     formNew: "Novo cartão",
@@ -89,6 +89,7 @@ function emptyForm(scope: AccountsPanelScope): FormState {
     diaFechamento: "10",
     diaPagamento: "20",
     fonteCsv: "",
+    limiteMensal: "",
   }
 }
 
@@ -113,6 +114,7 @@ type FormState = {
   diaFechamento: string
   diaPagamento: string
   fonteCsv: "inter" | "nubank" | ""
+  limiteMensal: string
 }
 
 type Props = {
@@ -183,6 +185,10 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
       diaFechamento: String(account.diaFechamento ?? 10),
       diaPagamento: String(account.diaPagamento ?? 20),
       fonteCsv: account.fonteCsv ?? "",
+      limiteMensal:
+        account.limiteMensal != null && account.limiteMensal > 0
+          ? String(account.limiteMensal)
+          : "",
     })
     setError(null)
     setFormOpen(true)
@@ -222,13 +228,28 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
       if (form.fonteCsv === "inter" || form.fonteCsv === "nubank") {
         partial.fonteCsv = form.fonteCsv
       }
+      const limiteRaw = form.limiteMensal.trim()
+      if (limiteRaw.length > 0) {
+        const limite = parseFloat(limiteRaw.replace(",", "."))
+        if (Number.isNaN(limite) || limite <= 0) {
+          setError("Teto mensal inválido.")
+          return
+        }
+        partial.limiteMensal = limite
+      } else if (editingId) {
+        partial.limiteMensal = undefined
+      }
     }
 
     try {
       if (editingId) {
         const existing = accounts.find((a) => a.id === editingId)
         if (!existing) return
-        await updateAccount({ ...existing, ...partial })
+        const updated: Account = { ...existing, ...partial }
+        if (kind === "cartao" && form.limiteMensal.trim().length === 0) {
+          delete updated.limiteMensal
+        }
+        await updateAccount(updated)
       } else {
         const acc = createDefaultAccount(kind, form.nome.trim(), partial)
         if (accounts.length === 0 && kind !== "cartao") acc.isDefault = true
@@ -349,6 +370,10 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
                   Saldo {a.saldoInicial.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}{" "}
                   · ref. {a.dataReferencia.split("-").reverse().join("/")}
                   {a.kind === "cartao" && a.fonteCsv && ` · ${a.fonteCsv}`}
+                  {a.kind === "cartao" &&
+                    a.limiteMensal != null &&
+                    a.limiteMensal > 0 &&
+                    ` · Teto ${a.limiteMensal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
                 </Num>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -505,6 +530,22 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
                       />
                     </label>
                   </div>
+                  <label className="block space-y-1">
+                    <LabelWithInfo
+                      labelClassName="text-xs text-muted"
+                      info={g("tetoCartaoDefinido")}
+                      ariaTopic="Teto mensal de gastos"
+                    >
+                      Teto mensal de gastos (opcional)
+                    </LabelWithInfo>
+                    <MoneyInput
+                      value={form.limiteMensal}
+                      onChange={(next) =>
+                        setForm((f) => ({ ...f, limiteMensal: next }))
+                      }
+                      placeholder="Sem teto"
+                    />
+                  </label>
                 </>
               )}
               <div className="flex gap-2 pt-1">

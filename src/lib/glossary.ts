@@ -26,6 +26,10 @@ export const GLOSSARY = {
     "Soma das saídas de caixa previstas a partir de hoje (faturas, despesas fixas, parcelas). O valor é mostrado em positivo.",
   tetoCartao:
     "Quanto ainda dá para gastar no cartão neste mês sem comprometer o orçamento: renda disponível menos a fatura já em aberto (débito de ciclos anteriores).",
+  tetoCartaoDefinido:
+    "Valor máximo que você quer comprometer neste cartão em uma fatura. É um compromisso seu, não o limite bancário do cartão.",
+  tetoCartaoUso:
+    "Quanto da fatura em foco já foi consumido em relação ao teto que você definiu para este cartão.",
   faturaAberta:
     "Total das faturas de cartão com pagamento ainda por vir — comprometem o caixa no dia do pagamento.",
   projecaoSaldo:

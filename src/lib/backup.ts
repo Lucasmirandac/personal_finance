@@ -500,6 +500,11 @@ function sanitizeAccounts(raw: unknown[]): Account[] {
       ...(typeof o.diaPagamento === "number"
         ? { diaPagamento: o.diaPagamento }
         : {}),
+      ...(typeof o.limiteMensal === "number" &&
+      Number.isFinite(o.limiteMensal) &&
+      o.limiteMensal > 0
+        ? { limiteMensal: o.limiteMensal }
+        : {}),
     });
   }
   return out;
