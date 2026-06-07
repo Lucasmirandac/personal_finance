@@ -4,13 +4,19 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Dropzone } from "@/components/Dropzone"
 import { StatTile } from "@/components/ui/StatTile"
-import { parseCsvFile, CsvRowError } from "@/lib/csv"
+import {
+  CsvRowError,
+  detectFormatFromText,
+  parseCsvText,
+} from "@/lib/csv"
+import { findCardAccountByFonte, hasCardCycleConfigured } from "@/lib/accounts"
 import { useAppStore } from "@/lib/store"
 import { isProjectionReady } from "@/lib/setupStatus"
 import { formatBRL, formatInt } from "@/lib/format"
 import { Fonte } from "@/lib/types"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
+import { IntegerInput } from "@/components/ui/IntegerInput"
 import {
   DataTable,
   DataTableCell,
@@ -24,6 +30,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react"
+import type { Account } from "@/lib/types"
 
 const FONTE_LABELS: Record<Fonte, string> = {
   inter: "Inter",
@@ -31,10 +38,22 @@ const FONTE_LABELS: Record<Fonte, string> = {
   manual: "Manual",
 }
 
+type PendingImport = {
+  fileName: string
+  text: string
+  format: "inter" | "nubank"
+}
+
 type Props = {
   /** Após import bem-sucedido, para onde ir */
   redirectAfterImport?: string
   compact?: boolean
+}
+
+function parseCycleDay(value: string): number | null {
+  const n = Number(value)
+  if (!Number.isInteger(n) || n < 1 || n > 31) return null
+  return n
 }
 
 export function ImportPanel({
@@ -49,6 +68,7 @@ export function ImportPanel({
     settings,
     accounts,
     addSource,
+    confirmCardAccountCycle,
     removeSource,
     clearAllSources,
   } = useAppStore()
@@ -57,46 +77,122 @@ export function ImportPanel({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<CsvRowError[]>([])
   const [lastDetected, setLastDetected] = useState<Fonte | null>(null)
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
+  const [diaFechamento, setDiaFechamento] = useState("10")
+  const [diaPagamento, setDiaPagamento] = useState("20")
+
+  const fechamentoValid = parseCycleDay(diaFechamento) != null
+  const pagamentoValid = parseCycleDay(diaPagamento) != null
+  const cycleFormValid = fechamentoValid && pagamentoValid
+
+  async function commitImport(
+    fileName: string,
+    text: string,
+    accountsForParse: Account[],
+  ) {
+    const result = parseCsvText(text, fileName, accountsForParse)
+    if (result.missingColumns.length > 0) {
+      setErrorMsg(result.missingColumns.join(" "))
+      return false
+    }
+    if (!result.source || result.source.raw.length === 0) {
+      setErrorMsg("Nenhuma linha válida encontrada no CSV.")
+      setRowErrors(result.errors)
+      return false
+    }
+    if (result.errors.length > 0) {
+      setRowErrors(result.errors)
+    } else {
+      setRowErrors([])
+    }
+    setLastDetected(result.detectedFormat)
+    await addSource(result.source)
+    const target =
+      redirectAfterImport ??
+      (isProjectionReady(
+        { sources: [...dataset.sources, result.source] },
+        settings,
+        accountsForParse,
+      )
+        ? "/saldo"
+        : "/dashboard")
+    router.push(target)
+    return true
+  }
 
   async function onFile(file: File) {
     setBusy(true)
     setErrorMsg(null)
     setRowErrors([])
     setLastDetected(null)
+    setPendingImport(null)
     try {
-      const result = await parseCsvFile(file, accounts)
-      if (result.missingColumns.length > 0) {
-        setErrorMsg(result.missingColumns.join(" "))
-        setBusy(false)
-        return
-      }
-      if (!result.source || result.source.raw.length === 0) {
-        setErrorMsg("Nenhuma linha válida encontrada no CSV.")
-        setRowErrors(result.errors)
-        setBusy(false)
-        return
-      }
-      if (result.errors.length > 0) {
-        setRowErrors(result.errors)
-      }
-      setLastDetected(result.detectedFormat)
-      await addSource(result.source)
-      const target =
-        redirectAfterImport ??
-        (isProjectionReady(
-          { sources: [...dataset.sources, result.source] },
-          settings,
-          accounts,
+      const text = await file.text()
+      const format = detectFormatFromText(text)
+      if (!format) {
+        setErrorMsg(
+          "Formato não reconhecido. Use Inter (Data, Lançamento, Categoria, Tipo, Valor) ou Nubank (date, title, amount).",
         )
-          ? "/saldo"
-          : "/dashboard")
-      router.push(target)
+        return
+      }
+      if (format === "inter" || format === "nubank") {
+        const cardAccount = findCardAccountByFonte(accounts, format)
+        if (!hasCardCycleConfigured(cardAccount)) {
+          setPendingImport({ fileName: file.name, text, format })
+          setDiaFechamento(
+            cardAccount?.diaFechamento != null
+              ? String(cardAccount.diaFechamento)
+              : "10",
+          )
+          setDiaPagamento(
+            cardAccount?.diaPagamento != null
+              ? String(cardAccount.diaPagamento)
+              : "20",
+          )
+          return
+        }
+      }
+      await commitImport(file.name, text, accounts)
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao ler o arquivo"
       setErrorMsg(msg)
     } finally {
       setBusy(false)
     }
+  }
+
+  async function onConfirmCycleImport() {
+    if (!pendingImport || !cycleFormValid) return
+    setBusy(true)
+    setErrorMsg(null)
+    setRowErrors([])
+    try {
+      const { accounts: nextAccounts } = await confirmCardAccountCycle(
+        pendingImport.format,
+        {
+          diaFechamento: parseCycleDay(diaFechamento)!,
+          diaPagamento: parseCycleDay(diaPagamento)!,
+        },
+      )
+      const ok = await commitImport(
+        pendingImport.fileName,
+        pendingImport.text,
+        nextAccounts,
+      )
+      if (ok) {
+        setPendingImport(null)
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao importar o arquivo"
+      setErrorMsg(msg)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function cancelPendingImport() {
+    setPendingImport(null)
+    setErrorMsg(null)
   }
 
   const gastosOnly = normalized.filter((t) => t.natureza === "Gasto")
@@ -116,9 +212,71 @@ export function ImportPanel({
           </>
         )}
 
-        <div className={compact ? "mt-0" : "mt-3 rounded-2xl ring-1 ring-border/60 bg-surface p-6"}>
-          <Dropzone onFile={onFile} disabled={busy} />
-        </div>
+        {pendingImport ? (
+          <div
+            className={
+              compact
+                ? "mt-0 space-y-4 rounded-2xl border border-border bg-surface p-4"
+                : "mt-3 space-y-4 rounded-2xl ring-1 ring-border/60 bg-surface p-6"
+            }
+          >
+            <div>
+              <p className="text-sm font-semibold">Ciclo da fatura</p>
+              <p className="mt-1 text-xs text-muted leading-relaxed">
+                Informe o dia de fechamento e de pagamento do cartão{" "}
+                {FONTE_LABELS[pendingImport.format]}. Esses dias definem em qual
+                mês cada compra entra — especialmente parcelas Inter. Sem isso,
+                a fatura pode cair no mês errado.
+              </p>
+              <p className="mt-2 text-[11px] text-muted">
+                Arquivo: {pendingImport.fileName}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block space-y-1">
+                <span className="text-xs text-muted">Dia de fechamento</span>
+                <IntegerInput
+                  min={1}
+                  max={31}
+                  value={diaFechamento}
+                  onChange={setDiaFechamento}
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs text-muted">Dia de pagamento</span>
+                <IntegerInput
+                  min={1}
+                  max={31}
+                  value={diaPagamento}
+                  onChange={setDiaPagamento}
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                className="rounded-xl"
+                disabled={!cycleFormValid || busy}
+                onClick={onConfirmCycleImport}
+              >
+                Confirmar e importar
+              </Button>
+              <Button
+                className="rounded-xl"
+                disabled={busy}
+                onClick={cancelPendingImport}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={compact ? "mt-0" : "mt-3 rounded-2xl ring-1 ring-border/60 bg-surface p-6"}>
+            <Dropzone onFile={onFile} disabled={busy} />
+          </div>
+        )}
 
         {lastDetected && (
           <div className="mt-2 flex items-center gap-2 text-xs">

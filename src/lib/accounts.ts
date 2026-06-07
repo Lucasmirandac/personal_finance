@@ -37,6 +37,58 @@ export function findCardAccountByFonte(
   return accounts.find((a) => a.kind === "cartao" && a.fonteCsv === fonte);
 }
 
+export function hasCardCycleConfigured(account: Account | undefined): boolean {
+  if (!account) return false;
+  return (
+    account.cicloConfirmado === true &&
+    typeof account.diaFechamento === "number" &&
+    typeof account.diaPagamento === "number"
+  );
+}
+
+export type CardCycle = {
+  diaFechamento: number;
+  diaPagamento: number;
+};
+
+export function upsertCardAccountCycle(
+  accounts: Account[],
+  fonte: "inter" | "nubank",
+  cycle: CardCycle,
+): { accounts: Account[]; account: Account } {
+  const diaFechamento = Math.min(31, Math.max(1, cycle.diaFechamento));
+  const diaPagamento = Math.min(31, Math.max(1, cycle.diaPagamento));
+  const existing = findCardAccountByFonte(accounts, fonte);
+  if (existing) {
+    const account: Account = {
+      ...existing,
+      diaFechamento,
+      diaPagamento,
+      cicloConfirmado: true,
+    };
+    return {
+      accounts: accounts.map((a) => (a.id === existing.id ? account : a)),
+      account,
+    };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const account: Account = {
+    id: newAccountId(),
+    nome: FONTE_LABELS[fonte],
+    kind: "cartao",
+    saldoInicial: 0,
+    dataReferencia: today,
+    ativa: true,
+    criadaEm: new Date().toISOString(),
+    fonteCsv: fonte,
+    diaFechamento,
+    diaPagamento,
+    cicloConfirmado: true,
+  };
+  return { accounts: [...accounts, account], account };
+}
+
 export function ensureCardAccount(
   accounts: Account[],
   fonte: "inter" | "nubank",
@@ -54,8 +106,6 @@ export function ensureCardAccount(
     ativa: true,
     criadaEm: new Date().toISOString(),
     fonteCsv: fonte,
-    diaFechamento: 10,
-    diaPagamento: 20,
   };
   return { accounts: [...accounts, account], account };
 }
@@ -184,6 +234,7 @@ export function migrateAccountsFromLegacy(
       fonteCsv: card.fonte,
       diaFechamento: card.diaFechamento,
       diaPagamento: card.diaPagamento,
+      cicloConfirmado: true,
     });
   }
 
@@ -203,8 +254,6 @@ export function migrateAccountsFromLegacy(
         ativa: true,
         criadaEm: new Date().toISOString(),
         fonteCsv: fonte,
-        diaFechamento: 10,
-        diaPagamento: 20,
       });
     }
   }

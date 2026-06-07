@@ -59,6 +59,18 @@ export function detectFormat(headers: string[]): Fonte | null {
   return null;
 }
 
+export function detectFormatFromText(text: string): Fonte | null {
+  const cleaned = stripBom(text);
+  const result = Papa.parse<Record<string, string>>(cleaned, {
+    header: true,
+    skipEmptyLines: "greedy",
+    transformHeader: (h) => h.trim(),
+    preview: 1,
+  });
+  const headers = (result.meta.fields ?? []).map((h) => h.trim());
+  return detectFormat(headers);
+}
+
 export function parseBrlValue(input: string): number | null {
   if (!input) return null;
   let s = input.trim().replace(/\u00a0/g, " ");

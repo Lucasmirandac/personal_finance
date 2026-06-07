@@ -25,6 +25,8 @@ export type Account = {
   fonteCsv?: "inter" | "nubank";
   diaFechamento?: number;
   diaPagamento?: number;
+  /** True after user explicitly confirmed invoice cycle (import or card settings). */
+  cicloConfirmado?: boolean;
   /** User-defined monthly spending ceiling for this card (per invoice cycle). */
   limiteMensal?: number;
 };

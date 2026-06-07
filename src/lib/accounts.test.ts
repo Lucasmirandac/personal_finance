@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { migrateAccountsFromLegacy } from "./accounts";
+import {
+  ensureCardAccount,
+  hasCardCycleConfigured,
+  migrateAccountsFromLegacy,
+  upsertCardAccountCycle,
+} from "./accounts";
 import {
   DEFAULT_SETTINGS,
   EMPTY_DATASET,
@@ -51,6 +56,8 @@ describe("migrateAccountsFromLegacy", () => {
     expect(accounts.every((a) => a.kind === "cartao")).toBe(true);
     expect(accounts.map((a) => a.fonteCsv).sort()).toEqual(["inter", "nubank"]);
     expect(accounts.some((a) => a.nome === "Conta Principal")).toBe(false);
+    expect(accounts.every((a) => a.cicloConfirmado !== true)).toBe(true);
+    expect(accounts.every((a) => a.diaFechamento == null)).toBe(true);
   });
 
   it("creates Conta Principal plus one card per source without duplicates", () => {
@@ -73,5 +80,92 @@ describe("migrateAccountsFromLegacy", () => {
       .filter((a) => a.kind === "cartao")
       .map((a) => a.fonteCsv);
     expect(new Set(cardFontes).size).toBe(2);
+    expect(
+      accounts
+        .filter((a) => a.kind === "cartao")
+        .every((a) => a.cicloConfirmado === true),
+    ).toBe(true);
+  });
+});
+
+describe("hasCardCycleConfigured", () => {
+  it("returns false when account is missing or not confirmed", () => {
+    expect(hasCardCycleConfigured(undefined)).toBe(false);
+    expect(
+      hasCardCycleConfigured({
+        id: "c1",
+        nome: "Inter",
+        kind: "cartao",
+        saldoInicial: 0,
+        dataReferencia: "2026-06-01",
+        ativa: true,
+        criadaEm: "2026-06-01T00:00:00.000Z",
+        fonteCsv: "inter",
+        diaFechamento: 10,
+        diaPagamento: 20,
+      }),
+    ).toBe(false);
+  });
+
+  it("returns true when cycle was explicitly confirmed", () => {
+    expect(
+      hasCardCycleConfigured({
+        id: "c1",
+        nome: "Inter",
+        kind: "cartao",
+        saldoInicial: 0,
+        dataReferencia: "2026-06-01",
+        ativa: true,
+        criadaEm: "2026-06-01T00:00:00.000Z",
+        fonteCsv: "inter",
+        diaFechamento: 10,
+        diaPagamento: 20,
+        cicloConfirmado: true,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("ensureCardAccount", () => {
+  it("creates card without default cycle days", () => {
+    const { account } = ensureCardAccount([], "inter");
+    expect(account.fonteCsv).toBe("inter");
+    expect(account.diaFechamento).toBeUndefined();
+    expect(account.diaPagamento).toBeUndefined();
+    expect(account.cicloConfirmado).toBeUndefined();
+  });
+});
+
+describe("upsertCardAccountCycle", () => {
+  it("creates a confirmed card account for a new fonte", () => {
+    const { accounts, account } = upsertCardAccountCycle([], "nubank", {
+      diaFechamento: 5,
+      diaPagamento: 12,
+    });
+    expect(accounts).toHaveLength(1);
+    expect(account).toMatchObject({
+      fonteCsv: "nubank",
+      diaFechamento: 5,
+      diaPagamento: 12,
+      cicloConfirmado: true,
+    });
+  });
+
+  it("updates an existing card account and marks cycle confirmed", () => {
+    const { accounts: created } = upsertCardAccountCycle([], "inter", {
+      diaFechamento: 10,
+      diaPagamento: 20,
+    });
+    const { accounts, account } = upsertCardAccountCycle(created, "inter", {
+      diaFechamento: 3,
+      diaPagamento: 8,
+    });
+    expect(accounts).toHaveLength(1);
+    expect(account).toMatchObject({
+      id: created[0].id,
+      diaFechamento: 3,
+      diaPagamento: 8,
+      cicloConfirmado: true,
+    });
   });
 });

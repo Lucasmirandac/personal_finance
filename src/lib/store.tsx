@@ -15,6 +15,8 @@ import {
   countTransactionsForAccount,
   defaultAccount,
   ensureCardAccount,
+  upsertCardAccountCycle,
+  type CardCycle,
 } from "./accounts";
 import {
   applyEdits,
@@ -145,6 +147,10 @@ type Ctx = {
   addAccount: (account: Account) => Promise<void>;
   updateAccount: (account: Account) => Promise<void>;
   removeAccount: (id: string) => Promise<void>;
+  confirmCardAccountCycle: (
+    fonte: "inter" | "nubank",
+    cycle: CardCycle,
+  ) => Promise<{ accounts: Account[]; account: Account }>;
   setDefaultAccount: (id: string) => Promise<void>;
   addManualTransaction: (
     partial: Omit<ManualTransaction, "id" | "fonte" | "sourceId"> &
@@ -754,6 +760,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [accounts, persistAccounts, settings],
   );
 
+  const confirmCardAccountCycle = useCallback(
+    async (fonte: "inter" | "nubank", cycle: CardCycle) => {
+      const result = upsertCardAccountCycle(accounts, fonte, cycle);
+      await persistAccounts(result.accounts, settings);
+      return result;
+    },
+    [accounts, persistAccounts, settings],
+  );
+
   const removeAccount = useCallback(
     async (id: string) => {
       const count = countTransactionsForAccount(
@@ -1193,6 +1208,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       updateSettings,
       addAccount,
       updateAccount,
+      confirmCardAccountCycle,
       removeAccount,
       setDefaultAccount,
       addManualTransaction,
@@ -1255,6 +1271,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       updateSettings,
       addAccount,
       updateAccount,
+      confirmCardAccountCycle,
       removeAccount,
       setDefaultAccount,
       addManualTransaction,

@@ -228,6 +228,7 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
       if (form.fonteCsv === "inter" || form.fonteCsv === "nubank") {
         partial.fonteCsv = form.fonteCsv
       }
+      partial.cicloConfirmado = true
       const limiteRaw = form.limiteMensal.trim()
       if (limiteRaw.length > 0) {
         const limite = parseFloat(limiteRaw.replace(",", "."))

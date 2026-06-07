@@ -19,6 +19,7 @@ const interCard: Account = {
   fonteCsv: "inter",
   diaFechamento: 30,
   diaPagamento: 7,
+  cicloConfirmado: true,
 };
 
 describe("parseInterInstallmentTipo", () => {
@@ -155,5 +156,32 @@ describe("parseCsvText inter installments", () => {
     expect(installments?.filter((row) => row.installment?.estimated)).toHaveLength(
       4,
     );
+  });
+
+  it("uses confirmed closing day when inferring invoice month for installments", () => {
+    const earlyCloseCard: Account = {
+      ...interCard,
+      diaFechamento: 1,
+      diaPagamento: 10,
+    };
+    const lateCloseCard: Account = {
+      ...interCard,
+      diaFechamento: 25,
+      diaPagamento: 10,
+    };
+    const csv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","LOJA AVISTA","COMPRAS","Compra à vista","R$ 10,00"
+"02/06/2026","LOJA","COMPRAS","Parcela 1/2","R$ 100,00"
+`;
+    const early = parseCsvText(csv, "inter-early.csv", [earlyCloseCard]);
+    const late = parseCsvText(csv, "inter-late.csv", [lateCloseCard]);
+    const earlyInstallment = early.source?.raw.find((row) =>
+      isInterInstallmentTipo(row.tipo),
+    );
+    const lateInstallment = late.source?.raw.find((row) =>
+      isInterInstallmentTipo(row.tipo),
+    );
+    expect(earlyInstallment?.data).toBe("10/08/2026");
+    expect(lateInstallment?.data).toBe("10/07/2026");
   });
 });

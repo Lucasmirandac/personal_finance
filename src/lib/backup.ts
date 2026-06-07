@@ -500,6 +500,7 @@ function sanitizeAccounts(raw: unknown[]): Account[] {
       ...(typeof o.diaPagamento === "number"
         ? { diaPagamento: o.diaPagamento }
         : {}),
+      ...(o.cicloConfirmado === true ? { cicloConfirmado: true } : {}),
       ...(typeof o.limiteMensal === "number" &&
       Number.isFinite(o.limiteMensal) &&
       o.limiteMensal > 0
