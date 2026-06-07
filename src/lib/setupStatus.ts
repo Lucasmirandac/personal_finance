@@ -1,5 +1,13 @@
-import { hasProjectionSetup } from "./accounts";
+import { accountsToBalanceAnchor, hasProjectionSetup } from "./accounts";
 import { Account, Dataset, RecurringRule, Settings } from "./types";
+
+export function hasCashAccount(accounts: Account[]): boolean {
+  return accountsToBalanceAnchor(accounts) != null;
+}
+
+export function hasIncome(recurringRules: RecurringRule[]): boolean {
+  return recurringRules.some((r) => r.kind === "receita" && r.ativo);
+}
 
 export type SetupStep = {
   id: "csv" | "contas" | "recorrentes";

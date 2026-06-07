@@ -8,7 +8,12 @@ import { AccountsPanel } from "@/components/AccountsPanel";
 import { QuickAddModal } from "@/components/QuickAddModal";
 import { DivisorDeAguasStep } from "@/components/onboarding/DivisorDeAguasStep";
 import { useAppStore } from "@/lib/store";
-import { getSetupSteps, SetupStep } from "@/lib/setupStatus";
+import {
+  getSetupSteps,
+  hasCashAccount,
+  hasIncome,
+  SetupStep,
+} from "@/lib/setupStatus";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import {
@@ -28,14 +33,19 @@ const TOTAL_STEPS = 3;
 export function Onboarding() {
   const { dataset, settings, recurringRules, accounts } = useAppStore();
   const router = useRouter();
-  const [showAccounts, setShowAccounts] = useState(false);
-  const [showDivisor, setShowDivisor] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(
+    () => !hasCashAccount(accounts),
+  );
+  const [showDivisor, setShowDivisor] = useState(true);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const steps = getSetupSteps(dataset, settings, recurringRules, accounts);
   const [currentStep, setCurrentStep] = useState(() => initialWizardStep(steps));
   const current = currentStep + 1;
   const progress = (current / TOTAL_STEPS) * 100;
+
+  const canContinueAccounts = hasCashAccount(accounts);
+  const canFinishSetup = hasIncome(recurringRules);
 
   const goBack = () => setCurrentStep((step) => Math.max(0, step - 1));
   const goNext = () => setCurrentStep((step) => Math.min(TOTAL_STEPS - 1, step + 1));
@@ -46,14 +56,13 @@ export function Onboarding() {
       <WizardHeader current={current} progress={progress} />
 
       <Panel className="rounded-[1.75rem] p-5 shadow-[var(--shadow-card-lg)] sm:p-6">
-        {currentStep === 0 && (
-          <WelcomeStep onStart={goNext} onSkip={goToPanel} />
-        )}
+        {currentStep === 0 && <WelcomeStep onStart={goNext} />}
 
         {currentStep === 1 && (
           <AccountsStep
             accountsDone={steps.some((step) => step.id === "contas" && step.done)}
             accountsCount={accounts.length}
+            canContinue={canContinueAccounts}
             showAccounts={showAccounts}
             onBack={goBack}
             onContinue={goNext}
@@ -64,8 +73,9 @@ export function Onboarding() {
 
         {currentStep === 2 && (
           <ImportStep
+            canFinish={canFinishSetup}
             csvDone={steps.some((step) => step.id === "csv" && step.done)}
-            recurringDone={steps.some((step) => step.id === "recorrentes" && step.done)}
+            incomeDone={canFinishSetup}
             showDivisor={showDivisor}
             onBack={goBack}
             onFinish={goToPanel}
@@ -119,10 +129,8 @@ function WizardHeader({
 
 function WelcomeStep({
   onStart,
-  onSkip,
 }: Readonly<{
   onStart: () => void;
-  onSkip: () => void;
 }>) {
   return (
     <div className="space-y-6">
@@ -151,14 +159,9 @@ function WelcomeStep({
         />
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-        <Button variant="primary" className="h-10 rounded-xl" onClick={onStart}>
-          Começar
-        </Button>
-        <Button className="h-10 rounded-xl px-5" onClick={onSkip}>
-          Pular Tutorial
-        </Button>
-      </div>
+      <Button variant="primary" className="h-10 w-full rounded-xl" onClick={onStart}>
+        Começar
+      </Button>
     </div>
   );
 }
@@ -166,6 +169,7 @@ function WelcomeStep({
 function AccountsStep({
   accountsDone,
   accountsCount,
+  canContinue,
   showAccounts,
   onBack,
   onContinue,
@@ -174,6 +178,7 @@ function AccountsStep({
 }: Readonly<{
   accountsDone: boolean;
   accountsCount: number;
+  canContinue: boolean;
   showAccounts: boolean;
   onBack: () => void;
   onContinue: () => void;
@@ -195,16 +200,18 @@ function AccountsStep({
         projeções futuras.
       </p>
 
-      <div className="rounded-2xl border border-border bg-surface-2/60 p-4">
-        <p className="flex items-center gap-2 text-sm font-medium">
-          <Info size={15} className="text-warning" />
-          Dica
-        </p>
-        <p className="mt-2 text-sm text-muted">
-          Você pode pular essa etapa agora e configurar suas contas depois em{" "}
-          <strong>Config → Contas</strong>.
-        </p>
-      </div>
+      {!canContinue && (
+        <div className="rounded-2xl border border-border bg-surface-2/60 p-4">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Info size={15} className="text-warning" />
+            Obrigatório
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            Cadastre ao menos uma conta de saldo (corrente, poupança ou
+            carteira) para continuar. Cartão sozinho não libera o próximo passo.
+          </p>
+        </div>
+      )}
 
       {accountsDone && (
         <div className="rounded-2xl bg-success/10 p-3 text-sm text-success">
@@ -220,7 +227,12 @@ function AccountsStep({
       )}
 
       <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-        <Button variant="primary" className="h-10 rounded-xl" onClick={onContinue}>
+        <Button
+          variant="primary"
+          className="h-10 rounded-xl"
+          disabled={!canContinue}
+          onClick={onContinue}
+        >
           Continuar
         </Button>
         <Button className="h-10 rounded-xl px-5" onClick={onToggleAccounts}>
@@ -246,15 +258,17 @@ function AccountsStep({
 }
 
 function ImportStep({
+  canFinish,
   csvDone,
-  recurringDone,
+  incomeDone,
   showDivisor,
   onBack,
   onFinish,
   onToggleDivisor,
 }: Readonly<{
+  canFinish: boolean;
   csvDone: boolean;
-  recurringDone: boolean;
+  incomeDone: boolean;
   showDivisor: boolean;
   onBack: () => void;
   onFinish: () => void;
@@ -262,7 +276,7 @@ function ImportStep({
 }>) {
   const divisorButtonLabel = showDivisor
     ? "Ocultar"
-    : divisorLabel(recurringDone);
+    : divisorLabel(incomeDone);
 
   return (
     <div className="space-y-5">
@@ -285,7 +299,26 @@ function ImportStep({
 
       {csvDone && (
         <div className="rounded-2xl bg-success/10 p-3 text-sm text-success">
-          Dados importados. Você já pode ir para o painel.
+          Dados importados com sucesso.
+        </div>
+      )}
+
+      {incomeDone && (
+        <div className="rounded-2xl bg-success/10 p-3 text-sm text-success">
+          Renda cadastrada. Você já pode ir para o painel.
+        </div>
+      )}
+
+      {!canFinish && (
+        <div className="rounded-2xl border border-border bg-surface-2/60 p-4">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Info size={15} className="text-warning" />
+            Obrigatório
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            Cadastre ao menos uma renda no Divisor de Águas para concluir. A
+            importação de CSV é opcional.
+          </p>
         </div>
       )}
 
@@ -316,7 +349,12 @@ function ImportStep({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-        <Button variant="primary" className="h-10 rounded-xl" onClick={onFinish}>
+        <Button
+          variant="primary"
+          className="h-10 rounded-xl"
+          disabled={!canFinish}
+          onClick={onFinish}
+        >
           Ir para o Painel quando terminar
         </Button>
         <Button className="h-10 rounded-xl px-5" onClick={onBack}>
@@ -328,8 +366,8 @@ function ImportStep({
   );
 }
 
-function divisorLabel(recurringDone: boolean) {
-  return recurringDone ? "Revisar" : "Configurar";
+function divisorLabel(incomeDone: boolean) {
+  return incomeDone ? "Revisar" : "Configurar";
 }
 
 function StepIntro({
