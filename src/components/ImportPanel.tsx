@@ -205,7 +205,7 @@ export function ImportPanel({
       <section>
         {!compact && (
           <>
-            <p className="text-[11px] uppercase tracking-wider text-muted">Importar fatura</p>
+            <p className="text-caption uppercase tracking-wider text-muted">Importar fatura</p>
             <p className="text-xs text-muted mt-0.5 max-w-xl">
               CSV Inter ou Nubank. Processamento 100% local.
             </p>
@@ -228,7 +228,7 @@ export function ImportPanel({
                 mês cada compra entra — especialmente parcelas Inter. Sem isso,
                 a fatura pode cair no mês errado.
               </p>
-              <p className="mt-2 text-[11px] text-muted">
+              <p className="mt-2 text-caption text-muted">
                 Arquivo: {pendingImport.fileName}
               </p>
             </div>
@@ -336,7 +336,7 @@ export function ImportPanel({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-muted">Base consolidada</p>
+              <p className="text-caption uppercase tracking-wider text-muted">Base consolidada</p>
               <p className="text-xs text-muted mt-0.5">
                 {dataset.sources.length} fonte(s) · {formatInt(totalRows)} linhas
               </p>
@@ -407,7 +407,7 @@ export function ImportPanel({
                     <DataTableCell align="right" className="font-mono tabular-nums">
                       {formatInt(s.rowsRaw)}
                     </DataTableCell>
-                    <DataTableCell className="text-[11px] text-muted">
+                    <DataTableCell className="text-caption text-muted">
                       {new Date(s.importedAt).toLocaleString("pt-BR", {
                         dateStyle: "short",
                         timeStyle: "short",

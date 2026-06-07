@@ -263,7 +263,7 @@ function TodayHero({
         <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
           <div>
             <LabelWithInfo
-              labelClassName="text-[11px] uppercase tracking-wider text-muted"
+              labelClassName="text-caption uppercase tracking-wider text-muted"
               info={g("saldoAtual")}
               ariaTopic="Saldo atual"
             >

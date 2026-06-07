@@ -23,7 +23,7 @@ export function HabitOfWeekCard({ narratives, max = 3 }: Props) {
   return (
     <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] overflow-hidden">
       <div className="px-4 pt-4 pb-2">
-        <p className="text-[11px] uppercase tracking-wider text-muted">
+        <p className="text-caption uppercase tracking-wider text-muted">
           Hábito da semana
         </p>
       </div>

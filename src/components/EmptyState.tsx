@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Panel";
 
 const linkBtnBase =
-  "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap text-[13px] px-3 py-1.5";
+  "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap text-ui px-3 py-1.5";
 const linkBtnDefault = `${linkBtnBase} border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong`;
 const linkBtnPrimary = `${linkBtnBase} border-foreground bg-foreground text-surface hover:opacity-90`;
 

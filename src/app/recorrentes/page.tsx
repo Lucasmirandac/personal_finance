@@ -176,7 +176,7 @@ function RuleSection({
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60">
         <div>
           <LabelWithInfo
-            labelClassName="text-[11px] uppercase tracking-wider text-muted"
+            labelClassName="text-caption uppercase tracking-wider text-muted"
             info={infoKey ? g(infoKey) : undefined}
             ariaTopic={title}
           >
@@ -277,7 +277,7 @@ type ActiveSwitchProps = {
 function ActiveSwitch({ checked, onChange, label }: Readonly<ActiveSwitchProps>) {
   return (
     <div className="flex items-center gap-2 shrink-0">
-      <span className="text-[11px] text-muted" id={`active-label-${label}`}>
+      <span className="text-caption text-muted" id={`active-label-${label}`}>
         Ativo
       </span>
       <button

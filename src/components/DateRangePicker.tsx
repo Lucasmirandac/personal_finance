@@ -62,7 +62,7 @@ export function DateRangePicker({
           <div className="relative flex-1 min-w-[120px]">
             <button
               type="button"
-              className="bg-surface border border-border rounded-md px-2.5 py-1.5 text-[13px] text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-surface border border-border rounded-md px-2.5 py-1.5 text-ui text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setOpen((v) => !v)}
               disabled={!datasetMax}
             >

@@ -122,7 +122,7 @@ export function DivisorDeAguasStep() {
         <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
           <div>
             <p className="text-xs font-medium">Categorias estruturais do CSV</p>
-            <p className="text-[11px] text-muted mt-0.5">
+            <p className="text-caption text-muted mt-0.5">
               Marque categorias do cartão que representam custos fixos. Usamos a
               mediana dos últimos 3 meses fechados.
             </p>
@@ -167,7 +167,7 @@ export function DivisorDeAguasStep() {
                         )}
                       </span>
                       {coveredByRule && (
-                        <span className="block text-[11px] text-muted mt-0.5">
+                        <span className="block text-caption text-muted mt-0.5">
                           Já coberto por despesa fixa cadastrada
                         </span>
                       )}
@@ -228,7 +228,7 @@ function RecurringSummaryCard({
               </span>
             )}
           </div>
-          <p className="text-[11px] text-muted">{subtitle}</p>
+          <p className="text-caption text-muted">{subtitle}</p>
           <p className="text-sm font-semibold mt-1 tabular-nums">
             {formatBRL(total)}/mês
           </p>
@@ -242,7 +242,7 @@ function RecurringSummaryCard({
       </div>
 
       {justAdded && !creating && (
-        <div className="flex items-center gap-2 rounded-md bg-success/10 px-2 py-1.5 text-[11px] text-success">
+        <div className="flex items-center gap-2 rounded-md bg-success/10 px-2 py-1.5 text-caption text-success">
           <CheckCircle2 size={13} />
           Cadastrada. Adicione outra ou siga para o painel.
         </div>
@@ -268,7 +268,7 @@ function RecurringSummaryCard({
             </li>
           ))}
           {rules.length > 3 && (
-            <li className="text-[11px] text-muted">
+            <li className="text-caption text-muted">
               +{rules.length - 3} outra(s) em Recorrentes
             </li>
           )}
@@ -278,7 +278,7 @@ function RecurringSummaryCard({
       {!creating && count > 0 && (
         <button
           type="button"
-          className="text-[11px] text-muted underline underline-offset-4 hover:text-foreground"
+          className="text-caption text-muted underline underline-offset-4 hover:text-foreground"
           onClick={onAdd}
         >
           {addLabel}

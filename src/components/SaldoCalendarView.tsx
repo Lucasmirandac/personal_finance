@@ -234,7 +234,7 @@ export function SaldoCalendarView({
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-3 text-[11px] text-muted">
+      <div className="flex flex-wrap gap-x-4 gap-y-3 text-caption text-muted">
         {(["fatura", "fixa", "receita"] as const).map((type) => (
           <span key={type} className="inline-flex items-center gap-1.5">
             <span className={eventLegendDotClass(type)} />
@@ -284,7 +284,7 @@ export function SaldoCalendarView({
                 )
               }
             >
-              <span className="calendar-day-num text-[11px] leading-none">
+              <span className="calendar-day-num text-caption leading-none">
                 {parseIso(cell.date)[2]}
               </span>
               <div className="flex flex-col gap-px flex-1 min-h-0 overflow-hidden">

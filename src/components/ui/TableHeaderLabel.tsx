@@ -11,7 +11,7 @@ export function TableHeaderLabel({
 }) {
   return (
     <LabelWithInfo
-      labelClassName="inline normal-case tracking-wide font-semibold text-[11px]"
+      labelClassName="inline normal-case tracking-wide font-semibold text-caption"
       info={infoKey ? g(infoKey) : undefined}
       ariaTopic={children}
     >

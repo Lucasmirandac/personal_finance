@@ -35,7 +35,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-surface-2 border border-border",
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-caption font-medium bg-surface-2 border border-border",
         dot && "before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-current before:shrink-0",
         variantClasses[variant],
         className,

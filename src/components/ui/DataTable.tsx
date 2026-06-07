@@ -7,7 +7,7 @@ type TableProps = React.TableHTMLAttributes<HTMLTableElement>
 export function DataTable({ className, ...props }: TableProps) {
   return (
     <table
-      className={clsx("w-full border-collapse text-[13px]", className)}
+      className={clsx("w-full border-collapse text-ui", className)}
       {...props}
     />
   )
@@ -25,7 +25,7 @@ export function DataTableHead({
   return (
     <th
       className={clsx(
-        "sticky top-0 bg-surface text-[11px] font-semibold uppercase tracking-wide text-muted cursor-pointer select-none z-[1] py-2 px-2.5 border-b border-border whitespace-nowrap",
+        "sticky top-0 bg-surface text-caption font-semibold uppercase tracking-wide text-muted cursor-pointer select-none z-[1] py-2 px-2.5 border-b border-border whitespace-nowrap",
         align === "right" ? "text-right" : "text-left",
         className,
       )}

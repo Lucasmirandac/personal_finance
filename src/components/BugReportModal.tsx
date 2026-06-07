@@ -144,7 +144,7 @@ export function BugReportModal({ open, onClose }: Readonly<Props>) {
           <div>
             <h2
               id="bug-report-title"
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+              className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
               Reportar bug
             </h2>

@@ -9,7 +9,7 @@ export function SectionTitle({ className, info, children, ...props }: Props) {
   return (
     <span className={clsx("inline-flex items-center gap-1", className)}>
       <span
-        className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+        className="text-caption font-semibold tracking-wider uppercase text-muted"
         {...props}
       >
         {children}

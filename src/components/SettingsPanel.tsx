@@ -108,13 +108,13 @@ export function SettingsPanel({
     >
       <div>
         <SectionTitle>Saldo inicial</SectionTitle>
-        <p className="text-[11px] text-muted mt-0.5 mb-2">
+        <p className="text-caption text-muted mt-0.5 mb-2">
           Saldo em conta na data de referência (âncora da projeção).
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+              className="text-caption font-semibold tracking-wider uppercase text-muted block mb-1"
               htmlFor="anchor-valor"
             >
               Valor (R$)
@@ -129,7 +129,7 @@ export function SettingsPanel({
           </div>
           <div>
             <label
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+              className="text-caption font-semibold tracking-wider uppercase text-muted block mb-1"
               htmlFor="anchor-data"
             >
               Data
@@ -148,7 +148,7 @@ export function SettingsPanel({
       {sources.length > 0 && (
         <div>
           <SectionTitle>Cartões</SectionTitle>
-          <p className="text-[11px] text-muted mt-0.5 mb-2">
+          <p className="text-caption text-muted mt-0.5 mb-2">
             Fechamento = último dia da fatura; pagamento = débito na conta.
           </p>
           <div className="space-y-3">
@@ -202,7 +202,7 @@ export function SettingsPanel({
 
       <div>
         <label
-          className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+          className="text-caption font-semibold tracking-wider uppercase text-muted block mb-1"
           htmlFor="horizon"
         >
           Horizonte (dias à frente)

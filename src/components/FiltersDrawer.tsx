@@ -94,7 +94,7 @@ export function FiltersDrawer({
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border">
           <div>
             <div className="font-semibold text-sm">Filtros</div>
-            <div className="text-[11px] text-muted">
+            <div className="text-caption text-muted">
               {activeCount > 0
                 ? `${activeCount} ativo(s)`
                 : "Nenhum filtro aplicado"}
@@ -144,7 +144,7 @@ export function FiltersDrawer({
           />
           <div>
             <label
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+              className="text-caption font-semibold tracking-wider uppercase text-muted block mb-1"
               htmlFor="filter-search"
             >
               Buscar lançamento

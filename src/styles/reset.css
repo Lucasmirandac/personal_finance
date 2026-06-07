@@ -1,12 +1,16 @@
+html {
+  font-size: 16px;
+}
+
 html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-size: 14px;
-  line-height: 1.45;
 }
 
 body {
+  font-size: 0.875rem;
+  line-height: 1.45;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
   background:
@@ -14,6 +18,17 @@ body {
     radial-gradient(circle at 85% 12%, color-mix(in oklab, var(--system-orange) 10%, transparent), transparent 28rem),
     linear-gradient(180deg, var(--background), color-mix(in oklab, var(--background) 88%, var(--surface-2)));
   background-attachment: fixed;
+}
+
+@media (min-width: 640px) {
+  html {
+    font-size: 17px;
+  }
+
+  body {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
 }
 
 * {

@@ -48,12 +48,12 @@ function DeltaBadge({
 }) {
   if (delta.direction === "new") {
     return (
-      <span className="text-[11px] font-medium text-info">novo</span>
+      <span className="text-caption font-medium text-info">novo</span>
     );
   }
   if (delta.direction === "flat" && delta.pct === 0) {
     return (
-      <span className="text-[11px] text-muted inline-flex items-center gap-0.5">
+      <span className="text-caption text-muted inline-flex items-center gap-0.5">
         <Minus size={compact ? 11 : 12} />
         0%
       </span>
@@ -77,7 +77,7 @@ function DeltaBadge({
     <Num
       className={clsx(
         "inline-flex items-center gap-0.5 font-medium",
-        compact ? "text-[11px]" : "text-xs",
+        compact ? "text-caption" : "text-xs",
         color,
       )}
     >
@@ -131,7 +131,7 @@ export function ComparisonPanel({ data }: Props) {
         <div>
           <label
             htmlFor="comparison-anchor"
-            className="text-[11px] font-semibold tracking-wider uppercase text-muted block mb-1"
+            className="text-caption font-semibold tracking-wider uppercase text-muted block mb-1"
           >
             Mês de referência
           </label>
@@ -147,7 +147,7 @@ export function ComparisonPanel({ data }: Props) {
               </option>
             ))}
           </Select>
-          <p className="text-[11px] text-muted mt-1">
+          <p className="text-caption text-muted mt-1">
             Comparando {anchorLabel}
             {hasPrev && <> vs {prevLabel}</>}
             {hasPrevYear && <> vs {prevYearLabel}</>}

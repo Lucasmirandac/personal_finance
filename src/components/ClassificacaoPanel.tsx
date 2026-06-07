@@ -150,8 +150,8 @@ export function ClassificacaoPanel() {
       {preview && (
         <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] uppercase tracking-wider text-muted">Pré-visualização</p>
-            <span className="text-[11px] text-muted">Salve para aplicar</span>
+            <p className="text-caption uppercase tracking-wider text-muted">Pré-visualização</p>
+            <span className="text-caption text-muted">Salve para aplicar</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatTile label="Gasto" value={formatBRL(preview.total)} info={g("gasto")} />
@@ -240,7 +240,7 @@ function PatternEditor({
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)]">
       <div className="px-4 py-3 border-b border-border/60">
-        <p className="text-[11px] uppercase tracking-wider text-muted">{title}</p>
+        <p className="text-caption uppercase tracking-wider text-muted">{title}</p>
         <p className="text-xs text-muted mt-0.5">{description}</p>
       </div>
       <ul className="divide-y divide-border/60">
@@ -282,7 +282,7 @@ function PatternEditor({
         </Button>
       </div>
       <div className="text-xs text-muted px-4 pb-4 flex flex-wrap gap-1.5">
-        <span className="w-full text-[11px]">Padrões originais:</span>
+        <span className="w-full text-caption">Padrões originais:</span>
         {defaults.map((d) => (
           <Chip key={d}>{d}</Chip>
         ))}

@@ -22,7 +22,7 @@ export function AccountStack({ accounts }: Props) {
 
   return (
     <section className="space-y-2">
-      <p className="text-[11px] uppercase tracking-wider text-muted">Contas</p>
+      <p className="text-caption uppercase tracking-wider text-muted">Contas</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {active.map((account) => (
           <article

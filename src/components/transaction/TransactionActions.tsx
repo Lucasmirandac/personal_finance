@@ -26,7 +26,7 @@ export function TransactionActions({
     return (
       <Link
         href="/recorrentes"
-        className="rounded-full border border-border bg-surface px-2 py-1 text-[11px] text-muted hover:bg-surface-2"
+        className="rounded-full border border-border bg-surface px-2 py-1 text-caption text-muted hover:bg-surface-2"
       >
         Recorrente
       </Link>

@@ -31,7 +31,7 @@ export function HeroBalance({ summary, series, onAdjustBalance }: Props) {
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">Saldo atual</p>
+          <p className="text-caption uppercase tracking-wider text-muted">Saldo atual</p>
           <Num className="mt-2 block text-5xl font-semibold tracking-tight num-display sm:text-6xl">
             {formatBRL(summary.saldoInicial)}
           </Num>

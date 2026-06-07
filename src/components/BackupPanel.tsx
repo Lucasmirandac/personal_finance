@@ -203,7 +203,7 @@ export function BackupPanel() {
     <div className="space-y-4">
       <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">Exportar tudo</p>
+          <p className="text-caption uppercase tracking-wider text-muted">Exportar tudo</p>
           <p className="text-xs text-muted mt-0.5">
             Salva dataset, contas, transações manuais, recorrentes, regras,
             configurações e edições em um único arquivo JSON.
@@ -233,7 +233,7 @@ export function BackupPanel() {
 
       <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">Restaurar backup</p>
+          <p className="text-caption uppercase tracking-wider text-muted">Restaurar backup</p>
           <p className="text-xs text-muted mt-0.5">
             Cole o JSON ou arraste um arquivo de backup exportado anteriormente.
           </p>

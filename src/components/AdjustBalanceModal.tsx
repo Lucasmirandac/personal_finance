@@ -172,7 +172,7 @@ export function AdjustBalanceModal({ open, onClose }: Props) {
           <div>
             <h2
               id="adjust-balance-title"
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+              className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
               Ajustar saldo
             </h2>

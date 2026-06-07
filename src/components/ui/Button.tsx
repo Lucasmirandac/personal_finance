@@ -21,7 +21,7 @@ const variantClasses: Record<Variant, string> = {
 }
 
 const sizeClasses: Record<Size, string> = {
-  default: "text-[13px] px-3 py-1.5",
+  default: "text-ui px-3 py-1.5",
   sm: "text-xs px-2 py-1",
 }
 

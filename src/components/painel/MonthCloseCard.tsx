@@ -46,7 +46,7 @@ function CategoryList({
     return (
       <div>
         <LabelWithInfo
-          labelClassName="text-[11px] font-medium uppercase tracking-wider text-muted"
+          labelClassName="text-caption font-medium uppercase tracking-wider text-muted"
           info={info}
           ariaTopic={title}
         >
@@ -61,7 +61,7 @@ function CategoryList({
     <div>
       <LabelWithInfo
         labelClassName={clsx(
-          "text-[11px] font-medium uppercase tracking-wider",
+          "text-caption font-medium uppercase tracking-wider",
           tone === "danger" ? "text-danger" : "text-success",
         )}
         info={info}
@@ -141,7 +141,7 @@ export function MonthCloseCard() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <LabelWithInfo
-            labelClassName="text-[11px] uppercase tracking-[0.22em] text-muted"
+            labelClassName="text-caption uppercase tracking-[0.22em] text-muted"
             info={g("fechamento")}
             ariaTopic="Fechamento"
           >

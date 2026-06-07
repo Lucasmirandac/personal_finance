@@ -59,7 +59,7 @@ export function UpcomingTimeline({ series, filter, onFilterChange }: Props) {
         return (
           <div key={group.id} className="overflow-hidden rounded-2xl bg-surface ring-1 ring-border/60">
             <div className="flex items-center justify-between px-4 py-2">
-              <p className="text-[11px] uppercase tracking-wider text-muted">{group.label}</p>
+              <p className="text-caption uppercase tracking-wider text-muted">{group.label}</p>
               <Num className={clsx("text-xs font-medium", total >= 0 ? "text-success" : "text-danger")}>
                 {formatBRL(total)}
               </Num>

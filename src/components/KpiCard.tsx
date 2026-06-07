@@ -65,7 +65,7 @@ export function KpiCard({
         {value}
       </Num>
       {hint && (
-        <div className="text-[11px] text-muted mt-0.5 leading-snug">{hint}</div>
+        <div className="text-caption text-muted mt-0.5 leading-snug">{hint}</div>
       )}
     </div>
   );

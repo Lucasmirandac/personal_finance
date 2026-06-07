@@ -13,7 +13,7 @@ export function AppFooter() {
 
   return (
     <>
-      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-[11px] text-muted border-t border-border">
+      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-caption text-muted border-t border-border">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p>
             Dados financeiros processados apenas no navegador.
@@ -34,7 +34,7 @@ export function AppFooter() {
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full text-[11px]"
+            className="rounded-full text-caption"
             aria-label="Reportar bug por e-mail"
             onClick={() => setBugReportOpen(true)}
           >

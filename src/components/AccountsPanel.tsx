@@ -310,7 +310,7 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">{copy.title}</p>
+          <p className="text-caption uppercase tracking-wider text-muted">{copy.title}</p>
           <p className="text-xs text-muted mt-0.5">{copy.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -422,7 +422,7 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
             onSubmit={handleSubmit}
           >
             <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-wider text-muted">
+              <p className="text-caption uppercase tracking-wider text-muted">
                 {editingId ? copy.formEdit : copy.formNew}
               </p>
               <label className="block space-y-1">
@@ -565,7 +565,7 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
       {showHorizon && (
         <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
           <LabelWithInfo
-            labelClassName="text-[11px] uppercase tracking-wider text-muted"
+            labelClassName="text-caption uppercase tracking-wider text-muted"
             info={g("horizonteProjecao")}
             ariaTopic="Horizonte de projeção"
           >

@@ -126,7 +126,7 @@ export function TransactionEditModal({
           <div>
             <h2
               id="edit-tx-title"
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+              className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
               Editar transação
             </h2>

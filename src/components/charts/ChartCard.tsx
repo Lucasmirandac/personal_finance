@@ -21,7 +21,7 @@ export function ChartCard({ title, subtitle, info, children, right, className }:
       <div className="flex items-start justify-between gap-2">
         <div>
           <LabelWithInfo
-            labelClassName="text-[11px] uppercase tracking-wider text-muted"
+            labelClassName="text-caption uppercase tracking-wider text-muted"
             info={info}
             ariaTopic={title}
           >

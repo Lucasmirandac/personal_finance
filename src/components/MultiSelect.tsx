@@ -55,7 +55,7 @@ export function MultiSelect({
       <div className="relative">
         <button
           type="button"
-          className="bg-surface border border-border rounded-md px-2.5 py-1.5 text-[13px] text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong text-left flex items-center justify-between"
+          className="bg-surface border border-border rounded-md px-2.5 py-1.5 text-ui text-foreground w-full focus:outline focus:outline-1 focus:outline-border-strong focus:border-border-strong text-left flex items-center justify-between"
           onClick={() => setOpen((v) => !v)}
         >
           <span className={clsx(values.length === 0 && "text-muted")}>{summary}</span>

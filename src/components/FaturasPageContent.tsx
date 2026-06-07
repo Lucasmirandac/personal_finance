@@ -256,7 +256,7 @@ function CycleSummary({
                   }}
                 />
               </div>
-              <p className="text-[11px] text-muted">
+              <p className="text-caption text-muted">
                 Restam {formatBRL(limitUsage.restante)}
               </p>
             </div>

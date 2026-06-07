@@ -471,7 +471,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
           <div>
             <h2
               id="quick-add-title"
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+              className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
               {copy.title}
             </h2>
@@ -590,7 +590,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
               )}
             </Select>
             {selectedAccount && !isReceita && (
-              <div className="flex items-center gap-1.5 text-[11px] text-muted pt-0.5">
+              <div className="flex items-center gap-1.5 text-caption text-muted pt-0.5">
                 {selectedAccount.kind === "cartao" ? (
                   <>
                     <CreditCard size={12} className="shrink-0" />
@@ -608,7 +608,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
 
           {showParcelas && (
             <div className="rounded-md border border-border bg-surface-2 p-2.5 space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted">
+              <div className="flex items-center gap-1.5 text-caption text-muted">
                 <CreditCard size={12} className="shrink-0" />
                 <span>Cartão {selectedAccount?.nome}</span>
               </div>
@@ -645,7 +645,7 @@ export function QuickAddModal({ open, draft, onClose }: Props) {
                 </>
               )}
               {parcelasN === 1 && (
-                <p className="text-[11px] text-muted">
+                <p className="text-caption text-muted">
                   À vista: lança em {formatDateBR(dataIso)}, paga na próxima
                   fatura.
                 </p>

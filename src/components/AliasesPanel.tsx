@@ -205,7 +205,7 @@ export function AliasesPanel() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">Apelidos de estabelecimentos</p>
+          <p className="text-caption uppercase tracking-wider text-muted">Apelidos de estabelecimentos</p>
           <p className="text-xs text-muted mt-0.5 max-w-xl">
             Agrupe variantes do mesmo lugar (ex.: PAG*MERC IFOOD, IFD*REST →
             iFood). Padrões casam por substring, sem diferenciar maiúsculas.
@@ -254,7 +254,7 @@ export function AliasesPanel() {
             className="space-y-3"
             onSubmit={(e) => void handleSubmit(e)}
           >
-            <p className="text-[11px] uppercase tracking-wider text-muted">
+            <p className="text-caption uppercase tracking-wider text-muted">
               {editingId ? "Editar apelido" : "Novo apelido"}
             </p>
             <label className="block space-y-1">
@@ -379,7 +379,7 @@ export function AliasesPanel() {
       {hasAnalysis && suggestions.length > 0 && (
         <section className="space-y-3">
           <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted flex items-center gap-2">
+            <p className="text-caption uppercase tracking-wider text-muted flex items-center gap-2">
               <Link2 size={14} />
               Sugestões de agrupamento
             </p>

@@ -532,7 +532,7 @@ export default function TransacoesPage() {
           </DataTable>
         </div>
         <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-border">
-          <div className="text-[11px] text-muted">
+          <div className="text-caption text-muted">
             Pág. {table.getState().pagination.pageIndex + 1} /{" "}
             {table.getPageCount() || 1}
           </div>

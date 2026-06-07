@@ -47,9 +47,9 @@ export function NextEventPeek() {
   return (
     <Panel className="px-3 py-2 flex items-center justify-between gap-3 flex-wrap text-sm">
       <div className="min-w-0">
-        <span className="text-[11px] text-muted">Próximo evento · </span>
+        <span className="text-caption text-muted">Próximo evento · </span>
         <span className="font-medium truncate">{next.description}</span>
-        <span className="text-[11px] text-muted ml-1">
+        <span className="text-caption text-muted ml-1">
           {formatDateBR(next.date)} ·{" "}
           <span
             className={

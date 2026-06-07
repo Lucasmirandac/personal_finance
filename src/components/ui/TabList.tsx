@@ -32,7 +32,7 @@ export function TabTrigger({
       type={type}
       data-active={active}
       className={clsx(
-        "px-4 py-2 text-[13px] font-medium text-muted border-b-2 border-transparent -mb-px whitespace-nowrap bg-transparent hover:text-foreground data-[active=true]:text-foreground data-[active=true]:border-b-foreground",
+        "px-4 py-2 text-ui font-medium text-muted border-b-2 border-transparent -mb-px whitespace-nowrap bg-transparent hover:text-foreground data-[active=true]:text-foreground data-[active=true]:border-b-foreground",
         className,
       )}
       {...props}

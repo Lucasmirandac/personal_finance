@@ -383,7 +383,7 @@ function DashboardPageInner() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <SectionTitle>Maiores compras</SectionTitle>
-                <span className="text-[11px] text-muted">Top 10</span>
+                <span className="text-caption text-muted">Top 10</span>
               </div>
               <div className="rounded-2xl ring-1 ring-border/60 overflow-x-auto">
                 <DataTable>
@@ -533,7 +533,7 @@ function DashboardPageInner() {
                             value={(c.total / maxCatTotal) * 100}
                             className="flex-1"
                           />
-                          <Num className="text-[11px] w-10 text-right">
+                          <Num className="text-caption w-10 text-right">
                             {formatPercent(c.share)}
                           </Num>
                         </div>

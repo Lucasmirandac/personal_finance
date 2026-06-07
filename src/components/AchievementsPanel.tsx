@@ -40,7 +40,7 @@ export function AchievementsPanel() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">
+          <p className="text-caption uppercase tracking-wider text-muted">
             Conquistas
           </p>
           <p className="text-sm text-muted mt-0.5">

@@ -165,7 +165,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
           <div>
             <h2
               id="afford-title"
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+              className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
               <LabelWithInfo info={g("simulacaoAfford")} ariaTopic="Posso comprar isso">
                 Posso comprar isso?

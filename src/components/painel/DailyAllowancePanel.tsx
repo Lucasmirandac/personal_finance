@@ -70,7 +70,7 @@ export function DailyAllowancePanel() {
     return (
       <Panel className="rounded-3xl p-5 shadow-[var(--shadow-card)] ring-1 ring-border/60">
         <LabelWithInfo
-          labelClassName="text-[11px] uppercase tracking-wider text-muted"
+          labelClassName="text-caption uppercase tracking-wider text-muted"
           info={g("saldoDiario")}
           ariaTopic="Saldo diário disponível"
         >
@@ -99,7 +99,7 @@ export function DailyAllowancePanel() {
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <LabelWithInfo
-          labelClassName="text-[11px] uppercase tracking-wider text-muted"
+          labelClassName="text-caption uppercase tracking-wider text-muted"
           info={g("saldoDiario")}
           ariaTopic="Saldo diário disponível"
         >
@@ -215,7 +215,7 @@ export function DailyAllowancePanel() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <LabelWithInfo
-                labelClassName="text-[11px] uppercase tracking-wider text-muted"
+                labelClassName="text-caption uppercase tracking-wider text-muted"
                 info={g("faturaAberta")}
                 ariaTopic="Cartão (fatura aberta)"
               >

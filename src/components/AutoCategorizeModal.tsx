@@ -155,7 +155,7 @@ export function AutoCategorizeModal({
           <div>
             <h2
               id="auto-categorize-title"
-              className="text-[11px] font-semibold tracking-wider uppercase text-muted"
+              className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
               Auto-categorizar {formatInt(suggestions.length)} linhas
             </h2>

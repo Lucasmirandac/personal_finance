@@ -65,7 +65,7 @@ export function Dropzone({ onFile, disabled }: Props) {
         <div className="text-sm font-medium">
           Arraste um CSV ou clique para selecionar
         </div>
-        <div className="text-[11px] text-muted">
+        <div className="text-caption text-muted">
           Inter · Nubank — formato detectado automaticamente
         </div>
       </div>

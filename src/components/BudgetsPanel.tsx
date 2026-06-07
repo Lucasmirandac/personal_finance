@@ -109,7 +109,7 @@ export function BudgetsPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted">Orçamentos por categoria</p>
+          <p className="text-caption uppercase tracking-wider text-muted">Orçamentos por categoria</p>
           <p className="text-xs text-muted mt-0.5">
             Defina limites mensais e receba alertas em 80% e 100%.
           </p>
@@ -191,7 +191,7 @@ export function BudgetsPanel() {
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleSubmit}
           >
-            <p className="text-[11px] uppercase tracking-wider text-muted">
+            <p className="text-caption uppercase tracking-wider text-muted">
               {editingId ? "Editar orçamento" : "Novo orçamento"}
             </p>
             <label className="block space-y-1">
