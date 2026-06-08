@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Saldo Real",
     description:
       "Painel financeiro local: importe faturas, projete saldo, defina orçamentos e nada sai do navegador.",
-    start_url: "/",
+    start_url: "/comecar",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",

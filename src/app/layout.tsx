@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AppStoreProvider } from "@/lib/store";
-import { FiltersProvider } from "@/lib/filtersContext";
-import { AppShell } from "@/components/AppShell";
-import { LaunchSplash } from "@/components/LaunchSplash";
 import { PwaRegister } from "@/components/PwaRegister";
 import { Analytics } from "@vercel/analytics/next";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { GAScripts } from "@/components/GAScripts";
+import { getSiteUrl } from "@/lib/marketing/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,7 +18,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Saldo Real — finanças locais e privadas",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: "Saldo Real — finanças locais e privadas",
+    template: "%s | Saldo Real",
+  },
   description:
     "Saldo Real é o seu painel financeiro local: importe faturas, projete saldo, defina orçamentos e nada sai do navegador.",
   applicationName: "Saldo Real",
@@ -45,6 +46,8 @@ export const metadata: Metadata = {
     title: "Saldo Real",
     description: "Painel financeiro local e privado.",
     type: "website",
+    locale: "pt_BR",
+    siteName: "Saldo Real",
   },
 };
 
@@ -68,12 +71,7 @@ export default function RootLayout({
         <GAScripts />
         <ConsentBanner />
         <PwaRegister />
-        <AppStoreProvider>
-          <LaunchSplash />
-          <FiltersProvider>
-            <AppShell>{children}</AppShell>
-          </FiltersProvider>
-        </AppStoreProvider>
+        {children}
       </body>
     </html>
   );

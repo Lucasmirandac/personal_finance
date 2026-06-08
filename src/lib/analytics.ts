@@ -40,6 +40,13 @@ export type CsvImportFailReason =
 export type BackupImportResult = "ok" | "partial" | "fail";
 export type CountBucket = "1" | "2-5" | "6+";
 export type QuickAddKind = "expense" | "income" | "transfer";
+export type MarketingPageId =
+  | "landing"
+  | "guide_nubank"
+  | "guide_inter"
+  | "tool_limite_diario"
+  | "tool_posso_comprar";
+export type MarketingCta = "comecar" | "ferramenta" | "guia";
 export type OnboardingStep =
   | "welcome"
   | "import"
@@ -66,7 +73,10 @@ export type AnalyticsEvent =
   | { name: "achievement_unlocked"; achievement_id: string }
   | { name: "quick_add_used"; kind: QuickAddKind }
   | { name: "consent_granted" }
-  | { name: "consent_revoked" };
+  | { name: "consent_revoked" }
+  | { name: "marketing_page_viewed"; page: MarketingPageId }
+  | { name: "marketing_cta_clicked"; page: MarketingPageId; cta: MarketingCta }
+  | { name: "marketing_tool_calculated"; tool: "limite_diario" | "posso_comprar" };
 
 const ALLOWED_EVENT_NAMES = new Set<AnalyticsEvent["name"]>([
   "onboarding_started",
@@ -84,6 +94,9 @@ const ALLOWED_EVENT_NAMES = new Set<AnalyticsEvent["name"]>([
   "quick_add_used",
   "consent_granted",
   "consent_revoked",
+  "marketing_page_viewed",
+  "marketing_cta_clicked",
+  "marketing_tool_calculated",
 ]);
 
 const ONBOARDING_STEPS = new Set<OnboardingStep>([
@@ -124,6 +137,18 @@ const QUICK_ADD_KINDS = new Set<QuickAddKind>([
   "income",
   "transfer",
 ]);
+
+const MARKETING_PAGES = new Set<MarketingPageId>([
+  "landing",
+  "guide_nubank",
+  "guide_inter",
+  "tool_limite_diario",
+  "tool_posso_comprar",
+]);
+
+const MARKETING_CTAS = new Set<MarketingCta>(["comecar", "ferramenta", "guia"]);
+
+const MARKETING_TOOLS = new Set(["limite_diario", "posso_comprar"] as const);
 
 export function getMeasurementId(): string | undefined {
   const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
@@ -231,6 +256,33 @@ export function validateEventParams(
       if (typeof kind !== "string" || !QUICK_ADD_KINDS.has(kind as QuickAddKind))
         return null;
       return { kind };
+    }
+
+    case "marketing_page_viewed": {
+      const page = params.page;
+      if (typeof page !== "string" || !MARKETING_PAGES.has(page as MarketingPageId))
+        return null;
+      return { page };
+    }
+
+    case "marketing_cta_clicked": {
+      const page = params.page;
+      const cta = params.cta;
+      if (typeof page !== "string" || !MARKETING_PAGES.has(page as MarketingPageId))
+        return null;
+      if (typeof cta !== "string" || !MARKETING_CTAS.has(cta as MarketingCta))
+        return null;
+      return { page, cta };
+    }
+
+    case "marketing_tool_calculated": {
+      const tool = params.tool;
+      if (
+        typeof tool !== "string" ||
+        !MARKETING_TOOLS.has(tool as "limite_diario" | "posso_comprar")
+      )
+        return null;
+      return { tool };
     }
 
     default:

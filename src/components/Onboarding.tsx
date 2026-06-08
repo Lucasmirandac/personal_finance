@@ -294,7 +294,7 @@ function ImportStep({
       </p>
 
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface/70 p-4">
-        <ImportPanel redirectAfterImport="/" compact />
+        <ImportPanel redirectAfterImport="/comecar" compact />
       </div>
 
       {csvDone && (
