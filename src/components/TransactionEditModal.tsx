@@ -16,6 +16,7 @@ type Props = {
   original: TransactionRaw;
   current: TransactionRaw;
   canRevert: boolean;
+  mode?: "default" | "recurring_income";
   onSave: (patch: TransactionEditPatch) => void;
   onRevert: () => void;
   onClose: () => void;
@@ -36,10 +37,12 @@ export function TransactionEditModal({
   original,
   current,
   canRevert,
+  mode = "default",
   onSave,
   onRevert,
   onClose,
 }: Props) {
+  const isRecurringIncome = mode === "recurring_income";
   const dialogRef = useRef<HTMLDivElement>(null);
   const [dataIso, setDataIso] = useState("");
   const [lancamento, setLancamento] = useState("");
@@ -54,9 +57,13 @@ export function TransactionEditModal({
     setLancamento(current.lancamento);
     setCategoria(current.categoria);
     setTipo(current.tipo);
-    setValorStr(String(current.valorOriginal));
+    setValorStr(
+      mode === "recurring_income"
+        ? String(Math.abs(current.valorOriginal))
+        : String(current.valorOriginal),
+    );
     setError(null);
-  }, [open, current]);
+  }, [open, current, mode]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,7 +89,7 @@ export function TransactionEditModal({
       setError("Data inválida.");
       return;
     }
-    if (!lancamento.trim()) {
+    if (!isRecurringIncome && !lancamento.trim()) {
       setError("Informe o lançamento.");
       return;
     }
@@ -91,13 +98,36 @@ export function TransactionEditModal({
       setError("Valor inválido.");
       return;
     }
+    const storedValor = isRecurringIncome ? -Math.abs(valor) : valor;
+    const originalValor = isRecurringIncome
+      ? -Math.abs(original.valorOriginal)
+      : original.valorOriginal;
 
     const patch: TransactionEditPatch = {};
     if (data !== original.data) patch.data = data;
-    if (lancamento.trim() !== original.lancamento) patch.lancamento = lancamento.trim();
-    if (categoria.trim() !== original.categoria) patch.categoria = categoria.trim();
-    if (tipo.trim() !== original.tipo) patch.tipo = tipo.trim();
-    if (valor !== original.valorOriginal) patch.valorOriginal = valor;
+    if (!isRecurringIncome && lancamento.trim() !== original.lancamento) {
+      patch.lancamento = lancamento.trim();
+    }
+    if (!isRecurringIncome && categoria.trim() !== original.categoria) {
+      patch.categoria = categoria.trim();
+    }
+    if (!isRecurringIncome && tipo.trim() !== original.tipo) patch.tipo = tipo.trim();
+    if (storedValor !== originalValor) patch.valorOriginal = storedValor;
+
+    if (isRecurringIncome) {
+      const recurringPatch: TransactionEditPatch = {};
+      if (patch.data !== undefined) recurringPatch.data = patch.data;
+      if (patch.valorOriginal !== undefined) {
+        recurringPatch.valorOriginal = patch.valorOriginal;
+      }
+      if (Object.keys(recurringPatch).length === 0) {
+        onClose();
+        return;
+      }
+      onSave(recurringPatch);
+      onClose();
+      return;
+    }
 
     if (Object.keys(patch).length === 0) {
       onClose();
@@ -128,10 +158,12 @@ export function TransactionEditModal({
               id="edit-tx-title"
               className="text-caption font-semibold tracking-wider uppercase text-muted"
             >
-              Editar transação
+              {isRecurringIncome ? "Ajustar receita do mês" : "Editar transação"}
             </h2>
             <p className="text-xs text-muted mt-0.5">
-              Alterações não modificam o CSV original.
+              {isRecurringIncome
+                ? "Ajuste vale só para este mês. A regra em Recorrentes continua como padrão."
+                : "Alterações não modificam o CSV original."}
             </p>
           </div>
           <Button
@@ -163,6 +195,8 @@ export function TransactionEditModal({
               required
             />
           </label>
+          {!isRecurringIncome && (
+            <>
           <label className="block space-y-1">
             <span className="text-xs text-muted">Lançamento</span>
             <Input
@@ -188,8 +222,12 @@ export function TransactionEditModal({
               onChange={(e) => setTipo(e.target.value)}
             />
           </label>
+            </>
+          )}
           <label className="block space-y-1">
-            <span className="text-xs text-muted">Valor original (R$)</span>
+            <span className="text-xs text-muted">
+              {isRecurringIncome ? "Valor deste mês (R$)" : "Valor original (R$)"}
+            </span>
             <MoneyInput
               value={valorStr}
               onChange={setValorStr}

@@ -3,13 +3,15 @@ import {
   accountsToCardConfigs,
   hasProjectionSetup,
 } from "./accounts";
-import { isInterInstallmentTipo } from "./csv";
+import { isInterInstallmentTipo, parseBrDate, parseIsoDate } from "./csv";
 import { isoFromParts, parseIso, todayIso } from "./dates";
+import { recurringIncomeRawId } from "./edits";
 import { isManualQuickRaw } from "./manualTransactions";
 import { monthsBetween } from "./recurring";
 import {
   Account,
   CardConfig,
+  EditsState,
   Fonte,
   RecurringRule,
   Settings,
@@ -211,6 +213,7 @@ export function buildRecurringEvents(
   rules: RecurringRule[],
   windowFrom: string,
   windowTo: string,
+  edits: EditsState = {},
 ): CashEvent[] {
   const events: CashEvent[] = [];
   const monthKeys = monthsBetween(
@@ -225,17 +228,33 @@ export function buildRecurringEvents(
     for (const anoMes of monthKeys) {
       const [y, m] = anoMes.split("-").map(Number);
       const day = clampDay(y, m, rule.diaMes);
-      const dataISO = isoFromParts(y, m, day);
+      let dataISO = isoFromParts(y, m, day);
       if (dataISO < rule.inicio) continue;
       if (rule.fim && dataISO > rule.fim) continue;
-      if (dataISO < windowFrom || dataISO > windowTo) continue;
 
       const isReceita = rule.kind === "receita";
+      const rawId = recurringIncomeRawId(rule.id, anoMes);
+      const edit = isReceita ? edits[rawId] : undefined;
+
+      if (edit?.deleted) continue;
+
+      if (edit?.data) {
+        const parsed = parseBrDate(edit.data) ?? parseIsoDate(edit.data);
+        if (parsed) dataISO = parsed;
+      }
+
+      if (dataISO < windowFrom || dataISO > windowTo) continue;
+
+      let amount = isReceita ? Math.abs(rule.valor) : -Math.abs(rule.valor);
+      if (isReceita && edit?.valorOriginal !== undefined) {
+        amount = Math.abs(edit.valorOriginal);
+      }
+
       events.push({
         date: dataISO,
         type: isReceita ? "receita" : "fixa",
         description: rule.descricao,
-        amount: isReceita ? Math.abs(rule.valor) : -Math.abs(rule.valor),
+        amount,
       });
     }
   }
@@ -267,6 +286,7 @@ export type ProjectDailyBalanceInput = {
   recurringRules: RecurringRule[];
   settings: Settings;
   accounts?: Account[];
+  edits?: EditsState;
   windowFrom?: string;
   windowTo?: string;
   /** Synthetic events for what-if simulation (e.g. Afford modal). */
@@ -318,6 +338,7 @@ export function projectDailyBalance(
     input.recurringRules,
     rollFrom,
     windowTo,
+    input.edits,
   );
   const manualEvents = buildManualCashEvents(
     input.normalized,

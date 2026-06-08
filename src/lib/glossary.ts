@@ -67,7 +67,8 @@ export const GLOSSARY = {
   // Badges e classificação
   previsto:
     "Lançamento futuro ou estimado (recorrente do mês ou parcela projetada), ainda não confirmado no extrato.",
-  recorrente: "Gerado por uma regra recorrente; edite em Recorrentes, não linha a linha.",
+  recorrente:
+    "Gerado por regra recorrente. Receitas (ex.: salário) podem ser ajustadas mês a mês no Extrato; despesas fixas, em Recorrentes.",
   editado: "Alterado localmente no app; o CSV ou registro original não foi modificado.",
   parcela: "Uma parte de uma compra parcelada no cartão.",
   parcelaEstimada: "Parcela futura estimada a partir de compras já conhecidas.",

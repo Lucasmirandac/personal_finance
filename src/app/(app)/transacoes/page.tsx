@@ -15,7 +15,7 @@ import { applyFilters } from "@/lib/aggregations";
 import { buildAutoCategorySuggestions } from "@/lib/autoCategorize";
 import { useFilters } from "@/lib/filtersContext";
 import { defaultAccount } from "@/lib/accounts";
-import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits";
+import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringIncomeDeleteConfirmMessage } from "@/lib/edits";
 import { isForecastTransaction } from "@/lib/recurring";
 import { isManualQuickRaw } from "@/lib/manualTransactions";
 import { Fonte, TransactionNormalized } from "@/lib/types";
@@ -236,8 +236,10 @@ export default function TransacoesPage() {
         enableSorting: false,
         cell: ({ row }) => {
           const tx = row.original;
+          const original = findOriginalRaw(tx.id);
+          const recurringIncome = original && allowsPerMonthRecurringEdit(original);
           const recurring = isRecurringRaw(tx);
-          if (recurring) {
+          if (recurring && !recurringIncome) {
             return (
               <span
                 className="text-muted text-[10px]"
@@ -262,6 +264,7 @@ export default function TransacoesPage() {
           }
           return (
             <span className="inline-flex items-center gap-0.5">
+              {!recurringIncome && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -281,6 +284,7 @@ export default function TransacoesPage() {
               >
                 <Copy size={13} />
               </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -290,7 +294,7 @@ export default function TransacoesPage() {
               >
                 <Pencil size={13} />
               </Button>
-              {canRevertTransaction(tx.id, edits, installmentGroupEdits, findOriginalRaw(tx.id) ?? tx) && (
+              {canRevertTransaction(tx.id, edits, installmentGroupEdits, original ?? tx) && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -307,11 +311,13 @@ export default function TransacoesPage() {
                 aria-label="Excluir transação"
                 title="Excluir"
                 onClick={() => {
-                  const original = findOriginalRaw(tx.id);
-                  const message = installmentDeleteConfirmMessage(
-                    original?.installment ?? tx.installment,
-                    "Excluir esta transação da análise? Você pode restaurá-la depois.",
-                  );
+                  const message =
+                    original && allowsPerMonthRecurringEdit(original)
+                      ? recurringIncomeDeleteConfirmMessage()
+                      : installmentDeleteConfirmMessage(
+                          original?.installment ?? tx.installment,
+                          "Excluir esta transação da análise? Você pode restaurá-la depois.",
+                        );
                   if (window.confirm(message)) {
                     deleteTransaction(tx.id);
                   }
@@ -426,6 +432,9 @@ export default function TransacoesPage() {
           open
           original={editOriginal}
           current={editCurrent}
+          mode={
+            allowsPerMonthRecurringEdit(editOriginal) ? "recurring_income" : "default"
+          }
           canRevert={
             canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
             !isManualQuickRaw(editOriginal)

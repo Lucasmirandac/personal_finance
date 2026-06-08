@@ -5,7 +5,7 @@ import { AlertsBar } from "@/components/painel/AlertsBar"
 import { formatBRL, formatDateBR } from "@/lib/format"
 import { projectDailyBalance } from "@/lib/projection"
 import { PainelAlert } from "@/lib/alerts"
-import { Account, CategoryBudget, Dataset, RecurringRule, Settings, TransactionNormalized } from "@/lib/types"
+import { Account, CategoryBudget, Dataset, EditsState, RecurringRule, Settings, TransactionNormalized } from "@/lib/types"
 import { budgetAlertSummary, budgetUsageForMonth } from "@/lib/budgets"
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
   settings: Settings
   accounts: Account[]
   budgets: CategoryBudget[]
+  edits: EditsState
 }
 
 export function DashboardAlerts({
@@ -26,6 +27,7 @@ export function DashboardAlerts({
   settings,
   accounts,
   budgets,
+  edits,
 }: Readonly<Props>) {
   const alerts = useMemo(() => {
     const nextAlerts: PainelAlert[] = []
@@ -72,6 +74,7 @@ export function DashboardAlerts({
         recurringRules,
         settings,
         accounts,
+        edits,
       })
       const today = new Date().toISOString().slice(0, 10)
       let nextEvent: { description: string; date: string; amount: number } | null = null

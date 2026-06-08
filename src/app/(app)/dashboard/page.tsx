@@ -104,7 +104,7 @@ export default function DashboardPage() {
 }
 
 function DashboardPageInner() {
-  const { loaded, dataset, hasAnalysis, normalized, settings, accounts, budgets, recurringRules } =
+  const { loaded, dataset, hasAnalysis, normalized, settings, accounts, budgets, recurringRules, edits } =
     useAppStore();
   const { filters, setFilters, clearFilters } = useFilters();
   const searchParams = useSearchParams();
@@ -280,6 +280,7 @@ function DashboardPageInner() {
         settings={settings}
         accounts={accounts}
         budgets={budgets}
+        edits={edits}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

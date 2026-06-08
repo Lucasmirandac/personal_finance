@@ -13,7 +13,7 @@ const linkBtnSm =
   "inline-flex items-center justify-center gap-1.5 font-medium rounded-md border transition-[background,border-color] whitespace-nowrap text-xs px-2 py-1 border-border bg-surface text-foreground hover:bg-surface-2 hover:border-border-strong";
 
 export function NextEventPeek() {
-  const { dataset, normalized, recurringRules, settings, accounts } =
+  const { dataset, normalized, recurringRules, settings, accounts, edits } =
     useAppStore();
 
   const cardSources = useMemo(
@@ -30,6 +30,7 @@ export function NextEventPeek() {
       recurringRules,
       settings,
       accounts,
+      edits,
     });
     const today = new Date().toISOString().slice(0, 10);
     for (const p of series) {
@@ -40,7 +41,7 @@ export function NextEventPeek() {
       }
     }
     return null;
-  }, [accounts, ready, normalized, recurringRules, settings]);
+  }, [accounts, edits, ready, normalized, recurringRules, settings]);
 
   if (!next) return null;
 

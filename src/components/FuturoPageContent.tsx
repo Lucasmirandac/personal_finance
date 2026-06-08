@@ -18,7 +18,7 @@ import { EventFilter } from "@/components/saldoEventVisual"
 import { Fonte, SaldoView } from "@/lib/types"
 
 export function FuturoPageContent() {
-  const { dataset, normalized, recurringRules, settings, accounts, updateSettings } =
+  const { dataset, normalized, recurringRules, settings, accounts, updateSettings, edits } =
     useAppStore()
   const [eventFilter, setEventFilter] = useState<EventFilter>("all")
   const activeView: SaldoView = settings.saldoView ?? "overview"
@@ -39,8 +39,9 @@ export function FuturoPageContent() {
         recurringRules,
         settings,
         accounts,
+        edits,
       }),
-    [normalized, recurringRules, settings, accounts],
+    [normalized, recurringRules, settings, accounts, edits],
   )
 
   const upcoming = useMemo(() => {

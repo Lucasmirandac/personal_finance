@@ -20,6 +20,7 @@ import {
 } from "./accounts";
 import {
   applyEdits,
+  allowsPerMonthRecurringEdit,
   buildEditEntry,
   buildGroupEditEntry,
   countDeleted,
@@ -29,6 +30,7 @@ import {
   isRecurringRaw,
   pickGroupPatch,
   pickIndividualPatch,
+  pickRecurringIncomePatch,
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
@@ -991,6 +993,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       }
       const raw = findOriginalRaw(rawId);
       if (raw && isRecurringRaw(raw)) {
+        if (!allowsPerMonthRecurringEdit(raw)) return;
+        const recurringPatch = pickRecurringIncomePatch(patch);
+        if (Object.keys(recurringPatch).length === 0) return;
+        await persistEdits({
+          ...edits,
+          [rawId]: buildEditEntry(rawId, edits[rawId], recurringPatch),
+        });
         return;
       }
       const groupKey = raw?.installment?.groupKey;

@@ -51,6 +51,7 @@ export function SaldoPageContent() {
     budgets,
     subscriptionDismissals,
     lastBackupAt,
+    edits,
   } = useAppStore()
 
   const [configOpen, setConfigOpen] = useState(false)
@@ -72,8 +73,9 @@ export function SaldoPageContent() {
         recurringRules,
         settings,
         accounts,
+        edits,
       }),
-    [normalized, recurringRules, settings, accounts],
+    [normalized, recurringRules, settings, accounts, edits],
   )
   const today = todayIso()
 

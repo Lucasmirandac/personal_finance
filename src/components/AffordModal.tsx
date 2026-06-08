@@ -43,6 +43,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
     recurringRules,
     settings,
     structuralCategories,
+    edits,
   } = useAppStore();
 
   const [valorStr, setValorStr] = useState("");
@@ -89,6 +90,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
       accounts,
       budgets,
       structuralCategories,
+      edits,
     });
   }, [
     parsedValor,
@@ -102,6 +104,7 @@ export function AffordModal({ open, onClose, onRegisterGasto }: Props) {
     accounts,
     budgets,
     structuralCategories,
+    edits,
   ]);
 
   useEffect(() => {

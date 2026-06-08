@@ -28,6 +28,7 @@ import {
 import {
   Account,
   CategoryBudget,
+  EditsState,
   RecurringRule,
   Settings,
   TransactionNormalized,
@@ -108,6 +109,7 @@ export type SimulateAffordInput = {
   accounts: Account[];
   budgets: CategoryBudget[];
   structuralCategories: string[];
+  edits?: EditsState;
 };
 
 function round2(n: number): number {
@@ -443,6 +445,7 @@ export function simulateAffordability(
     recurringRules,
     settings,
     accounts,
+    edits: input.edits,
   });
 
   const simulatedProjection = projectDailyBalance({
@@ -450,6 +453,7 @@ export function simulateAffordability(
     recurringRules,
     settings,
     accounts,
+    edits: input.edits,
     extraEvents,
   });
 

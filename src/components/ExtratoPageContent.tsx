@@ -14,10 +14,10 @@ import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
 import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
-import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage } from "@/lib/edits"
-import { isForecastTransaction } from "@/lib/recurring"
-import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
+import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringIncomeDeleteConfirmMessage } from "@/lib/edits"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
+import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
+import { isForecastTransaction } from "@/lib/recurring"
 import { useAppStore } from "@/lib/store"
 import {
   groupTransactionsByDay,
@@ -83,10 +83,13 @@ export function ExtratoPageContent() {
   const handleDelete = (tx: TransactionNormalized) => {
     const original = findOriginalRaw(tx.id)
     const installment = original?.installment ?? tx.installment
-    const message = installmentDeleteConfirmMessage(
-      installment,
-      "Excluir esta transação da análise? Você pode restaurá-la em Transações.",
-    )
+    const message =
+      original && allowsPerMonthRecurringEdit(original)
+        ? recurringIncomeDeleteConfirmMessage()
+        : installmentDeleteConfirmMessage(
+            installment,
+            "Excluir esta transação da análise? Você pode restaurá-la em Transações.",
+          )
     if (globalThis.confirm(message)) {
       deleteTransaction(tx.id)
     }
@@ -176,6 +179,10 @@ export function ExtratoPageContent() {
                   const account = resolveTransactionAccount(tx, accounts)
                   const recurring = isRecurringRaw(tx)
                   const original = findOriginalRaw(tx.id)
+                  const canEditTx =
+                    !!original &&
+                    (allowsPerMonthRecurringEdit(original) ||
+                      (!recurring && !isManualQuickRaw(original)))
                   const canRevert =
                     canRevertTransaction(tx.id, edits, installmentGroupEdits, original) &&
                     !!original &&
@@ -209,7 +216,7 @@ export function ExtratoPageContent() {
                       </Num>
                       <TransactionActions
                         tx={tx}
-                        canEdit={!recurring && !!findOriginalRaw(tx.id)}
+                        canEdit={canEditTx}
                         canRevert={canRevert}
                         onEdit={setEditRow}
                         onDelete={handleDelete}
@@ -235,6 +242,9 @@ export function ExtratoPageContent() {
           open
           original={editOriginal}
           current={editCurrent}
+          mode={
+            allowsPerMonthRecurringEdit(editOriginal) ? "recurring_income" : "default"
+          }
           canRevert={
             canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
             !isManualQuickRaw(editOriginal)

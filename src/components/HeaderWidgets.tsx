@@ -105,7 +105,7 @@ export function SetupIndicator() {
 }
 
 export function Saldo30Widget() {
-  const { dataset, normalized, recurringRules, settings, accounts } =
+  const { dataset, normalized, recurringRules, settings, accounts, edits } =
     useAppStore();
 
   const ready = isProjectionReady(dataset, settings, accounts);
@@ -117,6 +117,7 @@ export function Saldo30Widget() {
       recurringRules,
       settings,
       accounts,
+      edits,
     });
     if (series.length === 0) return null;
     const today = new Date().toISOString().slice(0, 10);
@@ -126,7 +127,7 @@ export function Saldo30Widget() {
       if (p.date <= target) best = p;
     }
     return { balance: best.balance, date: best.date };
-  }, [ready, normalized, recurringRules, settings, accounts]);
+  }, [ready, normalized, recurringRules, settings, accounts, edits]);
 
   if (!saldo30) return null;
 

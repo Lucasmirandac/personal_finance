@@ -1,5 +1,6 @@
 import { normalizeBudgetCategory, currentMonthIso } from "./budgets";
 import { addMonthsYyyyMm } from "./dates";
+import { isRecurringIncomeRaw } from "./edits";
 import { SEM_CATEGORIA } from "./normalize";
 import { RecurringRule, TransactionNormalized } from "./types";
 
@@ -154,11 +155,20 @@ export function computeLeverageRatio(input: {
   const activeRules = input.recurringRules.filter((r) => r.ativo);
   const breakdown: LeverageBreakdownLine[] = [];
 
-  const rendaMensal = round2(
+  const monthIso = currentMonthIso(today);
+  const incomeInstances = input.normalized.filter(
+    (t) => isRecurringIncomeRaw(t) && t.anoMes === monthIso,
+  );
+  const rendaFromInstances = round2(
+    incomeInstances.reduce((acc, t) => acc + t.valorFluxo, 0),
+  );
+  const rendaFromRules = round2(
     activeRules
       .filter((r) => r.kind === "receita")
       .reduce((acc, r) => acc + Math.abs(r.valor), 0),
   );
+  const rendaMensal =
+    incomeInstances.length > 0 ? rendaFromInstances : rendaFromRules;
 
   const fixedRules = activeRules.filter((r) => r.kind === "despesa_fixa");
   const categoriasComRegra = new Set(

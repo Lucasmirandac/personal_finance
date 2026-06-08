@@ -8,6 +8,32 @@ import { TransactionRaw } from "./types";
 
 const groupKey = "compra-teste|3";
 
+function recurringIncomeRaw(id: string, valor = -5000): TransactionRaw {
+  return {
+    id,
+    data: "05/06/2026",
+    lancamento: "Salário",
+    categoria: "SALARIO",
+    tipo: "Receita",
+    valorOriginal: valor,
+    fonte: "manual",
+    sourceId: "manual:salario",
+  };
+}
+
+function recurringExpenseRaw(id: string): TransactionRaw {
+  return {
+    id,
+    data: "10/06/2026",
+    lancamento: "Aluguel",
+    categoria: "MORADIA",
+    tipo: "Despesa fixa",
+    valorOriginal: 2000,
+    fonte: "manual",
+    sourceId: "manual:aluguel",
+  };
+}
+
 function installmentRaw(
   id: string,
   current: number,
@@ -45,6 +71,64 @@ function plainRaw(id: string): TransactionRaw {
     sourceId: "src-1",
   };
 }
+
+describe("applyEdits with recurring income", () => {
+  it("applies valorOriginal override to recurring income", () => {
+    const raw = recurringIncomeRaw("manual:salario:2026-06");
+    const { effective } = applyEdits([raw], {
+      "manual:salario:2026-06": {
+        rawId: "manual:salario:2026-06",
+        editedAt: "2026-06-01T00:00:00.000Z",
+        valorOriginal: -4200,
+      },
+    });
+    expect(effective).toHaveLength(1);
+    expect(effective[0].valorOriginal).toBe(-4200);
+  });
+
+  it("marks recurring income as deleted", () => {
+    const raw = recurringIncomeRaw("manual:salario:2026-06");
+    const { effective, deletedIds } = applyEdits([raw], {
+      "manual:salario:2026-06": {
+        rawId: "manual:salario:2026-06",
+        editedAt: "2026-06-01T00:00:00.000Z",
+        deleted: true,
+      },
+    });
+    expect(effective).toHaveLength(0);
+    expect(deletedIds).toEqual(new Set(["manual:salario:2026-06"]));
+  });
+
+  it("ignores edits on recurring fixed expense", () => {
+    const raw = recurringExpenseRaw("manual:aluguel:2026-06");
+    const { effective } = applyEdits([raw], {
+      "manual:aluguel:2026-06": {
+        rawId: "manual:aluguel:2026-06",
+        editedAt: "2026-06-01T00:00:00.000Z",
+        valorOriginal: 1500,
+      },
+    });
+    expect(effective[0].valorOriginal).toBe(2000);
+  });
+
+  it("marks recurring income as edited when valor changes", () => {
+    const raw = recurringIncomeRaw("manual:salario:2026-06");
+    expect(
+      isEdited(
+        raw.id,
+        {
+          [raw.id]: {
+            rawId: raw.id,
+            editedAt: "2026-06-01T00:00:00.000Z",
+            valorOriginal: -4200,
+          },
+        },
+        {},
+        raw,
+      ),
+    ).toBe(true);
+  });
+});
 
 describe("applyEdits with installment group edits", () => {
   const raws = [

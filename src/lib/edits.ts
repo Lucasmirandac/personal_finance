@@ -18,6 +18,22 @@ export function isRecurringRaw(
   );
 }
 
+export function isRecurringIncomeRaw(
+  raw: Pick<TransactionRaw, "sourceId" | "tipo">,
+): boolean {
+  return isRecurringRaw(raw) && raw.tipo === "Receita";
+}
+
+export function allowsPerMonthRecurringEdit(
+  raw: Pick<TransactionRaw, "sourceId" | "tipo">,
+): boolean {
+  return isRecurringIncomeRaw(raw);
+}
+
+export function recurringIncomeRawId(ruleId: string, anoMes: string): string {
+  return `manual:${ruleId}:${anoMes}`;
+}
+
 export function hasGroupFieldEdits(
   edit: InstallmentGroupEdit | undefined,
 ): boolean {
@@ -103,7 +119,17 @@ export function mergeRawWithEdit(
   raw: TransactionRaw,
   edit: TransactionEdit | undefined,
 ): TransactionRaw {
-  if (!edit || isRecurringRaw(raw)) return raw;
+  if (!edit) return raw;
+  if (isRecurringRaw(raw) && !isRecurringIncomeRaw(raw)) return raw;
+  if (isRecurringIncomeRaw(raw)) {
+    return {
+      ...raw,
+      ...(edit.data !== undefined ? { data: edit.data } : {}),
+      ...(edit.valorOriginal !== undefined
+        ? { valorOriginal: edit.valorOriginal }
+        : {}),
+    };
+  }
   return {
     ...raw,
     ...(edit.data !== undefined ? { data: edit.data } : {}),
@@ -135,7 +161,7 @@ export function applyEdits(
   const effective: TransactionRaw[] = [];
 
   for (const raw of raws) {
-    if (isRecurringRaw(raw)) {
+    if (isRecurringRaw(raw) && !isRecurringIncomeRaw(raw)) {
       effective.push(raw);
       continue;
     }
@@ -169,7 +195,7 @@ export function getDeletedRaws(
 ): TransactionRaw[] {
   const deleted: TransactionRaw[] = [];
   for (const raw of raws) {
-    if (isRecurringRaw(raw)) continue;
+    if (isRecurringRaw(raw) && !isRecurringIncomeRaw(raw)) continue;
     const groupKey = raw.installment?.groupKey;
     const groupEdit = groupKey ? groupEdits[groupKey] : undefined;
     const edit = edits[raw.id];
@@ -284,12 +310,25 @@ export function pickGroupPatch(
   return out;
 }
 
+export function pickRecurringIncomePatch(
+  patch: TransactionEditPatch,
+): TransactionEditPatch {
+  const out: TransactionEditPatch = {};
+  if (patch.data !== undefined) out.data = patch.data;
+  if (patch.valorOriginal !== undefined) out.valorOriginal = patch.valorOriginal;
+  return out;
+}
+
 export function pickIndividualPatch(
   patch: TransactionEditPatch,
 ): TransactionEditPatch {
   const out: TransactionEditPatch = {};
   if (patch.data !== undefined) out.data = patch.data;
   return out;
+}
+
+export function recurringIncomeDeleteConfirmMessage(): string {
+  return "Ocultar esta receita só deste mês? A regra em Recorrentes não muda.";
 }
 
 export function installmentDeleteConfirmMessage(
