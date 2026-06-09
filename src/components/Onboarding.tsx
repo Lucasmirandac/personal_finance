@@ -150,7 +150,7 @@ function WelcomeStep({
         <Benefit
           icon={<UserX size={17} />}
           title="Sem cadastro"
-          description="Importe seus dados e comece a usar imediatamente"
+          description="Cadastre contas e comece — importação de CSV é opcional"
         />
         <Benefit
           icon={<LineChart size={17} />}
@@ -283,14 +283,14 @@ function ImportStep({
       <StepIntro
         icon={<LineChart size={24} />}
         iconClassName="bg-[color-mix(in_oklab,var(--cat-4)_14%,transparent)] text-cat-4"
-        title="Importe seus dados"
-        subtitle="Importe faturas de cartão do Inter ou Nubank"
+        title="Opcional: importe CSV"
+        subtitle="Nubank e Inter — ou lance gastos manualmente"
       />
 
       <p className="text-sm leading-relaxed text-muted">
-        O Saldo Real aceita arquivos CSV exportados do Inter e Nubank. Após
-        importar, suas transações serão automaticamente classificadas e você
-        poderá ver análises detalhadas.
+        Você também pode lançar gastos manualmente no Quick Add, sem importar
+        nada. Se tiver CSV do Nubank ou Inter, arraste abaixo para classificar
+        transações automaticamente.
       </p>
 
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface/70 p-4">

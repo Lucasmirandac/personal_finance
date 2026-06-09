@@ -74,8 +74,8 @@ export default function GuiaInterPage() {
             guia de importação Nubank
           </Link>
           {" · "}
-          <Link href="/guias/como-poupar" className="text-accent underline underline-offset-2">
-            como reservar para poupar
+          <Link href="/guias/usar-sem-importar" className="text-accent underline underline-offset-2">
+            usar sem importar CSV
           </Link>
         </p>
       </GuideLayout>

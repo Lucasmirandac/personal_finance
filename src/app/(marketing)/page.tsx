@@ -7,6 +7,12 @@ import {
 import { getSiteUrl } from "@/lib/marketing/site";
 import { getAllArticles } from "@/lib/marketing/articles";
 import {
+  BANKS_FAQ_ANSWER,
+  CSV_OPTIONAL_LINE,
+  JSON_LD_APP_DESCRIPTION,
+  PRODUCT_PROMISE,
+} from "@/lib/marketing/copy";
+import {
   ArrowRight,
   BookOpen,
   Landmark,
@@ -19,13 +25,12 @@ import {
 
 export const metadata: Metadata = {
   title: "Saldo Real — seu saldo real, só no seu navegador",
-  description:
-    "Controle financeiro local e privado. Importe faturas Nubank e Inter, projete saldo, calcule limite diário e orçamentos — sem cadastro e sem enviar dados.",
+  description: `${PRODUCT_PROMISE} Importação CSV opcional para Nubank e Inter.`,
   alternates: { canonical: "/" },
   openGraph: {
     title: "Saldo Real — finanças locais e privadas",
     description:
-      "Importe CSV, projete saldo e saiba quanto pode gastar por dia. Tudo no navegador.",
+      "Painel financeiro para qualquer banco. Projete saldo e limite diário — tudo no navegador.",
     url: "/",
   },
 };
@@ -45,7 +50,7 @@ const FAQ = [
   },
   {
     q: "Quais bancos são suportados?",
-    a: "Importação CSV do Nubank e Inter. Gastos manuais para qualquer conta.",
+    a: BANKS_FAQ_ANSWER,
   },
   {
     q: "Posso reservar parte da renda para poupar?",
@@ -65,8 +70,7 @@ export default function LandingPage() {
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" },
-        description:
-          "Painel financeiro pessoal local-first para importar faturas, projetar saldo e controlar orçamentos.",
+        description: JSON_LD_APP_DESCRIPTION,
         url: siteUrl,
       },
       {
@@ -97,8 +101,11 @@ export default function LandingPage() {
             <span className="block text-muted">Só no seu navegador.</span>
           </h1>
           <p className="mt-5 text-lg text-muted leading-relaxed max-w-xl">
-            Importe faturas do Nubank e Inter, projete os próximos meses e saiba
-            quanto pode gastar hoje — sem enviar um centavo de dado para a nuvem.
+            Cadastre contas, projete os próximos meses e saiba quanto pode gastar
+            hoje — sem enviar um centavo de dado para a nuvem.
+          </p>
+          <p className="mt-3 text-sm text-muted leading-relaxed max-w-xl">
+            {CSV_OPTIONAL_LINE}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <MarketingCtaLink
@@ -129,14 +136,62 @@ export default function LandingPage() {
           />
           <Pillar
             icon={<Upload size={22} />}
-            title="CSV Nubank e Inter"
-            text="Importe faturas e classifique gastos automaticamente."
+            title="Importação CSV (opcional)"
+            text="Nubank e Inter hoje. Sem CSV? Lance gastos manualmente em qualquer conta."
           />
           <Pillar
             icon={<LineChart size={22} />}
             title="Limite diário"
             text="Renda − fixos − fatura = quanto pode gastar por dia, sem planilha."
           />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Dois caminhos, mesmo painel
+        </h2>
+        <p className="mt-3 max-w-2xl text-muted leading-relaxed">
+          Escolha como alimentar o Saldo Real — o painel funciona igual nos dois
+          casos.
+        </p>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+          <div className="rounded-2xl border border-accent/30 bg-surface p-6 shadow-[var(--shadow-card)]">
+            <span className="text-accent">
+              <WalletCards size={22} aria-hidden />
+            </span>
+            <p className="mt-3 font-semibold">Qualquer banco</p>
+            <p className="mt-2 text-sm text-muted leading-relaxed">
+              Cadastre contas, renda no Divisor e lance gastos no Quick Add.
+              Ideal para Bradesco, Itaú, C6 e demais.
+            </p>
+            <MarketingCtaLink
+              href="/comecar"
+              pageId="landing"
+              cta="comecar"
+              variant="primary"
+              className="mt-5"
+            >
+              Começar manualmente
+            </MarketingCtaLink>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)]">
+            <span className="text-accent">
+              <Upload size={22} aria-hidden />
+            </span>
+            <p className="mt-3 font-semibold">Importação rápida</p>
+            <p className="mt-2 text-sm text-muted leading-relaxed">
+              CSV do Nubank ou Inter detectado automaticamente. Classifica
+              gastos e poupa digitação.
+            </p>
+            <Link
+              href="/guias/importar-nubank"
+              className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2"
+            >
+              Ver guias de importação
+              <ArrowRight size={14} aria-hidden />
+            </Link>
+          </div>
         </div>
       </section>
 

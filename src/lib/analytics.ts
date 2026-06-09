@@ -47,6 +47,7 @@ export type MarketingPageId =
   | "guide_nubank"
   | "guide_inter"
   | "guide_poupar"
+  | "guide_sem_importar"
   | "tool_limite_diario"
   | "tool_posso_comprar"
   | "tool_reserva_poupar";
@@ -149,6 +150,7 @@ const MARKETING_PAGES = new Set<MarketingPageId>([
   "guide_nubank",
   "guide_inter",
   "guide_poupar",
+  "guide_sem_importar",
   "tool_limite_diario",
   "tool_posso_comprar",
   "tool_reserva_poupar",

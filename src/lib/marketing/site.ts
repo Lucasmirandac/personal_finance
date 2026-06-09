@@ -15,6 +15,7 @@ export const MARKETING_ROUTES = [
   "/guias/importar-nubank",
   "/guias/importar-inter",
   "/guias/como-poupar",
+  "/guias/usar-sem-importar",
   "/ferramentas/limite-diario",
   "/ferramentas/posso-comprar",
   "/ferramentas/reserva-poupar",
@@ -27,6 +28,7 @@ export type MarketingPageId =
   | "guide_nubank"
   | "guide_inter"
   | "guide_poupar"
+  | "guide_sem_importar"
   | "tool_limite_diario"
   | "tool_posso_comprar"
   | "tool_reserva_poupar";

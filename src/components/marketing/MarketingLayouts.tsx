@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MarketingCtaLink } from "@/components/marketing/MarketingShell";
+import { TOOL_UPSELL_LINE } from "@/lib/marketing/copy";
 import type { MarketingPageId } from "@/lib/marketing/site";
 
 type Props = {
@@ -32,10 +33,7 @@ export function ToolLayout({
 
       <div className="mt-10 rounded-2xl border border-border bg-surface-2/50 p-5">
         <p className="text-sm font-medium">Quer isso automático com suas faturas?</p>
-        <p className="mt-1 text-sm text-muted">
-          Importe CSV do Nubank ou Inter, cadastre contas e veja limite diário,
-          projeção e orçamentos no painel.
-        </p>
+        <p className="mt-1 text-sm text-muted">{TOOL_UPSELL_LINE}</p>
         <MarketingCtaLink
           href="/comecar"
           pageId={pageId}

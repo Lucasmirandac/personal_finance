@@ -66,7 +66,7 @@ const SCOPE_COPY: Record<
     title: "Cartões",
     subtitle: "Cartões de crédito, fatura, datas de fechamento e teto mensal de gastos.",
     addLabel: "Novo cartão",
-    emptyList: "Nenhum cartão cadastrado. Vincule ao CSV importado (Inter ou Nubank).",
+    emptyList: "Nenhum cartão cadastrado. Cadastre manualmente ou vincule após importar CSV (Nubank/Inter).",
     formNew: "Novo cartão",
     formEdit: "Editar cartão",
     nameRequired: "Informe o nome do cartão.",

@@ -17,6 +17,7 @@ Configure após deploy em produção (`https://saldoreal.app` ou `NEXT_PUBLIC_SI
    - `/guias/importar-nubank`
    - `/guias/importar-inter`
    - `/guias/como-poupar`
+   - `/guias/usar-sem-importar`
    - `/artigos`
    - `/artigos/por-que-gastamos-ego-financas`
 
