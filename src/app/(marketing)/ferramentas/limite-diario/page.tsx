@@ -20,6 +20,16 @@ export default function LimiteDiarioPage() {
         description="Informe renda e custos fixos do mês. A calculadora mostra um limite diário seguro até o fim do mês — a mesma lógica do painel Saldo Real."
       >
         <LimiteDiarioCalculator />
+        <p className="mt-6 text-sm text-muted leading-relaxed">
+          Quer reservar parte da renda antes de calcular?{" "}
+          <Link
+            href="/ferramentas/reserva-poupar"
+            className="text-accent underline underline-offset-2"
+          >
+            Use o simulador de reserva
+          </Link>
+          .
+        </p>
       </ToolLayout>
     </MarketingShell>
   );

@@ -1,14 +1,21 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl, MARKETING_ROUTES } from "@/lib/marketing/site";
+import { getAllMarketingPaths, getSiteUrl } from "@/lib/marketing/site";
+
+function sitemapPriority(path: string): number {
+  if (path === "/") return 1;
+  if (path.startsWith("/ferramentas")) return 0.9;
+  if (path.startsWith("/artigos")) return 0.8;
+  return 0.85;
+}
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = getSiteUrl();
   const now = new Date();
 
-  return MARKETING_ROUTES.map((path) => ({
+  return getAllMarketingPaths().map((path) => ({
     url: `${base}${path === "/" ? "" : path}`,
     lastModified: now,
     changeFrequency: path === "/" ? "weekly" : "monthly",
-    priority: path === "/" ? 1 : path.startsWith("/ferramentas") ? 0.9 : 0.85,
+    priority: sitemapPriority(path),
   }));
 }

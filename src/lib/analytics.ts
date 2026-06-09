@@ -42,10 +42,14 @@ export type CountBucket = "1" | "2-5" | "6+";
 export type QuickAddKind = "expense" | "income" | "transfer";
 export type MarketingPageId =
   | "landing"
+  | "articles_index"
+  | "article_ego_gastos"
   | "guide_nubank"
   | "guide_inter"
+  | "guide_poupar"
   | "tool_limite_diario"
-  | "tool_posso_comprar";
+  | "tool_posso_comprar"
+  | "tool_reserva_poupar";
 export type MarketingCta = "comecar" | "ferramenta" | "guia";
 export type OnboardingStep =
   | "welcome"
@@ -76,7 +80,7 @@ export type AnalyticsEvent =
   | { name: "consent_revoked" }
   | { name: "marketing_page_viewed"; page: MarketingPageId }
   | { name: "marketing_cta_clicked"; page: MarketingPageId; cta: MarketingCta }
-  | { name: "marketing_tool_calculated"; tool: "limite_diario" | "posso_comprar" };
+  | { name: "marketing_tool_calculated"; tool: "limite_diario" | "posso_comprar" | "reserva_poupar" };
 
 const ALLOWED_EVENT_NAMES = new Set<AnalyticsEvent["name"]>([
   "onboarding_started",
@@ -140,15 +144,19 @@ const QUICK_ADD_KINDS = new Set<QuickAddKind>([
 
 const MARKETING_PAGES = new Set<MarketingPageId>([
   "landing",
+  "articles_index",
+  "article_ego_gastos",
   "guide_nubank",
   "guide_inter",
+  "guide_poupar",
   "tool_limite_diario",
   "tool_posso_comprar",
+  "tool_reserva_poupar",
 ]);
 
 const MARKETING_CTAS = new Set<MarketingCta>(["comecar", "ferramenta", "guia"]);
 
-const MARKETING_TOOLS = new Set(["limite_diario", "posso_comprar"] as const);
+const MARKETING_TOOLS = new Set(["limite_diario", "posso_comprar", "reserva_poupar"] as const);
 
 export function getMeasurementId(): string | undefined {
   const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
@@ -279,7 +287,7 @@ export function validateEventParams(
       const tool = params.tool;
       if (
         typeof tool !== "string" ||
-        !MARKETING_TOOLS.has(tool as "limite_diario" | "posso_comprar")
+        !MARKETING_TOOLS.has(tool as "limite_diario" | "posso_comprar" | "reserva_poupar")
       )
         return null;
       return { tool };

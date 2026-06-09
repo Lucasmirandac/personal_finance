@@ -5,8 +5,13 @@ import {
   MarketingShell,
 } from "@/components/marketing/MarketingShell";
 import { getSiteUrl } from "@/lib/marketing/site";
+import { getAllArticles } from "@/lib/marketing/articles";
 import {
+  ArrowRight,
+  BookOpen,
+  Landmark,
   LineChart,
+  PiggyBank,
   ShieldCheck,
   Upload,
   WalletCards,
@@ -42,10 +47,15 @@ const FAQ = [
     q: "Quais bancos são suportados?",
     a: "Importação CSV do Nubank e Inter. Gastos manuais para qualquer conta.",
   },
+  {
+    q: "Posso reservar parte da renda para poupar?",
+    a: "Sim. Defina um percentual ou valor fixo da renda disponível — a reserva reduz o limite diário e entra na projeção de patrimônio. Tudo fica no navegador.",
+  },
 ];
 
 export default function LandingPage() {
   const siteUrl = getSiteUrl();
+  const featuredArticle = getAllArticles()[0];
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -130,6 +140,68 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="border-y border-border/60 bg-surface/60">
+        <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+          <p className="text-caption font-semibold uppercase tracking-wider text-accent">
+            Poupar com clareza
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Reserve antes de gastar.
+          </h2>
+          <p className="mt-4 max-w-2xl text-muted leading-relaxed">
+            Defina quanto da sua renda disponível guardar todo mês. A reserva
+            sai do limite diário e alimenta a Projeção de Paz Futura — sem
+            planilha, sem nuvem.
+          </p>
+
+          <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FlowStep
+              n={1}
+              icon={<WalletCards size={18} />}
+              title="Renda disponível"
+              text="Renda mensal menos custos fixos — a base do orçamento."
+            />
+            <FlowStep
+              n={2}
+              icon={<PiggyBank size={18} />}
+              title="Reserva mensal"
+              text="Percentual (5–80%) ou valor fixo da renda disponível."
+            />
+            <FlowStep
+              n={3}
+              icon={<LineChart size={18} />}
+              title="Limite diário"
+              text="O que sobra divide pelos dias restantes do mês."
+            />
+            <FlowStep
+              n={4}
+              icon={<Landmark size={18} />}
+              title="Paz Futura"
+              text="Patrimônio projetado e meses de tranquilidade."
+            />
+          </ol>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <MarketingCtaLink
+              href="/ferramentas/reserva-poupar"
+              pageId="landing"
+              cta="ferramenta"
+              variant="primary"
+              className="px-5 py-2.5"
+            >
+              Simular reserva
+            </MarketingCtaLink>
+            <Link
+              href="/guias/como-poupar"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-surface-2"
+            >
+              Ler o guia
+              <ArrowRight size={14} aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <h2 className="text-2xl font-semibold tracking-tight">Como funciona</h2>
         <ol className="mt-8 grid gap-6 sm:grid-cols-3">
@@ -153,6 +225,53 @@ export default function LandingPage() {
           />
         </ol>
       </section>
+
+      {featuredArticle && (
+        <section className="border-y border-border/60 bg-surface/60">
+          <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+            <p className="text-caption font-semibold uppercase tracking-wider text-accent">
+              Aprenda
+            </p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+              Dinheiro é comportamento
+            </h2>
+            <p className="mt-4 max-w-2xl text-muted leading-relaxed">
+              Artigos sobre psicologia financeira, hábitos de gasto e decisões
+              com mais clareza — sem curso e sem promessa milagrosa.
+            </p>
+
+            <Link
+              href={`/artigos/${featuredArticle.slug}`}
+              className="group mt-8 block rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)] transition-colors hover:border-accent/40 sm:max-w-2xl"
+            >
+              <span className="inline-flex items-center gap-2 text-accent">
+                <BookOpen size={18} aria-hidden />
+                <span className="text-caption font-semibold uppercase tracking-wider">
+                  Artigo em destaque
+                </span>
+              </span>
+              <h3 className="mt-3 text-lg font-semibold tracking-tight group-hover:text-accent transition-colors">
+                {featuredArticle.title}
+              </h3>
+              <p className="mt-2 text-sm text-muted leading-relaxed">
+                {featuredArticle.description}
+              </p>
+              <p className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent">
+                Ler artigo
+                <ArrowRight size={14} aria-hidden />
+              </p>
+            </Link>
+
+            <Link
+              href="/artigos"
+              className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-foreground"
+            >
+              Ver todos os artigos
+              <ArrowRight size={14} aria-hidden />
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
         <h2 className="text-2xl font-semibold tracking-tight">Perguntas frequentes</h2>
@@ -205,6 +324,31 @@ function Step({
       </span>
       <p className="mt-4 flex items-center gap-2 font-semibold">
         {icon}
+        {title}
+      </p>
+      <p className="mt-2 text-sm text-muted leading-relaxed">{text}</p>
+    </li>
+  );
+}
+
+function FlowStep({
+  n,
+  icon,
+  title,
+  text,
+}: Readonly<{
+  n: number;
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}>) {
+  return (
+    <li className="relative rounded-2xl border border-border bg-surface p-5 list-none shadow-[var(--shadow-card)]">
+      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent/12 text-accent text-xs font-semibold">
+        {n}
+      </span>
+      <p className="mt-3 flex items-center gap-2 text-sm font-semibold">
+        <span className="text-accent">{icon}</span>
         {title}
       </p>
       <p className="mt-2 text-sm text-muted leading-relaxed">{text}</p>

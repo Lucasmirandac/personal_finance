@@ -8,7 +8,9 @@ import { MarketingPageTracker } from "@/components/marketing/MarketingPageTracke
 import type { MarketingPageId } from "@/lib/marketing/site";
 
 const NAV = [
+  { href: "/artigos", label: "Artigos" },
   { href: "/ferramentas/limite-diario", label: "Limite diário" },
+  { href: "/ferramentas/reserva-poupar", label: "Reserva poupar" },
   { href: "/ferramentas/posso-comprar", label: "Posso comprar?" },
   { href: "/guias/importar-nubank", label: "Guia Nubank" },
   { href: "/guias/importar-inter", label: "Guia Inter" },
@@ -71,7 +73,7 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
 
       <footer className="border-t border-border/60 bg-surface/50">
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="font-semibold">Saldo Real</p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
@@ -94,6 +96,31 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
                     Simulador posso comprar?
                   </Link>
                 </li>
+                <li>
+                  <Link href="/ferramentas/reserva-poupar" className="hover:text-accent">
+                    Simulador de reserva para poupar
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">
+                Artigos
+              </p>
+              <ul className="mt-3 space-y-2 text-sm">
+                <li>
+                  <Link href="/artigos" className="hover:text-accent">
+                    Todos os artigos
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/artigos/por-que-gastamos-ego-financas"
+                    className="hover:text-accent"
+                  >
+                    Por que gastamos dinheiro
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
@@ -109,6 +136,11 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
                 <li>
                   <Link href="/guias/importar-inter" className="hover:text-accent">
                     Importar CSV Inter
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/guias/como-poupar" className="hover:text-accent">
+                    Como reservar para poupar
                   </Link>
                 </li>
                 <li>

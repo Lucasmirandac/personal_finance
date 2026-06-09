@@ -13,8 +13,12 @@ Configure após deploy em produção (`https://saldoreal.app` ou `NEXT_PUBLIC_SI
    - `/comecar`
    - `/ferramentas/limite-diario`
    - `/ferramentas/posso-comprar`
+   - `/ferramentas/reserva-poupar`
    - `/guias/importar-nubank`
    - `/guias/importar-inter`
+   - `/guias/como-poupar`
+   - `/artigos`
+   - `/artigos/por-que-gastamos-ego-financas`
 
 ## Variável de ambiente
 
@@ -30,15 +34,15 @@ Com consentimento analytics ativo (`NEXT_PUBLIC_GA_MEASUREMENT_ID`), o app emite
 
 | Evento | Quando |
 |--------|--------|
-| `marketing_page_viewed` | Visita a landing, guia ou ferramenta (`page`: landing, guide_nubank, …) |
+| `marketing_page_viewed` | Visita a landing, guia, ferramenta ou artigo (`page`: landing, guide_*, article_*, articles_index, …) |
 | `marketing_cta_clicked` | Clique em CTA (`cta`: comecar, ferramenta, guia) |
-| `marketing_tool_calculated` | Submit das calculadoras (`tool`: limite_diario, posso_comprar) |
+| `marketing_tool_calculated` | Submit das calculadoras (`tool`: limite_diario, posso_comprar, reserva_poupar) |
 
 Parâmetros são validados em [`src/lib/analytics.ts`](../src/lib/analytics.ts) — sem valores financeiros.
 
 ## Funil sugerido no GA4
 
-1. `marketing_page_viewed` (page = landing | tool_* | guide_*)
+1. `marketing_page_viewed` (page = landing | tool_* | guide_* | article_* | articles_index)
 2. `marketing_cta_clicked` (cta = comecar)
 3. `onboarding_started`
 4. `onboarding_completed`

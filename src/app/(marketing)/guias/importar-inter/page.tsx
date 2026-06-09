@@ -73,6 +73,10 @@ export default function GuiaInterPage() {
           <Link href="/guias/importar-nubank" className="text-accent underline underline-offset-2">
             guia de importação Nubank
           </Link>
+          {" · "}
+          <Link href="/guias/como-poupar" className="text-accent underline underline-offset-2">
+            como reservar para poupar
+          </Link>
         </p>
       </GuideLayout>
     </MarketingShell>
