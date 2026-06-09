@@ -9,6 +9,7 @@ import {
   EMPTY_ACHIEVEMENTS,
   MonthCloseEntry,
   RecurringRule,
+  SavingsPreference,
   TransactionNormalized,
 } from "./types";
 
@@ -87,6 +88,7 @@ export type EvaluateAchievementsInput = {
   structuralCategories: string[];
   snapshot: AchievementsSnapshot;
   monthCloses?: MonthCloseEntry[];
+  poupanca?: SavingsPreference | null;
   today?: Date;
 };
 
@@ -184,6 +186,7 @@ export function computeClosedMonthSurplus(
   recurringRules: RecurringRule[],
   structuralCategories: string[],
   today: Date = new Date(),
+  poupanca?: SavingsPreference | null,
 ): ClosedMonthSurplus[] {
   const current = currentMonthIso(today);
   const closedMonths = new Set<string>();
@@ -198,6 +201,7 @@ export function computeClosedMonthSurplus(
       accounts,
       recurringRules,
       structuralCategories,
+      poupanca,
       today: endOfMonthDate(anoMes),
     });
     results.push({ anoMes, sobraDoMes: allowance.sobraDoMes });
@@ -270,6 +274,7 @@ export function evaluateAchievements(
     input.recurringRules,
     input.structuralCategories,
     today,
+    input.poupanca,
   );
   const positiveClosed = closedSurplus.filter((m) => m.sobraDoMes > 0);
   const sobraTotal = positiveClosed.reduce((s, m) => s + m.sobraDoMes, 0);

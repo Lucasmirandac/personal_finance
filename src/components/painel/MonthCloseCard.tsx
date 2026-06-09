@@ -94,6 +94,7 @@ export function MonthCloseCard() {
     budgets,
     monthCloses,
     closeMonth,
+    settings,
   } = useAppStore();
   const [busy, setBusy] = useState(false);
 
@@ -111,6 +112,7 @@ export function MonthCloseCard() {
       accounts,
       structuralCategories,
       budgets,
+      poupanca: settings.poupanca,
     });
   }, [
     pendingAnoMes,
@@ -119,6 +121,7 @@ export function MonthCloseCard() {
     accounts,
     structuralCategories,
     budgets,
+    settings.poupanca,
   ]);
 
   if (!pendingAnoMes || !summary) return null;

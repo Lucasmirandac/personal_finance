@@ -137,44 +137,44 @@ export function SaldoPageContent() {
   return (
     <div className="space-y-5 lg:space-y-6">
       <MonthCloseCard />
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <TodayHero
-          summary={summary}
-          snapshot30={snapshot30}
-          nextBill={nextBill}
-          outlookTone={outlookTone}
-          todayBalance={todayBalance}
-          anchorDate={anchor.data}
-          anchorValue={anchor.valor}
-          onAdjustBalance={() => setAdjustOpen(true)}
-        />
-
-        <div className="lg:col-span-4">
-          <DailyAllowancePanel />
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <ActionSummary
-          alerts={alerts}
-          snapshot7={snapshot7}
-          upcomingIncome={upcomingIncome}
-          upcomingOutcome={upcomingOutcome}
-          summary={summary}
-        />
-
-        <div className="space-y-4 lg:col-span-5">
-          <TodayTransactionsPanel />
-          <AchievementsCard />
-          <AccountsSummary
-            anchor={anchor}
-            activeAccounts={activeAccounts}
-            cardAccountsCount={cardAccounts.length}
-            totalAccounts={totalAccounts}
-            mixedReferenceDates={mixedReferenceDates}
-            onManage={() => setConfigOpen(true)}
+      <section className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start">
+        <div className="contents lg:flex lg:flex-col lg:gap-4 lg:col-span-8">
+          <TodayHero
+            className="order-1"
+            summary={summary}
+            snapshot30={snapshot30}
+            nextBill={nextBill}
+            outlookTone={outlookTone}
+            todayBalance={todayBalance}
+            anchorDate={anchor.data}
+            anchorValue={anchor.valor}
+            onAdjustBalance={() => setAdjustOpen(true)}
+          />
+          <ActionSummary
+            className="order-3 lg:order-none"
+            alerts={alerts}
+            snapshot7={snapshot7}
+            upcomingIncome={upcomingIncome}
+            upcomingOutcome={upcomingOutcome}
+            summary={summary}
           />
         </div>
+
+        <aside className="contents lg:flex lg:flex-col lg:gap-4 lg:col-span-4">
+          <DailyAllowancePanel className="order-2 lg:order-none" />
+          <div className="order-4 flex flex-col gap-4 lg:order-none">
+            <TodayTransactionsPanel />
+            <AchievementsCard />
+            <AccountsSummary
+              anchor={anchor}
+              activeAccounts={activeAccounts}
+              cardAccountsCount={cardAccounts.length}
+              totalAccounts={totalAccounts}
+              mixedReferenceDates={mixedReferenceDates}
+              onManage={() => setConfigOpen(true)}
+            />
+          </div>
+        </aside>
       </section>
 
       <AdjustBalanceModal open={adjustOpen} onClose={() => setAdjustOpen(false)} />
@@ -214,6 +214,7 @@ function SetupRequired() {
 }
 
 function TodayHero({
+  className: layoutClassName,
   summary,
   snapshot30,
   nextBill,
@@ -223,6 +224,7 @@ function TodayHero({
   anchorValue,
   onAdjustBalance,
 }: Readonly<{
+  className?: string
   summary: ProjectionSummary | null
   snapshot30: ProjectionSnapshot
   nextBill: CashEvent | null
@@ -235,7 +237,7 @@ function TodayHero({
   const includesActivitySinceAnchor = Math.abs(todayBalance - anchorValue) >= 0.01
 
   return (
-    <Panel className="relative overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)] lg:col-span-8">
+    <Panel className={clsx("relative overflow-hidden rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)]", layoutClassName)}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--accent)_18%,transparent),transparent_24rem)]" />
       <div className="relative flex flex-col gap-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -320,12 +322,14 @@ function TodayHero({
 }
 
 function ActionSummary({
+  className,
   alerts,
   snapshot7,
   upcomingIncome,
   upcomingOutcome,
   summary,
 }: Readonly<{
+  className?: string
   alerts: PainelAlert[]
   snapshot7: ProjectionSnapshot
   upcomingIncome: number
@@ -333,7 +337,7 @@ function ActionSummary({
   summary: ProjectionSummary | null
 }>) {
   return (
-    <div className="space-y-4 lg:col-span-7">
+    <div className={clsx("space-y-4", className)}>
       <div>
         <div className="mb-2 flex items-end justify-between gap-3">
           <div>

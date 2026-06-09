@@ -48,14 +48,21 @@ export function computeWealthBaseline(accounts: Account[]): { patrimonioInicial:
 export function projectWealth(input: {
   patrimonioInicial: number;
   rendaDisponivel: number;
-  metaPercent: number;
+  metaPercent?: number;
+  aporteMensal?: number;
   custoFixoMensal: number;
   today?: Date;
   mesesHorizonte?: number;
 }): WealthPoint[] {
   const today = input.today ?? new Date();
   const mesesHorizonte = input.mesesHorizonte ?? WEALTH_HORIZON_DEFAULT;
-  const aporteMensal = round2((input.rendaDisponivel * input.metaPercent) / 100);
+  const aporteMensal =
+    input.aporteMensal != null
+      ? round2(input.aporteMensal)
+      : round2(
+          (input.rendaDisponivel * (input.metaPercent ?? WEALTH_META_DEFAULT)) /
+            100,
+        );
   const startMonth = currentMonthIso(today);
   const points: WealthPoint[] = [];
 

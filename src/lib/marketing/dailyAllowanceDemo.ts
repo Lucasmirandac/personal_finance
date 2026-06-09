@@ -86,6 +86,7 @@ export function computeDailyAllowanceFromManual(
     rendaDisponivel,
     gastoVariavelMes,
     faturaAbertaCartao,
+    aporteMensal: 0,
     sobraDoMes: sobraBruta,
     diasRestantesMes,
     diasDoMes,

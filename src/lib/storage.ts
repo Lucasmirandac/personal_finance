@@ -32,6 +32,7 @@ import {
   InstallmentGroupEditsState,
   EstablishmentAlias,
 } from "./types";
+import { mergeSavingsPreference } from "./savings";
 
 const KEY_DATASET = "pf:dataset:v2";
 const KEY_DATASET_LEGACY = "pf:dataset:v1";
@@ -541,12 +542,14 @@ function mergeSettings(v: unknown): Settings {
       : undefined;
   const showAchievements =
     typeof o.showAchievements === "boolean" ? o.showAchievements : true;
+  const poupanca = mergeSavingsPreference(o.poupanca);
   return {
     cards,
     balanceAnchor,
     projectionHorizonDays: horizon,
     ...(saldoView ? { saldoView } : {}),
     showAchievements,
+    poupanca,
   };
 }
 

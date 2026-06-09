@@ -6,6 +6,7 @@ import {
   MonthCloseEntry,
   MonthCloseTopCategory,
   RecurringRule,
+  SavingsPreference,
   TransactionNormalized,
 } from "./types";
 
@@ -35,6 +36,7 @@ export type ComputeMonthCloseSummaryInput = {
   accounts: Account[];
   structuralCategories: string[];
   budgets: CategoryBudget[];
+  poupanca?: SavingsPreference | null;
 };
 
 function endOfMonthDate(anoMes: string): Date {
@@ -81,6 +83,7 @@ export function computeMonthCloseSummary(
     recurringRules: input.recurringRules,
     accounts: input.accounts,
     structuralCategories: input.structuralCategories,
+    poupanca: input.poupanca,
     today: endOfMonthDate(input.anoMes),
   });
 

@@ -103,7 +103,10 @@ export const GLOSSARY = {
   patrimonio: "Patrimônio ou reserva informada como ponto de partida da projeção de longo prazo.",
   patrimonioProjetado:
     "Estimativa de patrimônio após 12 meses, somando aportes à meta de poupança.",
-  metaPoupanca: "Percentual da renda disponível que você pretende poupar todo mês.",
+  metaPoupanca:
+    "Percentual ou valor fixo da renda disponível que você pretende poupar todo mês.",
+  reservaMensal:
+    "Parte da renda disponível comprometida com poupança antes do gasto do dia a dia.",
   aporte: "Valor mensal destinado à poupança conforme a meta.",
   tranquilidade:
     "Quantos meses de custos fixos o patrimônio projetado cobriria — indicador de folga.",

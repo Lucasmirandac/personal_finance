@@ -163,6 +163,16 @@ const backupDataBaseSchema = z.object({
       .object({ data: z.string(), valor: z.number() })
       .nullable(),
     projectionHorizonDays: z.number(),
+    saldoView: z.enum(["overview", "calendar"]).optional(),
+    showAchievements: z.boolean().optional(),
+    poupanca: z
+      .object({
+        modo: z.enum(["percent", "fixed"]),
+        percentual: z.number().optional(),
+        valorMensal: z.number().optional(),
+      })
+      .nullable()
+      .optional(),
   }),
   edits: z.record(z.string(), z.record(z.string(), z.unknown())),
   accounts: z.array(z.record(z.string(), z.unknown())),

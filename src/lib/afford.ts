@@ -33,12 +33,12 @@ import {
   Settings,
   TransactionNormalized,
 } from "./types";
+import { resolveAporteMensal } from "./savings";
 import {
   computeWealthBaseline,
   projectWealth,
   rendaDisponivelFromLeverage,
   summarizeWealth,
-  WEALTH_META_DEFAULT,
 } from "./wealth";
 
 export type AffordDraft = {
@@ -300,6 +300,7 @@ function computePazFuturaImpact(
   recurringRules: RecurringRule[],
   normalized: TransactionNormalized[],
   structuralCategories: string[],
+  settings: Settings,
 ): AffordResult["pazFutura"] {
   const leverage = computeLeverageRatio({
     recurringRules,
@@ -311,11 +312,15 @@ function computePazFuturaImpact(
 
   const rendaDisponivel = rendaDisponivelFromLeverage(leverage);
   const { patrimonioInicial } = computeWealthBaseline(accounts);
+  const { aporteMensal } = resolveAporteMensal(
+    rendaDisponivel,
+    settings.poupanca,
+  );
 
   const pointsAntes = projectWealth({
     patrimonioInicial,
     rendaDisponivel,
-    metaPercent: WEALTH_META_DEFAULT,
+    aporteMensal,
     custoFixoMensal: leverage.custoFixoMensal,
   });
 
@@ -323,19 +328,19 @@ function computePazFuturaImpact(
   const pointsDepois = projectWealth({
     patrimonioInicial: round2(patrimonioInicial - valor),
     rendaDisponivel,
-    metaPercent: WEALTH_META_DEFAULT,
+    aporteMensal,
     custoFixoMensal: leverage.custoFixoMensal,
   });
 
   const summaryAntes = summarizeWealth(
     pointsAntes,
     patrimonioInicial,
-    round2((rendaDisponivel * WEALTH_META_DEFAULT) / 100),
+    aporteMensal,
   );
   const summaryDepois = summarizeWealth(
     pointsDepois,
     round2(patrimonioInicial - valor),
-    round2((rendaDisponivel * WEALTH_META_DEFAULT) / 100),
+    aporteMensal,
   );
 
   const mesesAntes = summaryAntes.headlinePoint.mesesDeTranquilidade ?? 0;
@@ -503,6 +508,7 @@ export function simulateAffordability(
     recurringRules,
     normalized,
     structuralCategories,
+    settings,
   );
 
   const { semaforo, motivos } = computeSemaforo({

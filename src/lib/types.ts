@@ -182,6 +182,16 @@ export type BalanceAnchor = {
 
 export type SaldoView = "overview" | "calendar";
 
+export type SavingsMode = "percent" | "fixed";
+
+export type SavingsPreference = {
+  modo: SavingsMode;
+  /** 5–80 when modo === "percent" */
+  percentual?: number;
+  /** > 0 when modo === "fixed" */
+  valorMensal?: number;
+};
+
 export type Settings = {
   cards: CardConfig[];
   balanceAnchor: BalanceAnchor | null;
@@ -189,6 +199,8 @@ export type Settings = {
   saldoView?: SaldoView;
   /** When false, achievement UI is hidden; unlocks still persist locally. */
   showAchievements?: boolean;
+  /** Monthly savings reservation; null = no reservation (legacy behavior). */
+  poupanca?: SavingsPreference | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -196,6 +208,7 @@ export const DEFAULT_SETTINGS: Settings = {
   balanceAnchor: null,
   projectionHorizonDays: 90,
   showAchievements: true,
+  poupanca: null,
 };
 
 export type AchievementId =

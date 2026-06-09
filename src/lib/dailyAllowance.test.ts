@@ -228,4 +228,47 @@ describe("computeDailyAllowance", () => {
     expect(result.faturaAbertaPct).toBe(112.5);
     expect(result.status).toBe("alerta");
   });
+
+  it("subtracts percent savings reservation from sobra and diarioRestante", () => {
+    const without = computeDailyAllowance({
+      normalized: [tx("2026-06-10", 500)],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [],
+      structuralCategories: [],
+      today,
+    });
+    const withSavings = computeDailyAllowance({
+      normalized: [tx("2026-06-10", 500)],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [],
+      structuralCategories: [],
+      poupanca: { modo: "percent", percentual: 20 },
+      today,
+    });
+
+    expect(withSavings.aporteMensal).toBe(1_600);
+    expect(withSavings.sobraDoMes).toBe(without.sobraDoMes - 1_600);
+    expect(withSavings.diarioRestante).toBeLessThan(without.diarioRestante);
+  });
+
+  it("subtracts fixed savings reservation from sobra and diarioRestante", () => {
+    const without = computeDailyAllowance({
+      normalized: [tx("2026-06-10", 500)],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [],
+      structuralCategories: [],
+      today,
+    });
+    const withSavings = computeDailyAllowance({
+      normalized: [tx("2026-06-10", 500)],
+      recurringRules: [salaryRule, rentRule],
+      accounts: [],
+      structuralCategories: [],
+      poupanca: { modo: "fixed", valorMensal: 500 },
+      today,
+    });
+
+    expect(withSavings.aporteMensal).toBe(500);
+    expect(withSavings.sobraDoMes).toBe(without.sobraDoMes - 500);
+  });
 });

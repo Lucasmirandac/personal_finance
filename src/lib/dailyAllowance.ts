@@ -6,11 +6,13 @@ import {
   buildManualCashEvents,
   CashEvent,
 } from "./projection";
+import { resolveAporteMensal } from "./savings";
 import { rendaDisponivelFromLeverage } from "./wealth";
 import {
   Account,
   CardConfig,
   RecurringRule,
+  SavingsPreference,
   TransactionNormalized,
 } from "./types";
 
@@ -22,6 +24,7 @@ export type DailyAllowanceResult = {
   rendaDisponivel: number;
   gastoVariavelMes: number;
   faturaAbertaCartao: number;
+  aporteMensal: number;
   sobraDoMes: number;
   diasRestantesMes: number;
   diasDoMes: number;
@@ -41,6 +44,7 @@ export type ComputeDailyAllowanceInput = {
   recurringRules: RecurringRule[];
   accounts: Account[];
   structuralCategories: string[];
+  poupanca?: SavingsPreference | null;
   today?: Date;
 };
 
@@ -220,11 +224,15 @@ export function computeDailyAllowance(
   const sobraBruta = round2(
     rendaDisponivel - gastoVariavelMes - faturaAbertaCartao,
   );
-  const sobraDoMes = sobraBruta;
+  const { aporteMensal } = resolveAporteMensal(
+    rendaDisponivel,
+    input.poupanca,
+  );
+  const sobraDoMes = round2(sobraBruta - aporteMensal);
 
   const diarioRestante =
     rendaDisponivel > 0
-      ? Math.max(0, round2(sobraBruta / diasRestantesMes))
+      ? Math.max(0, round2(sobraDoMes / diasRestantesMes))
       : 0;
   const diarioBaseline =
     rendaDisponivel > 0 ? round2(rendaDisponivel / diasDoMes) : 0;
@@ -253,6 +261,7 @@ export function computeDailyAllowance(
     rendaDisponivel,
     gastoVariavelMes,
     faturaAbertaCartao,
+    aporteMensal,
     sobraDoMes,
     diasRestantesMes,
     diasDoMes,

@@ -459,6 +459,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       structuralCategories,
       snapshot: prev,
       monthCloses,
+      poupanca: settings.poupanca,
     });
     const prevIds = new Set(prev.unlocked.map((a) => a.id));
     const nextIds = new Set(result.snapshot.unlocked.map((a) => a.id));
@@ -489,6 +490,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     structuralCategories,
     monthCloses,
     settings.showAchievements,
+    settings.poupanca,
   ]);
 
   const closeMonth = useCallback(async (entry: MonthCloseEntry) => {
