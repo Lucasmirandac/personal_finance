@@ -50,7 +50,9 @@ export const GLOSSARY = {
 
   // Extrato / faturas / transações
   extrato:
-    "Movimentos de conta corrente, carteira e poupança. Compras no cartão aparecem em Faturas.",
+    "Movimentos de conta corrente, carteira e poupança. Pagamentos de fatura projetados aparecem no dia de vencimento; compras detalhadas em Faturas.",
+  faturasExtrato:
+    "Pagamento agregado do cartão na data de vencimento — compras detalhadas em Faturas.",
   faturas:
     "Compras agrupadas por cartão e ciclo de fatura (fechamento e pagamento).",
   faturaEmFoco: "Total das compras no ciclo de fatura selecionado.",

@@ -223,6 +223,32 @@ export function buildManualCashEvents(
   return events;
 }
 
+function faturaEventKey(event: CashEvent): string {
+  return `${event.date}|${event.description}|${event.amount}`;
+}
+
+export function faturaCashEventsForMonth(
+  monthYyyyMm: string,
+  normalized: TransactionNormalized[],
+  accounts: Account[],
+): CashEvent[] {
+  const cards = accountsToCardConfigs(accounts);
+  const imported = buildFaturaEvents(normalized, cards);
+  const manual = buildManualCashEvents(normalized, accounts).filter(
+    (e) => e.type === "fatura",
+  );
+  const seen = new Set<string>();
+  const events: CashEvent[] = [];
+  for (const event of [...imported, ...manual]) {
+    if (event.date.slice(0, 7) !== monthYyyyMm) continue;
+    const key = faturaEventKey(event);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    events.push(event);
+  }
+  return events.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
 export function buildRecurringEvents(
   rules: RecurringRule[],
   windowFrom: string,

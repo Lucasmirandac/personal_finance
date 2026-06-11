@@ -4,6 +4,7 @@ import {
   buildFaturaEvents,
   buildRecurringEvents,
   cycleFor,
+  faturaCashEventsForMonth,
   projectDailyBalance,
 } from "./projection";
 import { MANUAL_SOURCE_ID } from "./manualTransactions";
@@ -12,6 +13,19 @@ import { DEFAULT_SETTINGS } from "./types";
 
 const interCard: CardConfig = {
   fonte: "inter",
+  diaFechamento: 30,
+  diaPagamento: 7,
+};
+
+const interCardAccount: Account = {
+  id: "card-inter",
+  nome: "Inter",
+  kind: "cartao",
+  saldoInicial: 0,
+  dataReferencia: "2026-01-01",
+  ativa: true,
+  criadaEm: "2026-01-01T00:00:00.000Z",
+  fonteCsv: "inter",
   diaFechamento: 30,
   diaPagamento: 7,
 };
@@ -148,6 +162,42 @@ describe("buildFaturaEvents", () => {
       date: "2026-08-07",
       amount: -245.71,
     });
+  });
+});
+
+describe("faturaCashEventsForMonth", () => {
+  const sampleTx = [
+    tx({
+      id: "vista",
+      dataISO: "2026-06-02",
+      data: "02/06/2026",
+      tipo: "Compra à vista",
+      valorAnalise: 100,
+      valorFluxo: 100,
+      valorOriginal: 100,
+    }),
+    tx({
+      id: "parcela",
+      dataISO: "2026-07-07",
+      data: "07/07/2026",
+      tipo: "Parcela 2/3",
+      valorAnalise: 50,
+      valorFluxo: 50,
+      valorOriginal: 50,
+    }),
+  ];
+
+  it("returns fatura events for the payment month only", () => {
+    const july = faturaCashEventsForMonth("2026-07", sampleTx, [interCardAccount]);
+    expect(july).toHaveLength(1);
+    expect(july[0]).toMatchObject({
+      date: "2026-07-07",
+      type: "fatura",
+      amount: -150,
+    });
+
+    const june = faturaCashEventsForMonth("2026-06", sampleTx, [interCardAccount]);
+    expect(june).toHaveLength(0);
   });
 });
 

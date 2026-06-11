@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { QuickAddModal } from "@/components/QuickAddModal"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
@@ -33,6 +34,7 @@ import {
   type PaymentFilter,
 } from "@/lib/paymentStatus"
 import { isForecastTransaction } from "@/lib/recurring"
+import { CashEvent, faturaCashEventsForMonth } from "@/lib/projection"
 import { useAppStore } from "@/lib/store"
 import {
   groupTransactionsByDay,
@@ -61,6 +63,7 @@ export function ExtratoPageContent() {
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all")
   const [editRow, setEditRow] = useState<TransactionNormalized | null>(null)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const today = todayIso()
 
   const cashAccounts = useMemo(
     () => accounts.filter((account) => account.ativa && account.kind !== "cartao"),
@@ -89,9 +92,28 @@ export function ExtratoPageContent() {
   )
 
   const groups = useMemo(() => groupTransactionsByDay(transactions), [transactions])
-  const totals = useMemo(
+
+  const faturaEvents = useMemo(
     () =>
-      transactions.reduce(
+      paymentFilter === "all"
+        ? faturaCashEventsForMonth(month, normalized, accounts)
+        : [],
+    [paymentFilter, month, normalized, accounts],
+  )
+
+  const faturaTotal = useMemo(
+    () => faturaEvents.reduce((sum, event) => sum + Math.abs(event.amount), 0),
+    [faturaEvents],
+  )
+
+  const mergedGroups = useMemo(
+    () => mergeExtratoDayGroups(groups, faturaEvents),
+    [groups, faturaEvents],
+  )
+
+  const totals = useMemo(
+    () => {
+      const base = transactions.reduce(
         (acc, tx) => {
           if (tx.tipoFluxo === "entrada") acc.income += tx.valorFluxo
           if (tx.tipoFluxo === "saida") acc.outcome += tx.valorFluxo
@@ -99,8 +121,14 @@ export function ExtratoPageContent() {
           return acc
         },
         { income: 0, outcome: 0, net: 0 },
-      ),
-    [transactions],
+      )
+      for (const event of faturaEvents) {
+        base.outcome += Math.abs(event.amount)
+        base.net += event.amount
+      }
+      return base
+    },
+    [transactions, faturaEvents],
   )
   const paymentSummary = useMemo(
     () => summarizePaymentMonth(monthTransactions, paymentStatus),
@@ -192,7 +220,18 @@ export function ExtratoPageContent() {
 
           <div className="grid grid-cols-2 gap-2 text-sm md:min-w-[24rem] md:grid-cols-4">
             <Summary label="Entradas" value={totals.income} tone="success" infoKey="entradasExtrato" />
-            <Summary label="Saídas" value={-totals.outcome} tone="danger" infoKey="saidasExtrato" />
+            <Summary
+              label="Saídas"
+              value={-totals.outcome}
+              tone="danger"
+              infoKey="saidasExtrato"
+              detail={
+                faturaTotal > 0
+                  ? `incl. ${formatBRL(faturaTotal)} em faturas`
+                  : undefined
+              }
+              detailInfoKey={faturaTotal > 0 ? "faturasExtrato" : undefined}
+            />
             <Summary
               label="Saldo"
               value={totals.net}
@@ -230,19 +269,28 @@ export function ExtratoPageContent() {
       <Panel className="overflow-hidden rounded-3xl shadow-[var(--shadow-card)]">
         <div className="border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold tracking-tight">
-            {formatMonthLabel(month)} · {formatInt(transactions.length)} lançamento
-            {transactions.length === 1 ? "" : "s"}
+            {formatMonthLabel(month)} · {formatInt(transactions.length + faturaEvents.length)} lançamento
+            {transactions.length + faturaEvents.length === 1 ? "" : "s"}
+            {faturaEvents.length > 0 && transactions.length > 0 && (
+              <span className="font-normal text-muted">
+                {" "}
+                · {formatInt(faturaEvents.length)} fatura{faturaEvents.length === 1 ? "" : "s"}
+              </span>
+            )}
           </h2>
         </div>
 
         <div className="divide-y divide-border">
-          {groups.map((group) => (
+          {mergedGroups.map((group) => (
             <section key={group.date}>
               <div className="flex items-center justify-between bg-surface-2/60 px-4 py-2">
                 <span className="text-xs font-medium text-muted">{formatDateBR(group.date)}</span>
                 <Num className="text-xs text-muted">{formatBRL(group.total)}</Num>
               </div>
               <div className="divide-y divide-border/70">
+                {group.faturas.map((event, index) => (
+                  <ExtratoFaturaRow key={`${event.date}-${event.description}-${index}`} event={event} today={today} />
+                ))}
                 {group.transactions.map((tx) => {
                   const account = resolveTransactionAccount(tx, accounts)
                   const recurring = isRecurringRaw(tx)
@@ -309,7 +357,7 @@ export function ExtratoPageContent() {
             </section>
           ))}
 
-          {groups.length === 0 && (
+          {mergedGroups.length === 0 && (
             <div className="px-4 py-10 text-center text-sm text-muted">
               {paymentFilter === "all"
                 ? beyondProjectionHorizon
@@ -354,12 +402,14 @@ function Summary({
   tone,
   infoKey,
   detail,
+  detailInfoKey,
 }: Readonly<{
   label: string
   value: number
   tone: "success" | "danger"
   infoKey?: GlossaryKey
   detail?: string
+  detailInfoKey?: GlossaryKey
 }>) {
   return (
     <div className="rounded-2xl bg-surface-2/70 p-3">
@@ -373,7 +423,84 @@ function Summary({
       <Num className={tone === "success" ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>
         {formatBRL(value)}
       </Num>
-      {detail && <p className="mt-0.5 text-[10px] text-muted">{detail}</p>}
+      {detail && (
+        <LabelWithInfo
+          labelClassName="mt-0.5 text-[10px] text-muted"
+          info={detailInfoKey ? g(detailInfoKey) : undefined}
+          ariaTopic={detail}
+        >
+          {detail}
+        </LabelWithInfo>
+      )}
+    </div>
+  )
+}
+
+type ExtratoDayGroup = {
+  date: string
+  transactions: TransactionNormalized[]
+  faturas: CashEvent[]
+  total: number
+}
+
+function mergeExtratoDayGroups(
+  txGroups: ReturnType<typeof groupTransactionsByDay>,
+  faturas: CashEvent[],
+): ExtratoDayGroup[] {
+  const byDate = new Map<string, ExtratoDayGroup>()
+  for (const group of txGroups) {
+    byDate.set(group.date, {
+      date: group.date,
+      transactions: group.transactions,
+      faturas: [],
+      total: group.total,
+    })
+  }
+  for (const event of faturas) {
+    const existing = byDate.get(event.date) ?? {
+      date: event.date,
+      transactions: [],
+      faturas: [],
+      total: 0,
+    }
+    existing.faturas.push(event)
+    existing.total += event.amount
+    byDate.set(event.date, existing)
+  }
+  return [...byDate.values()].sort((a, b) => (a.date < b.date ? 1 : -1))
+}
+
+function ExtratoFaturaRow({
+  event,
+  today,
+}: Readonly<{ event: CashEvent; today: string }>) {
+  const isForecast = event.date > today
+  return (
+    <div className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-center">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate text-sm font-medium">{event.description}</p>
+          <Badge className="text-[10px]" info={g("pagamentoDia")}>
+            fatura
+          </Badge>
+          {isForecast && (
+            <Badge className="text-[10px]" info={g("previsto")}>
+              previsto
+            </Badge>
+          )}
+        </div>
+        <p className="mt-0.5 text-xs text-muted">
+          Pagamento de cartão · detalhes em Faturas
+        </p>
+      </div>
+      <Num className="text-sm text-danger">{formatBRL(event.amount)}</Num>
+      <span className="hidden md:block" aria-hidden />
+      <Link
+        href="/faturas"
+        className="inline-flex items-center justify-end text-xs font-medium text-muted hover:text-foreground"
+      >
+        Ver fatura
+      </Link>
     </div>
   )
 }
