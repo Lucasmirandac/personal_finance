@@ -344,6 +344,13 @@ export function projectDailyBalance(
     input.normalized,
     input.accounts ?? [],
   );
+  const preAnchorManual = manualEvents.filter(
+    (e) => e.date < rollFrom && e.date <= windowTo,
+  );
+  const preAnchorAdjustment = round2(
+    preAnchorManual.reduce((sum, e) => sum + e.amount, 0),
+  );
+  const adjustedSaldoInicial = round2(anchor.valor + preAnchorAdjustment);
   const allEvents = [
     ...faturaEvents,
     ...recurringEvents,
@@ -359,7 +366,7 @@ export function projectDailyBalance(
   }
 
   const fullDays = iterateDays(rollFrom, windowTo);
-  let balance = anchor.valor;
+  let balance = adjustedSaldoInicial;
   const fullSeries: DailyBalancePoint[] = [];
 
   for (const date of fullDays) {
@@ -371,7 +378,7 @@ export function projectDailyBalance(
   }
 
   const series = fullSeries.filter((p) => p.date >= effectiveFrom);
-  let menorSaldo = series[0]?.balance ?? anchor.valor;
+  let menorSaldo = series[0]?.balance ?? adjustedSaldoInicial;
   let menorSaldoData: string | null = series[0]?.date ?? null;
   for (const p of series) {
     if (p.balance < menorSaldo) {
@@ -394,8 +401,9 @@ export function projectDailyBalance(
     : null;
 
   const summary: ProjectionSummary = {
-    saldoInicial: anchor.valor,
-    saldoFinal: series.length > 0 ? series[series.length - 1].balance : anchor.valor,
+    saldoInicial: adjustedSaldoInicial,
+    saldoFinal:
+      series.length > 0 ? series[series.length - 1].balance : adjustedSaldoInicial,
     menorSaldo,
     menorSaldoData,
     proximaFatura,

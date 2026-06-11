@@ -3,8 +3,11 @@ import {
   billPayDateForTransaction,
   buildFaturaEvents,
   cycleFor,
+  projectDailyBalance,
 } from "./projection";
-import type { CardConfig, TransactionNormalized } from "./types";
+import { MANUAL_SOURCE_ID } from "./manualTransactions";
+import type { Account, CardConfig, TransactionNormalized } from "./types";
+import { DEFAULT_SETTINGS } from "./types";
 
 const interCard: CardConfig = {
   fonte: "inter",
@@ -40,6 +43,7 @@ function tx(partial: Partial<TransactionNormalized>): TransactionNormalized {
     semana: partial.semana ?? "2026-W23",
     faixaValor: partial.faixaValor ?? "R$ 50-100",
     fimSemana: partial.fimSemana ?? false,
+    ...partial,
   };
 }
 
@@ -143,5 +147,52 @@ describe("buildFaturaEvents", () => {
       date: "2026-08-07",
       amount: -245.71,
     });
+  });
+});
+
+describe("projectDailyBalance", () => {
+  it("includes manual income dated before the account reference in the starting balance", () => {
+    const accountId = "acc-main";
+    const accounts: Account[] = [
+      {
+        id: accountId,
+        nome: "Conta Principal",
+        kind: "cc",
+        saldoInicial: 1000,
+        dataReferencia: "2026-06-01",
+        ativa: true,
+        criadaEm: "2026-06-01T00:00:00.000Z",
+        isDefault: true,
+      },
+    ];
+    const normalized: TransactionNormalized[] = [
+      tx({
+        id: "receita-passada",
+        fonte: "manual",
+        sourceId: MANUAL_SOURCE_ID,
+        accountId,
+        dataISO: "2026-05-15",
+        data: "15/05/2026",
+        lancamento: "Freela",
+        tipo: "Receita",
+        natureza: "Receita",
+        valorOriginal: -500,
+        valorAnalise: 0,
+        tipoFluxo: "entrada",
+        valorFluxo: 500,
+      }),
+    ];
+
+    const { series, summary } = projectDailyBalance({
+      normalized,
+      recurringRules: [],
+      settings: DEFAULT_SETTINGS,
+      accounts,
+      windowFrom: "2026-06-01",
+      windowTo: "2026-06-30",
+    });
+
+    expect(summary?.saldoInicial).toBe(1500);
+    expect(series[0]?.balance).toBe(1500);
   });
 });
