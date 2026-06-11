@@ -77,8 +77,10 @@ import {
   loadAchievements,
   saveAchievements,
   loadMonthCloses,
+  loadPaymentStatus,
   appendMonthClose,
   saveMonthCloses,
+  savePaymentStatus,
 } from "./storage";
 import { evaluateAchievements } from "./achievements";
 import { budgetCategoryKey, normalizeBudgetCategory } from "./budgets";
@@ -95,8 +97,11 @@ import {
   EMPTY_DATASET,
   EMPTY_INSTALLMENT_GROUP_EDITS,
   EMPTY_MONTH_CLOSES,
+  EMPTY_PAYMENT_STATUS,
   InstallmentGroupEditsState,
   MonthCloseEntry,
+  PaymentStatus,
+  PaymentStatusState,
   EstablishmentAlias,
   ManualTransaction,
   RecurringRule,
@@ -132,6 +137,7 @@ type Ctx = {
   manualTransactions: ManualTransaction[];
   edits: EditsState;
   installmentGroupEdits: InstallmentGroupEditsState;
+  paymentStatus: PaymentStatusState;
   deletedCount: number;
   normalized: TransactionNormalized[];
   deletedNormalized: TransactionNormalized[];
@@ -183,6 +189,7 @@ type Ctx = {
   revertTransaction: (rawId: string) => Promise<void>;
   deleteTransaction: (rawId: string) => Promise<void>;
   restoreTransaction: (rawId: string) => Promise<void>;
+  setPaymentStatus: (rawId: string, status: PaymentStatus | null) => Promise<void>;
   budgets: CategoryBudget[];
   addBudget: (budget: CategoryBudget) => Promise<void>;
   updateBudget: (budget: CategoryBudget) => Promise<void>;
@@ -248,6 +255,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [edits, setEdits] = useState<EditsState>(EMPTY_EDITS);
   const [installmentGroupEdits, setInstallmentGroupEdits] =
     useState<InstallmentGroupEditsState>(EMPTY_INSTALLMENT_GROUP_EDITS);
+  const [paymentStatus, setPaymentStatusState] =
+    useState<PaymentStatusState>(EMPTY_PAYMENT_STATUS);
   const [budgets, setBudgetsState] = useState<CategoryBudget[]>(EMPTY_BUDGETS);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [subscriptionDismissals, setSubscriptionDismissals] = useState<
@@ -272,7 +281,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, r, rec, s, e, groupEdits, manual, bud, lastBk, dismissals, aliases, structural, ach, closes] =
+      const [d, r, rec, s, e, groupEdits, manual, bud, lastBk, dismissals, aliases, structural, ach, closes, payStatus] =
         await Promise.all([
         loadDataset(),
         loadRules(),
@@ -288,6 +297,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         loadStructuralCategories(),
         loadAchievements(),
         loadMonthCloses(),
+        loadPaymentStatus(),
       ]);
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(d, s);
       const syncedSettings = syncSettingsFromAccounts(accs, s);
@@ -314,6 +324,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setStructuralCategoriesState(structural);
       setAchievementsState(ach);
       setMonthClosesState(closes);
+      setPaymentStatusState(payStatus);
       setLoaded(true);
     })();
     return () => {
@@ -354,6 +365,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     },
     [],
   );
+
+  const persistPaymentStatus = useCallback(async (next: PaymentStatusState) => {
+    await savePaymentStatus(next);
+    setPaymentStatusState(next);
+  }, []);
 
   const persistRecurring = useCallback(async (next: RecurringRule[]) => {
     const normalized = next.map(normalizeRecurringRule);
@@ -559,6 +575,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setAccounts([]);
     setManualTransactions([]);
     setEdits({ ...EMPTY_EDITS });
+    setInstallmentGroupEdits({ ...EMPTY_INSTALLMENT_GROUP_EDITS });
+    setPaymentStatusState({ ...EMPTY_PAYMENT_STATUS });
     setBudgetsState([]);
     setSubscriptionDismissals([]);
     setEstablishmentAliases([]);
@@ -662,6 +680,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         structuralCategories,
         achievements,
         monthCloses,
+        paymentStatus,
       };
       const resolved = resolveBackupApplication(current, backup.data, mode);
 
@@ -684,6 +703,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         saveStructuralCategories(resolved.structuralCategories),
         saveAchievements(resolved.achievements),
         saveMonthCloses(resolved.monthCloses),
+        savePaymentStatus(resolved.paymentStatus),
       ]);
 
       const { accounts: accs, dataset: ds } = await bootstrapAccounts(
@@ -710,6 +730,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setAchievementsState(resolved.achievements);
       achievementsRef.current = resolved.achievements;
       setMonthClosesState(resolved.monthCloses);
+      setPaymentStatusState(resolved.paymentStatus);
     },
     [
       accounts,
@@ -719,6 +740,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       structuralCategories,
       achievements,
       monthCloses,
+      paymentStatus,
       dataset,
       edits,
       installmentGroupEdits,
@@ -1185,6 +1207,27 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
+  const setPaymentStatus = useCallback(
+    async (rawId: string, status: PaymentStatus | null) => {
+      if (status === null) {
+        if (!paymentStatus[rawId]) return;
+        const next = { ...paymentStatus };
+        delete next[rawId];
+        await persistPaymentStatus(next);
+        return;
+      }
+      await persistPaymentStatus({
+        ...paymentStatus,
+        [rawId]: {
+          rawId,
+          status,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    },
+    [paymentStatus, persistPaymentStatus],
+  );
+
   const hasData =
     dataset.sources.length > 0 || manualTransactions.length > 0;
   const hasActiveRecurring = recurringRules.some((r) => r.ativo);
@@ -1203,6 +1246,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       manualTransactions,
       edits,
       installmentGroupEdits,
+      paymentStatus,
       deletedCount,
       normalized,
       deletedNormalized,
@@ -1230,6 +1274,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       revertTransaction,
       deleteTransaction,
       restoreTransaction,
+      setPaymentStatus,
       budgets,
       addBudget,
       updateBudget,
@@ -1266,6 +1311,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       manualTransactions,
       edits,
       installmentGroupEdits,
+      paymentStatus,
       deletedCount,
       normalized,
       deletedNormalized,
@@ -1293,6 +1339,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       revertTransaction,
       deleteTransaction,
       restoreTransaction,
+      setPaymentStatus,
       budgets,
       addBudget,
       updateBudget,

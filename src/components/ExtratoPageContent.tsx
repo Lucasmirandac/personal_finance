@@ -5,6 +5,10 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { QuickAddModal } from "@/components/QuickAddModal"
 import { TransactionEditModal } from "@/components/TransactionEditModal"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
+import {
+  PaymentStatusBadge,
+  PaymentStatusToggle,
+} from "@/components/transaction/PaymentStatusControls"
 import { Badge } from "@/components/ui/Badge"
 import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
 import { g, type GlossaryKey } from "@/lib/glossary"
@@ -12,11 +16,18 @@ import { Button } from "@/components/ui/Button"
 import { Input, Select } from "@/components/ui/Input"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
+import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
 import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
 import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringIncomeDeleteConfirmMessage } from "@/lib/edits"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
+import {
+  derivePaymentState,
+  matchesPaymentFilter,
+  summarizePaymentMonth,
+  type PaymentFilter,
+} from "@/lib/paymentStatus"
 import { isForecastTransaction } from "@/lib/recurring"
 import { useAppStore } from "@/lib/store"
 import {
@@ -33,13 +44,16 @@ export function ExtratoPageContent() {
     accounts,
     edits,
     installmentGroupEdits,
+    paymentStatus,
     findOriginalRaw,
     editTransaction,
     revertTransaction,
     deleteTransaction,
+    setPaymentStatus,
   } = useAppStore()
   const [month, setMonth] = useState(todayIso().slice(0, 7))
   const [accountId, setAccountId] = useState("all")
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all")
   const [editRow, setEditRow] = useState<TransactionNormalized | null>(null)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
 
@@ -48,7 +62,7 @@ export function ExtratoPageContent() {
     [accounts],
   )
 
-  const transactions = useMemo(
+  const monthTransactions = useMemo(
     () =>
       normalized.filter((tx) => {
         if (!isCashTransaction(tx, accounts)) return false
@@ -57,6 +71,16 @@ export function ExtratoPageContent() {
         return resolveTransactionAccount(tx, accounts)?.id === accountId
       }),
     [normalized, accounts, month, accountId],
+  )
+
+  const transactions = useMemo(
+    () =>
+      monthTransactions.filter((tx) => {
+        if (paymentFilter === "all") return true
+        const state = derivePaymentState(tx, paymentStatus)
+        return matchesPaymentFilter(state, paymentFilter)
+      }),
+    [monthTransactions, paymentFilter, paymentStatus],
   )
 
   const groups = useMemo(() => groupTransactionsByDay(transactions), [transactions])
@@ -72,6 +96,10 @@ export function ExtratoPageContent() {
         { income: 0, outcome: 0, net: 0 },
       ),
     [transactions],
+  )
+  const paymentSummary = useMemo(
+    () => summarizePaymentMonth(monthTransactions, paymentStatus),
+    [monthTransactions, paymentStatus],
   )
 
   const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
@@ -93,6 +121,10 @@ export function ExtratoPageContent() {
     if (globalThis.confirm(message)) {
       deleteTransaction(tx.id)
     }
+  }
+
+  const handlePaymentToggle = (rawId: string, status: "pago" | "a_pagar") => {
+    void setPaymentStatus(rawId, status)
   }
 
   return (
@@ -146,7 +178,7 @@ export function ExtratoPageContent() {
             </Select>
           </label>
 
-          <div className="grid grid-cols-3 gap-2 text-sm md:min-w-[24rem]">
+          <div className="grid grid-cols-2 gap-2 text-sm md:min-w-[24rem] md:grid-cols-4">
             <Summary label="Entradas" value={totals.income} tone="success" infoKey="entradasExtrato" />
             <Summary label="Saídas" value={-totals.outcome} tone="danger" infoKey="saidasExtrato" />
             <Summary
@@ -155,7 +187,31 @@ export function ExtratoPageContent() {
               tone={totals.net >= 0 ? "success" : "danger"}
               infoKey="saldoExtrato"
             />
+            <Summary
+              label="A pagar"
+              value={-paymentSummary.pendingTotal}
+              tone="danger"
+              infoKey="aPagarExtrato"
+              detail={
+                paymentSummary.pendingCount > 0
+                  ? `${formatInt(paymentSummary.pendingCount)} conta${paymentSummary.pendingCount === 1 ? "" : "s"}`
+                  : undefined
+              }
+            />
           </div>
+        </div>
+
+        <div className="mt-4 border-t border-border/70 pt-4">
+          <SegmentedControl
+            size="sm"
+            value={paymentFilter}
+            onChange={setPaymentFilter}
+            options={[
+              { value: "all", label: "Tudo" },
+              { value: "pending", label: "A pagar" },
+              { value: "paid", label: "Pagas" },
+            ]}
+          />
         </div>
       </Panel>
 
@@ -179,6 +235,7 @@ export function ExtratoPageContent() {
                   const account = resolveTransactionAccount(tx, accounts)
                   const recurring = isRecurringRaw(tx)
                   const original = findOriginalRaw(tx.id)
+                  const paymentState = derivePaymentState(tx, paymentStatus)
                   const canEditTx =
                     !!original &&
                     (allowsPerMonthRecurringEdit(original) ||
@@ -191,7 +248,7 @@ export function ExtratoPageContent() {
                   return (
                     <div
                       key={tx.id}
-                      className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center"
+                      className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-center"
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -205,15 +262,29 @@ export function ExtratoPageContent() {
                           {isForecastTransaction(tx) && (
                             <Badge className="text-[10px]" info={g("previsto")}>previsto</Badge>
                           )}
+                          <PaymentStatusBadge state={paymentState} />
                         </div>
                         <p className="mt-0.5 text-xs text-muted">
                           {tx.categoria || "Sem categoria"} · {account?.nome ?? "Conta não definida"} ·{" "}
                           {account ? ACCOUNT_KIND_LABELS[account.kind] : "Origem manual"}
                         </p>
                       </div>
-                      <Num className={flow >= 0 ? "text-sm text-success" : "text-sm text-danger"}>
+                      <Num
+                        className={
+                          paymentState === "pago"
+                            ? "text-sm text-muted line-through decoration-border"
+                            : flow >= 0
+                              ? "text-sm text-success"
+                              : "text-sm text-danger"
+                        }
+                      >
                         {formatBRL(flow)}
                       </Num>
+                      <PaymentStatusToggle
+                        tx={tx}
+                        paymentStatus={paymentStatus}
+                        onToggle={handlePaymentToggle}
+                      />
                       <TransactionActions
                         tx={tx}
                         canEdit={canEditTx}
@@ -231,7 +302,11 @@ export function ExtratoPageContent() {
 
           {groups.length === 0 && (
             <div className="px-4 py-10 text-center text-sm text-muted">
-              Nenhum movimento de conta em {formatMonthLabel(month)}.
+              {paymentFilter === "all"
+                ? `Nenhum movimento de conta em ${formatMonthLabel(month)}.`
+                : paymentFilter === "pending"
+                  ? `Nenhuma conta a pagar em ${formatMonthLabel(month)}.`
+                  : `Nenhuma conta marcada como paga em ${formatMonthLabel(month)}.`}
             </div>
           )}
         </div>
@@ -269,11 +344,13 @@ function Summary({
   value,
   tone,
   infoKey,
+  detail,
 }: Readonly<{
   label: string
   value: number
   tone: "success" | "danger"
   infoKey?: GlossaryKey
+  detail?: string
 }>) {
   return (
     <div className="rounded-2xl bg-surface-2/70 p-3">
@@ -287,6 +364,7 @@ function Summary({
       <Num className={tone === "success" ? "text-sm font-semibold text-success" : "text-sm font-semibold text-danger"}>
         {formatBRL(value)}
       </Num>
+      {detail && <p className="mt-0.5 text-[10px] text-muted">{detail}</p>}
     </div>
   )
 }

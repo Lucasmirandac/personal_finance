@@ -31,6 +31,9 @@ import {
   InstallmentGroupEdit,
   InstallmentGroupEditsState,
   EstablishmentAlias,
+  PaymentStatusEntry,
+  PaymentStatusState,
+  EMPTY_PAYMENT_STATUS,
 } from "./types";
 import { mergeSavingsPreference } from "./savings";
 
@@ -50,6 +53,7 @@ const KEY_ALIASES = "pf:aliases:v1";
 const KEY_STRUCTURAL_CATEGORIES = "pf:structuralCategories:v1";
 const KEY_ACHIEVEMENTS = "pf:achievements:v1";
 const KEY_MONTH_CLOSES = "pf:monthClose:v1";
+const KEY_PAYMENT_STATUS = "pf:payment-status:v1";
 
 function isLegacyDataset(v: unknown): v is LegacyDataset {
   if (!v || typeof v !== "object") return false;
@@ -166,6 +170,7 @@ export async function clearAllData(opts?: {
   await clearStructuralCategories();
   await clearAchievements();
   await clearMonthCloses();
+  await clearPaymentStatus();
   if (!opts?.preserveLastBackup) {
     await clearLastBackupAt();
   }
@@ -837,4 +842,48 @@ export async function appendMonthClose(
 
 export async function clearMonthCloses(): Promise<void> {
   await del(KEY_MONTH_CLOSES);
+}
+
+function mergePaymentStatusEntry(v: unknown): PaymentStatusEntry | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Partial<PaymentStatusEntry>;
+  if (typeof o.rawId !== "string" || typeof o.updatedAt !== "string") {
+    return null;
+  }
+  if (o.status !== "pago" && o.status !== "a_pagar") return null;
+  return {
+    rawId: o.rawId,
+    status: o.status,
+    updatedAt: o.updatedAt,
+  };
+}
+
+function mergePaymentStatus(v: unknown): PaymentStatusState {
+  if (!v || typeof v !== "object") return { ...EMPTY_PAYMENT_STATUS };
+  const o = v as Record<string, unknown>;
+  const out: PaymentStatusState = {};
+  for (const [key, val] of Object.entries(o)) {
+    const entry = mergePaymentStatusEntry(val);
+    if (entry) out[key] = entry;
+  }
+  return out;
+}
+
+export async function loadPaymentStatus(): Promise<PaymentStatusState> {
+  try {
+    const v = await get(KEY_PAYMENT_STATUS);
+    return mergePaymentStatus(v);
+  } catch {
+    return { ...EMPTY_PAYMENT_STATUS };
+  }
+}
+
+export async function savePaymentStatus(
+  status: PaymentStatusState,
+): Promise<void> {
+  await set(KEY_PAYMENT_STATUS, status);
+}
+
+export async function clearPaymentStatus(): Promise<void> {
+  await del(KEY_PAYMENT_STATUS);
 }

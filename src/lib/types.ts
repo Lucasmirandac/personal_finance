@@ -96,6 +96,18 @@ export type InstallmentGroupEditsState = Record<string, InstallmentGroupEdit>;
 
 export const EMPTY_INSTALLMENT_GROUP_EDITS: InstallmentGroupEditsState = {};
 
+export type PaymentStatus = "pago" | "a_pagar";
+
+export type PaymentStatusEntry = {
+  rawId: string;
+  status: PaymentStatus;
+  updatedAt: string;
+};
+
+export type PaymentStatusState = Record<string, PaymentStatusEntry>;
+
+export const EMPTY_PAYMENT_STATUS: PaymentStatusState = {};
+
 export type TransactionNormalized = TransactionRaw & {
   estabelecimento: string;
   valorAnalise: number;

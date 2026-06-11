@@ -34,6 +34,7 @@ export function BackupPanel() {
     structuralCategories,
     achievements,
     monthCloses,
+    paymentStatus,
     lastBackupAt,
     exportBackup,
     importBackup,
@@ -64,6 +65,7 @@ export function BackupPanel() {
         structuralCategories,
         achievements,
         monthCloses,
+        paymentStatus,
       }),
     [
       dataset,
@@ -80,6 +82,7 @@ export function BackupPanel() {
       structuralCategories,
       achievements,
       monthCloses,
+      paymentStatus,
     ],
   )
 
@@ -101,6 +104,7 @@ export function BackupPanel() {
       structuralCategories,
       achievements,
       monthCloses,
+      paymentStatus,
     }),
     [
       dataset,
@@ -117,6 +121,7 @@ export function BackupPanel() {
       structuralCategories,
       achievements,
       monthCloses,
+      paymentStatus,
     ],
   )
 

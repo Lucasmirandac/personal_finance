@@ -8,6 +8,7 @@ export type BadgeVariant =
   | "fixa"
   | "receita"
   | "gasto"
+  | "danger"
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   variant?: BadgeVariant
@@ -22,6 +23,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   fixa: "text-warning border-[var(--border-warning-soft)]",
   receita: "text-success border-[var(--border-success-soft)]",
   gasto: "text-muted",
+  danger: "text-danger border-[var(--border-danger-soft)]",
 }
 
 export function Badge({

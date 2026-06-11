@@ -63,6 +63,16 @@ export const GLOSSARY = {
   entradasExtrato: "Total de entradas de caixa no mês e filtros selecionados.",
   saidasExtrato: "Total de saídas de caixa no mês (valor negativo na soma interna).",
   saldoExtrato: "Entradas menos saídas no período filtrado.",
+  aPagarExtrato:
+    "Total das contas planejadas (fixas ou manuais) ainda não marcadas como pagas neste mês.",
+  pago:
+    "Conta planejada marcada como paga por você. Não altera o saldo projetado nesta versão.",
+  aPagar:
+    "Conta planejada marcada como pendente — ainda não foi paga.",
+  vencida:
+    "Conta planejada com vencimento passado e ainda marcada como não paga.",
+  aConfirmar:
+    "Conta planejada que venceu neste mês e ainda não foi confirmada. Toque para marcar se já pagou.",
 
   // Badges e classificação
   previsto:

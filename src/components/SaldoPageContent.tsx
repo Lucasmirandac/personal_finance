@@ -16,7 +16,7 @@ import { Panel } from "@/components/ui/Panel"
 import { Button } from "@/components/ui/Button"
 import { Num } from "@/components/ui/Num"
 import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
-import { formatBRL, formatDateBR, formatLongDate, formatRelativeDays } from "@/lib/format"
+import { formatBRL, formatDateBR, formatLongDate, formatRelativeDays, formatInt } from "@/lib/format"
 import { g } from "@/lib/glossary"
 import { buildPainelAlerts, PainelAlert } from "@/lib/alerts"
 import { useAppStore } from "@/lib/store"
@@ -33,7 +33,10 @@ import {
   ProjectionSnapshot,
   ProjectionSummary,
 } from "@/lib/projection"
+import type { PaymentMonthSummary } from "@/lib/paymentStatus"
 import { todayIso } from "@/lib/dates"
+import { summarizePaymentMonth } from "@/lib/paymentStatus"
+import { isCashTransaction } from "@/lib/transactionViews"
 import { Account, BalanceAnchor, Fonte } from "@/lib/types"
 import {
   Plus,
@@ -52,6 +55,7 @@ export function SaldoPageContent() {
     subscriptionDismissals,
     lastBackupAt,
     edits,
+    paymentStatus,
   } = useAppStore()
 
   const [configOpen, setConfigOpen] = useState(false)
@@ -130,6 +134,18 @@ export function SaldoPageContent() {
     return point?.balance ?? summary?.saldoInicial ?? 0
   }, [series, summary, today])
 
+  const currentMonth = today.slice(0, 7)
+  const paymentSummary = useMemo(
+    () =>
+      summarizePaymentMonth(
+        normalized.filter(
+          (tx) => isCashTransaction(tx, accounts) && tx.anoMes === currentMonth,
+        ),
+        paymentStatus,
+      ),
+    [normalized, accounts, currentMonth, paymentStatus],
+  )
+
   if (!complete || !anchor) {
     return <SetupRequired />
   }
@@ -157,6 +173,7 @@ export function SaldoPageContent() {
             upcomingIncome={upcomingIncome}
             upcomingOutcome={upcomingOutcome}
             summary={summary}
+            paymentSummary={paymentSummary}
           />
         </div>
 
@@ -328,6 +345,7 @@ function ActionSummary({
   upcomingIncome,
   upcomingOutcome,
   summary,
+  paymentSummary,
 }: Readonly<{
   className?: string
   alerts: PainelAlert[]
@@ -335,6 +353,7 @@ function ActionSummary({
   upcomingIncome: number
   upcomingOutcome: number
   summary: ProjectionSummary | null
+  paymentSummary: PaymentMonthSummary
 }>) {
   return (
     <div className={clsx("space-y-4", className)}>
@@ -351,6 +370,17 @@ function ActionSummary({
           )}
         </div>
         <AlertsBar alerts={alerts} />
+        {paymentSummary.pendingCount > 0 && (
+          <Link
+            href="/extrato"
+            className="mt-3 flex items-center justify-between rounded-2xl border border-border/70 bg-surface-2/60 px-4 py-3 text-sm transition-colors hover:bg-surface-2"
+          >
+            <span className="text-muted">Contas a pagar do mês</span>
+            <span className="font-medium">
+              {formatInt(paymentSummary.pendingCount)} · {formatBRL(paymentSummary.pendingTotal)}
+            </span>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { mergeAchievementSnapshots } from "./achievements";
+import { mergePaymentStatus as mergePaymentStatusState } from "./paymentStatus";
 import {
   loadAccounts,
   loadAchievements,
@@ -15,6 +16,7 @@ import {
   loadRecurring,
   loadRules,
   loadSettings,
+  loadPaymentStatus,
   mergeAchievementsSnapshot,
   mergeMonthCloses,
   saveLastBackupAt,
@@ -31,17 +33,21 @@ import {
   EMPTY_DATASET,
   EMPTY_INSTALLMENT_GROUP_EDITS,
   EMPTY_MONTH_CLOSES,
+  EMPTY_PAYMENT_STATUS,
   EstablishmentAlias,
   InstallmentGroupEdit,
   InstallmentGroupEditsState,
   ManualTransaction,
   MonthCloseEntry,
+  PaymentStatus,
+  PaymentStatusState,
   RecurringRule,
   Rules,
   Settings,
 } from "./types";
 
-export const BACKUP_VERSION = 8 as const;
+export const BACKUP_VERSION = 9 as const;
+export const BACKUP_VERSION_V8 = 8 as const;
 export const BACKUP_VERSION_V7 = 7 as const;
 export const BACKUP_VERSION_V6 = 6 as const;
 export const BACKUP_VERSION_V5 = 5 as const;
@@ -68,6 +74,7 @@ export type BackupPayload = {
   structuralCategories: string[];
   achievements: AchievementsSnapshot;
   monthCloses: MonthCloseEntry[];
+  paymentStatus: PaymentStatusState;
 };
 
 /** @deprecated use BackupFile */
@@ -81,6 +88,7 @@ export type BackupV1 = {
 export type BackupFile = {
   version:
     | typeof BACKUP_VERSION
+    | typeof BACKUP_VERSION_V8
     | typeof BACKUP_VERSION_V7
     | typeof BACKUP_VERSION_V6
     | typeof BACKUP_VERSION_V5
@@ -263,8 +271,25 @@ const backupDataV8Schema = backupDataV7Schema.extend({
     .optional(),
 });
 
-const backupV8Schema = z.object({
+const paymentStatusEntrySchema = z.object({
+  rawId: z.string(),
+  status: z.enum(["pago", "a_pagar"]),
+  updatedAt: z.string(),
+});
+
+const backupDataV9Schema = backupDataV8Schema.extend({
+  paymentStatus: z.record(z.string(), paymentStatusEntrySchema).optional(),
+});
+
+const backupV9Schema = z.object({
   version: z.literal(BACKUP_VERSION),
+  app: z.literal(BACKUP_APP),
+  exportedAt: z.string(),
+  data: backupDataV9Schema,
+});
+
+const backupV8Schema = z.object({
+  version: z.literal(BACKUP_VERSION_V8),
   app: z.literal(BACKUP_APP),
   exportedAt: z.string(),
   data: backupDataV8Schema,
@@ -391,6 +416,10 @@ export function resolveBackupApplication(
     installmentGroupEdits: mergeInstallmentGroupEdits(
       current.installmentGroupEdits,
       backup.installmentGroupEdits,
+    ),
+    paymentStatus: mergePaymentStatusState(
+      current.paymentStatus,
+      backup.paymentStatus,
     ),
   };
 }
@@ -646,8 +675,30 @@ function mergeMonthCloseLists(
   return mergeMonthCloses([...a, ...b]);
 }
 
+function sanitizePaymentStatus(
+  raw: Record<string, unknown> | undefined,
+): PaymentStatusState {
+  if (!raw || typeof raw !== "object") return { ...EMPTY_PAYMENT_STATUS };
+  const out: PaymentStatusState = {};
+  for (const [key, val] of Object.entries(raw)) {
+    if (!val || typeof val !== "object") continue;
+    const e = val as Record<string, unknown>;
+    if (typeof e.rawId !== "string" || typeof e.updatedAt !== "string") continue;
+    if (e.status !== "pago" && e.status !== "a_pagar") continue;
+    out[key] = {
+      rawId: e.rawId,
+      status: e.status as PaymentStatus,
+      updatedAt: e.updatedAt,
+    };
+  }
+  return out;
+}
+
 function toBackupPayload(
-  parsed: z.infer<typeof backupDataV7Schema> | z.infer<typeof backupDataV8Schema>,
+  parsed:
+    | z.infer<typeof backupDataV7Schema>
+    | z.infer<typeof backupDataV8Schema>
+    | z.infer<typeof backupDataV9Schema>,
   version: number,
 ): BackupPayload {
   return {
@@ -657,7 +708,7 @@ function toBackupPayload(
     settings: parsed.settings as Settings,
     edits: sanitizeEdits(parsed.edits as Record<string, unknown>),
     installmentGroupEdits:
-      version >= BACKUP_VERSION
+      version >= BACKUP_VERSION_V8
         ? sanitizeInstallmentGroupEdits(
             (parsed as z.infer<typeof backupDataV8Schema>).installmentGroupEdits as
               | Record<string, unknown>
@@ -690,6 +741,14 @@ function toBackupPayload(
       version >= BACKUP_VERSION_V7
         ? mergeMonthCloses(parsed.monthCloses)
         : [...EMPTY_MONTH_CLOSES],
+    paymentStatus:
+      version >= BACKUP_VERSION
+        ? sanitizePaymentStatus(
+            (parsed as z.infer<typeof backupDataV9Schema>).paymentStatus as
+              | Record<string, unknown>
+              | undefined,
+          )
+        : { ...EMPTY_PAYMENT_STATUS },
   };
 }
 
@@ -709,6 +768,7 @@ export async function exportAllData(): Promise<BackupFile> {
     structuralCategories,
     achievements,
     monthCloses,
+    paymentStatus,
   ] = await Promise.all([
     loadDataset(),
     loadRules(),
@@ -724,6 +784,7 @@ export async function exportAllData(): Promise<BackupFile> {
     loadStructuralCategories(),
     loadAchievements(),
     loadMonthCloses(),
+    loadPaymentStatus(),
   ]);
 
   return {
@@ -745,6 +806,7 @@ export async function exportAllData(): Promise<BackupFile> {
       structuralCategories,
       achievements,
       monthCloses,
+      paymentStatus,
     },
   };
 }
@@ -771,13 +833,24 @@ export function parseBackup(text: string): ParseBackupResult {
     };
   }
 
+  const v9 = backupV9Schema.safeParse(json);
+  if (v9.success) {
+    return {
+      ok: true,
+      backup: {
+        ...v9.data,
+        data: toBackupPayload(v9.data.data, BACKUP_VERSION),
+      },
+    };
+  }
+
   const v8 = backupV8Schema.safeParse(json);
   if (v8.success) {
     return {
       ok: true,
       backup: {
         ...v8.data,
-        data: toBackupPayload(v8.data.data, BACKUP_VERSION),
+        data: toBackupPayload(v8.data.data, BACKUP_VERSION_V8),
       },
     };
   }
@@ -863,6 +936,9 @@ export function parseBackup(text: string): ParseBackupResult {
   }
 
   const first =
+    v9.error.issues[0] ??
+    v8.error.issues[0] ??
+    v7.error.issues[0] ??
     v6.error.issues[0] ??
     v5.error.issues[0] ??
     v4.error.issues[0] ??
@@ -942,6 +1018,7 @@ export function emptyBackupPayload(): BackupPayload {
     structuralCategories: [],
     achievements: { ...EMPTY_ACHIEVEMENTS },
     monthCloses: [...EMPTY_MONTH_CLOSES],
+    paymentStatus: { ...EMPTY_PAYMENT_STATUS },
   };
 }
 
