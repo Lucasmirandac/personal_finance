@@ -24,14 +24,37 @@ export function isRecurringIncomeRaw(
   return isRecurringRaw(raw) && raw.tipo === "Receita";
 }
 
+export function isRecurringExpenseRaw(
+  raw: Pick<TransactionRaw, "sourceId" | "tipo">,
+): boolean {
+  return isRecurringRaw(raw) && raw.tipo === "Despesa fixa";
+}
+
+export function isRecurringMonthlyRaw(
+  raw: Pick<TransactionRaw, "sourceId" | "tipo">,
+): boolean {
+  return isRecurringIncomeRaw(raw) || isRecurringExpenseRaw(raw);
+}
+
 export function allowsPerMonthRecurringEdit(
   raw: Pick<TransactionRaw, "sourceId" | "tipo">,
 ): boolean {
-  return isRecurringIncomeRaw(raw);
+  return isRecurringMonthlyRaw(raw);
 }
 
 export function recurringIncomeRawId(ruleId: string, anoMes: string): string {
   return `manual:${ruleId}:${anoMes}`;
+}
+
+export function recurringRuleIdFromRaw(
+  raw: Pick<TransactionRaw, "sourceId" | "id">,
+): string | null {
+  if (!isRecurringRaw(raw)) return null;
+  const fromSource = raw.sourceId.slice("manual:".length);
+  if (fromSource) return fromSource;
+  const parts = raw.id.split(":");
+  if (parts.length >= 3 && parts[0] === "manual") return parts[1];
+  return null;
 }
 
 export function hasGroupFieldEdits(
@@ -120,8 +143,7 @@ export function mergeRawWithEdit(
   edit: TransactionEdit | undefined,
 ): TransactionRaw {
   if (!edit) return raw;
-  if (isRecurringRaw(raw) && !isRecurringIncomeRaw(raw)) return raw;
-  if (isRecurringIncomeRaw(raw)) {
+  if (isRecurringMonthlyRaw(raw)) {
     return {
       ...raw,
       ...(edit.data !== undefined ? { data: edit.data } : {}),
@@ -161,10 +183,6 @@ export function applyEdits(
   const effective: TransactionRaw[] = [];
 
   for (const raw of raws) {
-    if (isRecurringRaw(raw) && !isRecurringIncomeRaw(raw)) {
-      effective.push(raw);
-      continue;
-    }
     const groupKey = raw.installment?.groupKey;
     const groupEdit = groupKey ? groupEdits[groupKey] : undefined;
     const edit = edits[raw.id];
@@ -195,7 +213,6 @@ export function getDeletedRaws(
 ): TransactionRaw[] {
   const deleted: TransactionRaw[] = [];
   for (const raw of raws) {
-    if (isRecurringRaw(raw) && !isRecurringIncomeRaw(raw)) continue;
     const groupKey = raw.installment?.groupKey;
     const groupEdit = groupKey ? groupEdits[groupKey] : undefined;
     const edit = edits[raw.id];
@@ -313,6 +330,12 @@ export function pickGroupPatch(
 export function pickRecurringIncomePatch(
   patch: TransactionEditPatch,
 ): TransactionEditPatch {
+  return pickRecurringMonthlyPatch(patch);
+}
+
+export function pickRecurringMonthlyPatch(
+  patch: TransactionEditPatch,
+): TransactionEditPatch {
   const out: TransactionEditPatch = {};
   if (patch.data !== undefined) out.data = patch.data;
   if (patch.valorOriginal !== undefined) out.valorOriginal = patch.valorOriginal;
@@ -329,6 +352,18 @@ export function pickIndividualPatch(
 
 export function recurringIncomeDeleteConfirmMessage(): string {
   return "Ocultar esta receita só deste mês? A regra em Recorrentes não muda.";
+}
+
+export function recurringExpenseDeleteConfirmMessage(): string {
+  return "Ocultar esta conta só deste mês? A regra em Recorrentes não muda.";
+}
+
+export function recurringMonthlyDeleteConfirmMessage(
+  raw: Pick<TransactionRaw, "sourceId" | "tipo">,
+): string {
+  return isRecurringIncomeRaw(raw)
+    ? recurringIncomeDeleteConfirmMessage()
+    : recurringExpenseDeleteConfirmMessage();
 }
 
 export function installmentDeleteConfirmMessage(

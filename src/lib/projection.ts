@@ -4,7 +4,7 @@ import {
   hasProjectionSetup,
 } from "./accounts";
 import { isInterInstallmentTipo, parseBrDate, parseIsoDate } from "./csv";
-import { isoFromParts, parseIso, todayIso } from "./dates";
+import { isoFromParts, parseIso, todayIso, addDaysIso } from "./dates";
 import { recurringIncomeRawId } from "./edits";
 import { isManualQuickRaw } from "./manualTransactions";
 import { monthsBetween } from "./recurring";
@@ -20,12 +20,18 @@ import {
 
 export type CashEventType = "fatura" | "fixa" | "receita" | "ancora";
 
+export type CashEventSource =
+  | { kind: "recurring"; ruleId: string; rawId: string }
+  | { kind: "fatura"; fonte: Fonte; payDate: string }
+  | { kind: "manual"; rawId: string };
+
 export type CashEvent = {
   date: string;
   type: CashEventType;
   fonte?: Fonte;
   description: string;
   amount: number;
+  source?: CashEventSource;
 };
 
 export type DailyBalancePoint = {
@@ -139,6 +145,7 @@ export function buildFaturaEvents(
       fonte,
       description: `Fatura ${fonteLabels[fonte]}`,
       amount: -round2(total),
+      source: { kind: "fatura", fonte, payDate },
     });
   }
   return events;
@@ -185,6 +192,7 @@ export function buildManualCashEvents(
         type: "receita",
         description: t.lancamento || "Receita",
         amount: round2(t.valorFluxo),
+        source: { kind: "manual", rawId: t.id },
       });
     } else if (t.tipoFluxo === "saida") {
       events.push({
@@ -192,6 +200,7 @@ export function buildManualCashEvents(
         type: "fixa",
         description: t.lancamento || "Saída",
         amount: -round2(t.valorFluxo),
+        source: { kind: "manual", rawId: t.id },
       });
     }
   }
@@ -203,6 +212,11 @@ export function buildManualCashEvents(
       type: "fatura",
       description: `Fatura ${group.account.nome}`,
       amount: -round2(group.total),
+      source: {
+        kind: "fatura",
+        fonte: group.account.fonteCsv ?? "inter",
+        payDate: group.date,
+      },
     });
   }
 
@@ -234,7 +248,7 @@ export function buildRecurringEvents(
 
       const isReceita = rule.kind === "receita";
       const rawId = recurringIncomeRawId(rule.id, anoMes);
-      const edit = isReceita ? edits[rawId] : undefined;
+      const edit = edits[rawId];
 
       if (edit?.deleted) continue;
 
@@ -246,8 +260,10 @@ export function buildRecurringEvents(
       if (dataISO < windowFrom || dataISO > windowTo) continue;
 
       let amount = isReceita ? Math.abs(rule.valor) : -Math.abs(rule.valor);
-      if (isReceita && edit?.valorOriginal !== undefined) {
-        amount = Math.abs(edit.valorOriginal);
+      if (edit?.valorOriginal !== undefined) {
+        amount = isReceita
+          ? Math.abs(edit.valorOriginal)
+          : -Math.abs(edit.valorOriginal);
       }
 
       events.push({
@@ -255,6 +271,7 @@ export function buildRecurringEvents(
         type: isReceita ? "receita" : "fixa",
         description: rule.descricao,
         amount,
+        source: { kind: "recurring", ruleId: rule.id, rawId },
       });
     }
   }
@@ -436,17 +453,6 @@ export function projectionSnapshot(
     delta,
     deltaPct,
   }
-}
-
-function addDaysIso(iso: string, days: number): string {
-  const [y, m, d] = parseIso(iso);
-  const t = Date.UTC(y, m - 1, d) + days * 86400000;
-  const dt = new Date(t);
-  return isoFromParts(
-    dt.getUTCFullYear(),
-    dt.getUTCMonth() + 1,
-    dt.getUTCDate(),
-  );
 }
 
 function round2(n: number): number {

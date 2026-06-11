@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { canEditTransaction } from "@/components/transaction/TransactionEditHost";
+import { allowsPerMonthRecurringEdit } from "./edits";
 import {
   endOfCurrentMonthIso,
   expandRecurringRules,
@@ -72,6 +74,59 @@ describe("expandRecurringRules", () => {
       today,
     );
     expect(raws).toHaveLength(0);
+  });
+
+  it("includes occurrences within explicit expansionEndIso", () => {
+    const today = new Date("2026-06-02T12:00:00.000Z");
+    const raws = expandRecurringRules([salaryRule()], today, "2026-09-15");
+    expect(raws.some((r) => r.id === "manual:salario:2026-07")).toBe(true);
+    expect(raws.some((r) => r.id === "manual:salario:2026-08")).toBe(true);
+    expect(raws.some((r) => r.id === "manual:salario:2026-10")).toBe(false);
+  });
+
+  it("includes occurrences when rule inicio is after today but within horizon", () => {
+    const today = new Date("2026-06-02T12:00:00.000Z");
+    const raws = expandRecurringRules(
+      [salaryRule({ inicio: "2026-08-01" })],
+      today,
+      "2026-09-15",
+    );
+    expect(raws.some((r) => r.id === "manual:salario:2026-08")).toBe(true);
+    expect(raws.some((r) => r.id === "manual:salario:2026-07")).toBe(false);
+  });
+
+  it("exposes expanded raws by id for monthly edit lookup (receita e despesa fixa)", () => {
+    const today = new Date("2026-06-02T12:00:00.000Z");
+    const incomeRaws = expandRecurringRules([salaryRule()], today);
+    const income = incomeRaws.find((r) => r.id === "manual:salario:2026-06");
+    expect(income).toBeDefined();
+    expect(income?.tipo).toBe("Receita");
+    expect(income?.sourceId).toBe("manual:salario");
+    expect(allowsPerMonthRecurringEdit(income!)).toBe(true);
+
+    const expenseRaws = expandRecurringRules(
+      [
+        {
+          id: "aluguel",
+          kind: "despesa_fixa",
+          descricao: "Aluguel",
+          categoria: "MORADIA",
+          valor: 2000,
+          diaMes: 10,
+          inicio: "2026-01-01",
+          fim: null,
+          ativo: true,
+          criadoEm: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      today,
+    );
+    const expense = expenseRaws.find((r) => r.id === "manual:aluguel:2026-06");
+    expect(expense).toBeDefined();
+    expect(expense?.tipo).toBe("Despesa fixa");
+    expect(allowsPerMonthRecurringEdit(expense!)).toBe(true);
+    expect(canEditTransaction(income)).toBe(true);
+    expect(canEditTransaction(expense)).toBe(true);
   });
 });
 

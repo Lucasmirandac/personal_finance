@@ -20,11 +20,12 @@ type Props = {
   series: DailyBalancePoint[]
   filter: EventFilter
   onFilterChange: (value: EventFilter) => void
+  onEventClick?: (event: CashEvent) => void
 }
 
 type Group = { id: string; label: string; events: CashEvent[] }
 
-export function UpcomingTimeline({ series, filter, onFilterChange }: Props) {
+export function UpcomingTimeline({ series, filter, onFilterChange, onEventClick }: Props) {
   const groups = useMemo(() => {
     const today = todayIso()
     const events: CashEvent[] = []
@@ -65,20 +66,37 @@ export function UpcomingTimeline({ series, filter, onFilterChange }: Props) {
               </Num>
             </div>
             <div className="divide-y divide-border/60">
-              {group.events.map((event, index) => (
+              {group.events.map((event, index) => {
+                const clickable = !!event.source && !!onEventClick
+                const row = (
+                  <>
+                    <MetricRow
+                      icon={<EventIcon type={event.type} />}
+                      tone={event.amount >= 0 ? "success" : "danger"}
+                      label={event.description}
+                      sublabel={`${formatRelativeDays(event.date)} · saldo ${formatBRL(balancesByDate.get(event.date))}`}
+                      value={formatBRL(event.amount)}
+                    />
+                    <div className="px-4 pb-2">
+                      <Badge variant={eventBadgeVariantFor(event.type)}>{event.type}</Badge>
+                    </div>
+                  </>
+                )
+                return (
                 <div key={`${group.id}-${event.date}-${event.description}-${index}`}>
-                  <MetricRow
-                    icon={<EventIcon type={event.type} />}
-                    tone={event.amount >= 0 ? "success" : "danger"}
-                    label={event.description}
-                    sublabel={`${formatRelativeDays(event.date)} · saldo ${formatBRL(balancesByDate.get(event.date))}`}
-                    value={formatBRL(event.amount)}
-                  />
-                  <div className="px-4 pb-2">
-                    <Badge variant={eventBadgeVariantFor(event.type)}>{event.type}</Badge>
-                  </div>
+                  {clickable ? (
+                    <button
+                      type="button"
+                      className="w-full text-left hover:bg-surface-2/60 transition-colors"
+                      onClick={() => onEventClick(event)}
+                    >
+                      {row}
+                    </button>
+                  ) : (
+                    row
+                  )}
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         )

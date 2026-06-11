@@ -99,7 +99,7 @@ describe("applyEdits with recurring income", () => {
     expect(deletedIds).toEqual(new Set(["manual:salario:2026-06"]));
   });
 
-  it("ignores edits on recurring fixed expense", () => {
+  it("applies edits on recurring fixed expense", () => {
     const raw = recurringExpenseRaw("manual:aluguel:2026-06");
     const { effective } = applyEdits([raw], {
       "manual:aluguel:2026-06": {
@@ -108,7 +108,7 @@ describe("applyEdits with recurring income", () => {
         valorOriginal: 1500,
       },
     });
-    expect(effective[0].valorOriginal).toBe(2000);
+    expect(effective[0].valorOriginal).toBe(1500);
   });
 
   it("marks recurring income as edited when valor changes", () => {

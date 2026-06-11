@@ -15,16 +15,19 @@ import { applyFilters } from "@/lib/aggregations";
 import { buildAutoCategorySuggestions } from "@/lib/autoCategorize";
 import { useFilters } from "@/lib/filtersContext";
 import { defaultAccount } from "@/lib/accounts";
-import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringIncomeDeleteConfirmMessage } from "@/lib/edits";
+import { isEdited, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringMonthlyDeleteConfirmMessage } from "@/lib/edits";
 import { isForecastTransaction } from "@/lib/recurring";
-import { isManualQuickRaw } from "@/lib/manualTransactions";
 import { Fonte, TransactionNormalized } from "@/lib/types";
 import { EmptyState } from "@/components/EmptyState";
 import { AutoCategorizeModal } from "@/components/AutoCategorizeModal";
 import { FiltersDrawer, FiltersButton } from "@/components/FiltersDrawer";
 import { NatureBadge } from "@/components/NatureBadge";
 import { QuickAddModal } from "@/components/QuickAddModal";
-import { TransactionEditModal } from "@/components/TransactionEditModal";
+import {
+  canEditTransaction,
+  resolveEditCurrent,
+  TransactionEditHost,
+} from "@/components/transaction/TransactionEditHost";
 import { Badge } from "@/components/ui/Badge";
 import { TableHeaderLabel } from "@/components/ui/TableHeaderLabel";
 import { g } from "@/lib/glossary";
@@ -85,6 +88,8 @@ export default function TransacoesPage() {
     revertTransaction,
     deleteTransaction,
     restoreTransaction,
+    paymentStatus,
+    setPaymentStatus,
   } = useAppStore();
 
   const { filters, setFilters, clearFilters } = useFilters();
@@ -237,13 +242,13 @@ export default function TransacoesPage() {
         cell: ({ row }) => {
           const tx = row.original;
           const original = findOriginalRaw(tx.id);
-          const recurringIncome = original && allowsPerMonthRecurringEdit(original);
-          const recurring = isRecurringRaw(tx);
-          if (recurring && !recurringIncome) {
+          const recurringMonthly = original && allowsPerMonthRecurringEdit(original);
+          const canEditTx = canEditTransaction(original);
+          if (!canEditTx && !tx._isDeleted) {
             return (
               <span
                 className="text-muted text-[10px]"
-                title="Editar regra em Recorrentes"
+                title="Edição não disponível"
               >
                 —
               </span>
@@ -264,7 +269,7 @@ export default function TransacoesPage() {
           }
           return (
             <span className="inline-flex items-center gap-0.5">
-              {!recurringIncome && (
+              {!recurringMonthly && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -313,7 +318,7 @@ export default function TransacoesPage() {
                 onClick={() => {
                   const message =
                     original && allowsPerMonthRecurringEdit(original)
-                      ? recurringIncomeDeleteConfirmMessage()
+                      ? recurringMonthlyDeleteConfirmMessage(original)
                       : installmentDeleteConfirmMessage(
                           original?.installment ?? tx.installment,
                           "Excluir esta transação da análise? Você pode restaurá-la depois.",
@@ -350,11 +355,12 @@ export default function TransacoesPage() {
     filters.dateTo,
   );
 
-  const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined;
-  const editCurrent =
-    editRow && editOriginal
-      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
-      : undefined;
+  const { original: editOriginal, current: editCurrent } = resolveEditCurrent(
+    editRow,
+    findOriginalRaw,
+    edits,
+    installmentGroupEdits,
+  );
 
   async function applyAutoCategorize(selectedRawIds: string[]) {
     for (const id of selectedRawIds) {
@@ -427,20 +433,18 @@ export default function TransacoesPage() {
         onClear={clearFilters}
       />
 
-      {editRow && editOriginal && editCurrent && (
-        <TransactionEditModal
-          open
-          original={editOriginal}
-          current={editCurrent}
-          mode={
-            allowsPerMonthRecurringEdit(editOriginal) ? "recurring_income" : "default"
-          }
-          canRevert={
-            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
-            !isManualQuickRaw(editOriginal)
-          }
-          onSave={(patch) => editTransaction(editRow.id, patch)}
-          onRevert={() => revertTransaction(editRow.id)}
+      {editRow && (
+        <TransactionEditHost
+          editRow={editRow}
+          editOriginal={editOriginal}
+          editCurrent={editCurrent}
+          edits={edits}
+          installmentGroupEdits={installmentGroupEdits}
+          paymentStatus={paymentStatus}
+          onSave={(id, patch) => editTransaction(id, patch)}
+          onRevert={revertTransaction}
+          onHideMonth={deleteTransaction}
+          onPaymentToggle={(id, status) => void setPaymentStatus(id, status)}
           onClose={() => setEditRow(null)}
         />
       )}

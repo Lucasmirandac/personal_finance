@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   billPayDateForTransaction,
   buildFaturaEvents,
+  buildRecurringEvents,
   cycleFor,
   projectDailyBalance,
 } from "./projection";
@@ -147,6 +148,74 @@ describe("buildFaturaEvents", () => {
       date: "2026-08-07",
       amount: -245.71,
     });
+  });
+});
+
+describe("buildRecurringEvents", () => {
+  it("applies monthly value and date edits to recurring fixed expense", () => {
+    const events = buildRecurringEvents(
+      [
+        {
+          id: "aluguel",
+          descricao: "Aluguel",
+          kind: "despesa_fixa",
+          categoria: "MORADIA",
+          valor: 2000,
+          diaMes: 5,
+          inicio: "2026-01-01",
+          fim: null,
+          ativo: true,
+          criadoEm: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      "2026-06-01",
+      "2026-06-30",
+      {
+        "manual:aluguel:2026-06": {
+          rawId: "manual:aluguel:2026-06",
+          editedAt: "2026-06-01T00:00:00.000Z",
+          data: "10/06/2026",
+          valorOriginal: 1500,
+        },
+      },
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0].date).toBe("2026-06-10");
+    expect(events[0].amount).toBe(-1500);
+    expect(events[0].source).toEqual({
+      kind: "recurring",
+      ruleId: "aluguel",
+      rawId: "manual:aluguel:2026-06",
+    });
+  });
+
+  it("skips deleted recurring fixed expense for the month", () => {
+    const events = buildRecurringEvents(
+      [
+        {
+          id: "aluguel",
+          descricao: "Aluguel",
+          kind: "despesa_fixa",
+          categoria: "MORADIA",
+          valor: 2000,
+          diaMes: 5,
+          inicio: "2026-01-01",
+          fim: null,
+          ativo: true,
+          criadoEm: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      "2026-06-01",
+      "2026-06-30",
+      {
+        "manual:aluguel:2026-06": {
+          rawId: "manual:aluguel:2026-06",
+          editedAt: "2026-06-01T00:00:00.000Z",
+          deleted: true,
+        },
+      },
+    );
+    expect(events).toHaveLength(0);
   });
 });
 

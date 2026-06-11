@@ -153,6 +153,7 @@ type Props = {
   anchorISO: string;
   horizonEndISO: string;
   filter: EventFilter;
+  onEventClick?: (event: CashEvent) => void;
 };
 
 export function SaldoCalendarView({
@@ -160,6 +161,7 @@ export function SaldoCalendarView({
   anchorISO,
   horizonEndISO,
   filter,
+  onEventClick,
 }: Props) {
   const today = todayIso();
   const initialMonth = useMemo(() => {
@@ -341,10 +343,21 @@ export function SaldoCalendarView({
           </div>
           {selectedEvents.length > 0 ? (
             <div className="divide-y">
-              {selectedEvents.map((e, i) => (
+              {selectedEvents.map((e, i) => {
+                const clickable = !!e.source && !!onEventClick;
+                return (
                 <div
                   key={`${e.type}-${e.description}-${i}`}
-                  className="flex items-center justify-between gap-2 py-2 text-sm"
+                  className={clickable ? "flex items-center justify-between gap-2 py-2 text-sm rounded-lg px-1 -mx-1 hover:bg-surface-2 cursor-pointer" : "flex items-center justify-between gap-2 py-2 text-sm"}
+                  role={clickable ? "button" : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  onClick={clickable ? () => onEventClick(e) : undefined}
+                  onKeyDown={clickable ? (ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                      ev.preventDefault();
+                      onEventClick(e);
+                    }
+                  } : undefined}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <Badge
@@ -365,7 +378,7 @@ export function SaldoCalendarView({
                     {formatBRL(e.amount)}
                   </Num>
                 </div>
-              ))}
+              )})}
             </div>
           ) : (
             <p className="text-xs text-muted">Nenhum evento neste dia.</p>

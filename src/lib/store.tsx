@@ -31,11 +31,13 @@ import {
   pickGroupPatch,
   pickIndividualPatch,
   pickRecurringIncomePatch,
+  pickRecurringMonthlyPatch,
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
 import { removeStaleEstimatedInstallments } from "./installmentEstimates";
 import { compileAliases } from "./aliases";
+import { addDaysIso, todayIso } from "./dates";
 import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
@@ -406,21 +408,30 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [dataset.sources],
   );
 
-  const findOriginalRaw = useCallback(
-    (rawId: string): TransactionRaw | undefined =>
-      importedRaw.find((r) => r.id === rawId) ??
-      manualTransactions.find((r) => r.id === rawId),
-    [importedRaw, manualTransactions],
+  const recurringExpansionEnd = useMemo(
+    () => addDaysIso(todayIso(), settings.projectionHorizonDays),
+    [settings.projectionHorizonDays],
   );
 
   const recurringRaw = useMemo(
-    () => expandRecurringRules(recurringRules.filter((r) => r.ativo)),
-    [recurringRules],
+    () =>
+      expandRecurringRules(
+        recurringRules.filter((r) => r.ativo),
+        new Date(),
+        recurringExpansionEnd,
+      ),
+    [recurringRules, recurringExpansionEnd],
   );
 
   const allRaw = useMemo(
     () => [...importedRaw, ...manualTransactions, ...recurringRaw],
     [importedRaw, manualTransactions, recurringRaw],
+  );
+
+  const findOriginalRaw = useCallback(
+    (rawId: string): TransactionRaw | undefined =>
+      allRaw.find((r) => r.id === rawId),
+    [allRaw],
   );
 
   const rawIdsForGroupKey = useCallback(
@@ -1018,7 +1029,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       const raw = findOriginalRaw(rawId);
       if (raw && isRecurringRaw(raw)) {
         if (!allowsPerMonthRecurringEdit(raw)) return;
-        const recurringPatch = pickRecurringIncomePatch(patch);
+        const recurringPatch = pickRecurringMonthlyPatch(patch);
         if (Object.keys(recurringPatch).length === 0) return;
         await persistEdits({
           ...edits,

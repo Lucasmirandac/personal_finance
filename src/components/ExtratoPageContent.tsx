@@ -3,8 +3,12 @@
 import { useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { QuickAddModal } from "@/components/QuickAddModal"
-import { TransactionEditModal } from "@/components/TransactionEditModal"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
+import {
+  canEditTransaction,
+  resolveEditCurrent,
+  TransactionEditHost,
+} from "@/components/transaction/TransactionEditHost"
 import {
   PaymentStatusBadge,
   PaymentStatusToggle,
@@ -18,8 +22,8 @@ import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
-import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
-import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringIncomeDeleteConfirmMessage } from "@/lib/edits"
+import { addDaysIso, addMonthsYyyyMm, todayIso } from "@/lib/dates"
+import { isEdited, isRecurringRaw, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringMonthlyDeleteConfirmMessage } from "@/lib/edits"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
 import {
@@ -42,6 +46,7 @@ export function ExtratoPageContent() {
   const {
     normalized,
     accounts,
+    settings,
     edits,
     installmentGroupEdits,
     paymentStatus,
@@ -102,18 +107,25 @@ export function ExtratoPageContent() {
     [monthTransactions, paymentStatus],
   )
 
-  const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
-  const editCurrent =
-    editRow && editOriginal
-      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
-      : undefined
+  const projectionHorizonEnd = useMemo(
+    () => addDaysIso(todayIso(), settings.projectionHorizonDays),
+    [settings.projectionHorizonDays],
+  )
+  const beyondProjectionHorizon = month > projectionHorizonEnd.slice(0, 7)
+
+  const { original: editOriginal, current: editCurrent } = resolveEditCurrent(
+    editRow,
+    findOriginalRaw,
+    edits,
+    installmentGroupEdits,
+  )
 
   const handleDelete = (tx: TransactionNormalized) => {
     const original = findOriginalRaw(tx.id)
     const installment = original?.installment ?? tx.installment
     const message =
       original && allowsPerMonthRecurringEdit(original)
-        ? recurringIncomeDeleteConfirmMessage()
+        ? recurringMonthlyDeleteConfirmMessage(original)
         : installmentDeleteConfirmMessage(
             installment,
             "Excluir esta transação da análise? Você pode restaurá-la em Transações.",
@@ -236,10 +248,7 @@ export function ExtratoPageContent() {
                   const recurring = isRecurringRaw(tx)
                   const original = findOriginalRaw(tx.id)
                   const paymentState = derivePaymentState(tx, paymentStatus)
-                  const canEditTx =
-                    !!original &&
-                    (allowsPerMonthRecurringEdit(original) ||
-                      (!recurring && !isManualQuickRaw(original)))
+                  const canEditTx = canEditTransaction(original)
                   const canRevert =
                     canRevertTransaction(tx.id, edits, installmentGroupEdits, original) &&
                     !!original &&
@@ -303,7 +312,9 @@ export function ExtratoPageContent() {
           {groups.length === 0 && (
             <div className="px-4 py-10 text-center text-sm text-muted">
               {paymentFilter === "all"
-                ? `Nenhum movimento de conta em ${formatMonthLabel(month)}.`
+                ? beyondProjectionHorizon
+                  ? `Nenhum movimento previsto em ${formatMonthLabel(month)}. A projeção vai até ${formatDateBR(projectionHorizonEnd)} (horizonte em Config).`
+                  : `Nenhum movimento de conta em ${formatMonthLabel(month)}.`
                 : paymentFilter === "pending"
                   ? `Nenhuma conta a pagar em ${formatMonthLabel(month)}.`
                   : `Nenhuma conta marcada como paga em ${formatMonthLabel(month)}.`}
@@ -312,20 +323,18 @@ export function ExtratoPageContent() {
         </div>
       </Panel>
 
-      {editRow && editOriginal && editCurrent && (
-        <TransactionEditModal
-          open
-          original={editOriginal}
-          current={editCurrent}
-          mode={
-            allowsPerMonthRecurringEdit(editOriginal) ? "recurring_income" : "default"
-          }
-          canRevert={
-            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
-            !isManualQuickRaw(editOriginal)
-          }
-          onSave={(patch) => editTransaction(editRow.id, patch)}
-          onRevert={() => revertTransaction(editRow.id)}
+      {editRow && (
+        <TransactionEditHost
+          editRow={editRow}
+          editOriginal={editOriginal}
+          editCurrent={editCurrent}
+          edits={edits}
+          installmentGroupEdits={installmentGroupEdits}
+          paymentStatus={paymentStatus}
+          onSave={(id, patch) => editTransaction(id, patch)}
+          onRevert={revertTransaction}
+          onHideMonth={deleteTransaction}
+          onPaymentToggle={(id, status) => void setPaymentStatus(id, status)}
           onClose={() => setEditRow(null)}
         />
       )}

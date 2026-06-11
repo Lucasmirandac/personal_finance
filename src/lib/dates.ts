@@ -54,6 +54,13 @@ export function addMonthsIso(iso: string, delta: number): string {
   return isoFromParts(year, month, clampDay(year, month, d))
 }
 
+export function addDaysIso(iso: string, days: number): string {
+  const [y, m, d] = parseIso(iso)
+  const t = Date.UTC(y, m - 1, d) + days * 86400000
+  const dt = new Date(t)
+  return isoFromParts(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate())
+}
+
 export function yesterdayIso(): string {
   const d = new Date()
   d.setUTCDate(d.getUTCDate() - 1)

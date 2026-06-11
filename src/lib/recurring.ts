@@ -72,15 +72,13 @@ export function countRecurringOccurrences(
 export function expandRecurringRules(
   rules: RecurringRule[],
   today: Date = new Date(),
+  expansionEndIso: string = endOfCurrentMonthIso(today),
 ): TransactionRaw[] {
-  const todayIso = todayIsoFromDate(today);
-  const expansionEndIso = endOfCurrentMonthIso(today);
   const raws: TransactionRaw[] = [];
 
   for (const rule of rules) {
     if (!rule.ativo) continue;
     if (!rule.inicio) continue;
-    if (rule.inicio > todayIso) continue;
     if (rule.fim && rule.inicio > rule.fim) continue;
 
     const endIso = endIsoForRule(rule, expansionEndIso);

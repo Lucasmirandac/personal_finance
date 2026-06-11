@@ -6,6 +6,7 @@ import { SaldoCalendarView } from "@/components/SaldoCalendarView"
 import { ChartCard } from "@/components/charts/ChartCard"
 import { BalanceProjectionChart } from "@/components/charts/BalanceProjectionChart"
 import { UpcomingTimeline } from "@/components/painel/UpcomingTimeline"
+import { useCashEventEditor } from "@/components/transaction/useCashEventEditor"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { StatTile } from "@/components/ui/StatTile"
 import { g } from "@/lib/glossary"
@@ -64,6 +65,8 @@ export function FuturoPageContent() {
     if (view === activeView) return
     await updateSettings({ ...settings, saldoView: view })
   }
+
+  const { handleEventClick, editor } = useCashEventEditor()
 
   if (!complete || !anchor) {
     return (
@@ -150,6 +153,7 @@ export function FuturoPageContent() {
               anchorISO={anchor.data}
               horizonEndISO={horizonEnd}
               filter={eventFilter}
+              onEventClick={handleEventClick}
             />
           )}
           {activeView === "calendar" && !horizonEnd && (
@@ -164,9 +168,11 @@ export function FuturoPageContent() {
             series={series}
             filter={eventFilter}
             onFilterChange={setEventFilter}
+            onEventClick={handleEventClick}
           />
         </div>
       </div>
+      {editor}
     </div>
   )
 }

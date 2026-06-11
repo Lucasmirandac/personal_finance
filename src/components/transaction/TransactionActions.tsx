@@ -12,6 +12,7 @@ type Props = {
   onEdit: (tx: TransactionNormalized) => void
   onDelete?: (tx: TransactionNormalized) => void
   onRevert?: (tx: TransactionNormalized) => void
+  showRuleLink?: boolean
 }
 
 export function TransactionActions({
@@ -21,29 +22,33 @@ export function TransactionActions({
   onEdit,
   onDelete,
   onRevert,
+  showRuleLink = false,
 }: Readonly<Props>) {
-  if (!canEdit) {
-    return (
-      <Link
-        href="/recorrentes"
-        className="rounded-full border border-border bg-surface px-2 py-1 text-caption text-muted hover:bg-surface-2"
-      >
-        Recorrente
-      </Link>
-    )
+  if (!canEdit && !showRuleLink) {
+    return <span className="text-caption text-muted">—</span>
   }
 
   return (
     <span className="inline-flex items-center gap-0.5">
-      <Button
-        variant="ghost"
-        size="sm"
-        aria-label="Editar transação"
-        title="Editar"
-        onClick={() => onEdit(tx)}
-      >
-        <Pencil size={13} />
-      </Button>
+      {canEdit && (
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Ajustar"
+          title="Ajustar"
+          onClick={() => onEdit(tx)}
+        >
+          <Pencil size={13} />
+        </Button>
+      )}
+      {showRuleLink && !canEdit && (
+        <Link
+          href="/recorrentes"
+          className="rounded-full border border-border bg-surface px-2 py-1 text-caption text-muted hover:bg-surface-2"
+        >
+          Recorrente
+        </Link>
+      )}
       {canRevert && onRevert && (
         <Button
           variant="ghost"

@@ -4,7 +4,11 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowRight, CalendarDays, Landmark, Plus, Route } from "lucide-react"
 import { QuickAddModal } from "@/components/QuickAddModal"
-import { TransactionEditModal } from "@/components/TransactionEditModal"
+import {
+  canEditTransaction,
+  resolveEditCurrent,
+  TransactionEditHost,
+} from "@/components/transaction/TransactionEditHost"
 import { TransactionActions } from "@/components/transaction/TransactionActions"
 import { Badge } from "@/components/ui/Badge"
 import { g } from "@/lib/glossary"
@@ -12,7 +16,7 @@ import { Button } from "@/components/ui/Button"
 import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { todayIso } from "@/lib/dates"
-import { isEdited, isRecurringRaw, mergeRawWithAllEdits, canRevertTransaction } from "@/lib/edits"
+import { isEdited, canRevertTransaction } from "@/lib/edits"
 import { isForecastTransaction } from "@/lib/recurring"
 import { formatBRL, formatDateBR } from "@/lib/format"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
@@ -33,6 +37,9 @@ export function TodayTransactionsPanel() {
     findOriginalRaw,
     editTransaction,
     revertTransaction,
+    deleteTransaction,
+    paymentStatus,
+    setPaymentStatus,
   } = useAppStore()
   const [editRow, setEditRow] = useState<TransactionNormalized | null>(null)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
@@ -45,11 +52,12 @@ export function TodayTransactionsPanel() {
     return sortTransactionsDesc(normalized.filter((tx) => tx.dataISO >= cutoff && tx.dataISO <= today)).slice(0, 5)
   }, [normalized, today])
 
-  const editOriginal = editRow ? findOriginalRaw(editRow.id) : undefined
-  const editCurrent =
-    editRow && editOriginal
-      ? mergeRawWithAllEdits(editOriginal, edits, installmentGroupEdits)
-      : undefined
+  const { original: editOriginal, current: editCurrent } = resolveEditCurrent(
+    editRow,
+    findOriginalRaw,
+    edits,
+    installmentGroupEdits,
+  )
 
   return (
     <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
@@ -68,8 +76,8 @@ export function TodayTransactionsPanel() {
       <div className="mt-4 space-y-2">
         {recent.map((tx) => {
           const account = resolveTransactionAccount(tx, accounts)
-          const recurring = isRecurringRaw(tx)
           const original = findOriginalRaw(tx.id)
+          const canEditTx = canEditTransaction(original)
           const canRevert =
             canRevertTransaction(tx.id, edits, installmentGroupEdits, original) &&
             !!original &&
@@ -106,7 +114,7 @@ export function TodayTransactionsPanel() {
                   <div className="mt-1">
                     <TransactionActions
                       tx={tx}
-                      canEdit={!recurring && !!original}
+                      canEdit={canEditTx}
                       canRevert={canRevert}
                       onEdit={setEditRow}
                       onRevert={(row) => revertTransaction(row.id)}
@@ -135,17 +143,18 @@ export function TodayTransactionsPanel() {
         </div>
       </div>
 
-      {editRow && editOriginal && editCurrent && (
-        <TransactionEditModal
-          open
-          original={editOriginal}
-          current={editCurrent}
-          canRevert={
-            canRevertTransaction(editRow.id, edits, installmentGroupEdits, editOriginal) &&
-            !isManualQuickRaw(editOriginal)
-          }
-          onSave={(patch) => editTransaction(editRow.id, patch)}
-          onRevert={() => revertTransaction(editRow.id)}
+      {editRow && (
+        <TransactionEditHost
+          editRow={editRow}
+          editOriginal={editOriginal}
+          editCurrent={editCurrent}
+          edits={edits}
+          installmentGroupEdits={installmentGroupEdits}
+          paymentStatus={paymentStatus}
+          onSave={(id, patch) => editTransaction(id, patch)}
+          onRevert={revertTransaction}
+          onHideMonth={deleteTransaction}
+          onPaymentToggle={(id, status) => void setPaymentStatus(id, status)}
           onClose={() => setEditRow(null)}
         />
       )}
