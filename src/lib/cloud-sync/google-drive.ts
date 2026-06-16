@@ -79,16 +79,16 @@ async function findBackupFile(tokens: OAuthTokens): Promise<{
   );
   const res = await driveFetch(
     tokens,
-    `/files?spaces=appDataFolder&fields=files(id,name,modifiedTime,revisionId)&q=${q}`,
+    `/files?spaces=appDataFolder&fields=files(id,name,modifiedTime,headRevisionId)&q=${q}`,
   );
   const data = (await res.json()) as {
-    files?: Array<{ id: string; modifiedTime?: string; revisionId?: string }>;
+    files?: Array<{ id: string; modifiedTime?: string; headRevisionId?: string }>;
   };
   const file = data.files?.[0];
-  if (!file?.id || !file.revisionId) return null;
+  if (!file?.id || !file.headRevisionId) return null;
   return {
     id: file.id,
-    revision: file.revisionId,
+    revision: file.headRevisionId,
     modifiedTime: file.modifiedTime,
   };
 }
@@ -161,7 +161,7 @@ export const googleDriveProvider: CloudProvider = {
 
     if (existing) {
       const res = await fetch(
-        `${GOOGLE_UPLOAD_API}/files/${existing.id}?uploadType=media`,
+        `${GOOGLE_UPLOAD_API}/files/${existing.id}?uploadType=media&fields=headRevisionId,modifiedTime`,
         {
           method: "PATCH",
           headers: {
@@ -181,9 +181,12 @@ export const googleDriveProvider: CloudProvider = {
         const text = await res.text();
         throw new Error(`Google Drive upload: ${text.slice(0, 200)}`);
       }
-      const updated = (await res.json()) as { revisionId?: string; modifiedTime?: string };
+      const updated = (await res.json()) as {
+        headRevisionId?: string;
+        modifiedTime?: string;
+      };
       return {
-        revision: updated.revisionId ?? existing.revision,
+        revision: updated.headRevisionId ?? existing.revision,
         modifiedAt: updated.modifiedTime ?? existing.modifiedTime,
       };
     }
@@ -203,7 +206,7 @@ export const googleDriveProvider: CloudProvider = {
       `--${boundary}--`;
 
     const res = await fetch(
-      `${GOOGLE_UPLOAD_API}/files?uploadType=multipart`,
+      `${GOOGLE_UPLOAD_API}/files?uploadType=multipart&fields=headRevisionId,modifiedTime`,
       {
         method: "POST",
         headers: {
@@ -217,9 +220,19 @@ export const googleDriveProvider: CloudProvider = {
       const text = await res.text();
       throw new Error(`Google Drive create: ${text.slice(0, 200)}`);
     }
-    const created = (await res.json()) as { revisionId?: string; modifiedTime?: string };
+    const created = (await res.json()) as {
+      headRevisionId?: string;
+      modifiedTime?: string;
+    };
+    if (!created.headRevisionId) {
+      const meta = await findBackupFile(fresh);
+      if (!meta) {
+        throw new Error("Google Drive create: headRevisionId ausente na resposta.");
+      }
+      return { revision: meta.revision, modifiedAt: meta.modifiedTime };
+    }
     return {
-      revision: created.revisionId ?? "1",
+      revision: created.headRevisionId,
       modifiedAt: created.modifiedTime,
     };
   },
