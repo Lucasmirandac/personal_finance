@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { MarketingPageTracker } from "@/components/marketing/MarketingPageTracker";
+import { SocialLinks } from "@/components/marketing/SocialLinks";
 import type { MarketingPageId } from "@/lib/marketing/site";
 
 const NAV = [
@@ -73,7 +74,7 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
 
       <footer className="border-t border-border/60 bg-surface/50">
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <p className="font-semibold">Saldo Real</p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
@@ -154,6 +155,19 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
                   </Link>
                 </li>
               </ul>
+            </div>
+            <div>
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">
+                Contato
+              </p>
+              <ul className="mt-3 space-y-2">
+                <li>
+                  <SocialLinks />
+                </li>
+              </ul>
+              <p className="mt-3 text-xs text-muted leading-relaxed">
+                Dicas e novidades do Saldo Real.
+              </p>
             </div>
           </div>
           <p className="mt-8 text-caption text-muted">

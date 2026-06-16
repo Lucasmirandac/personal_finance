@@ -193,17 +193,25 @@ export function ExtratoPageContent() {
 
       <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
         <div className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-end">
-          <div className="flex items-center gap-2">
-            <Button size="sm" aria-label="Mês anterior" onClick={() => setMonth(addMonthsYyyyMm(month, -1))}>
-              <ChevronLeft size={14} />
-            </Button>
-            <label className="block min-w-40 space-y-1">
-              <span className="text-xs text-muted">Mês</span>
-              <Input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
+          <div className="min-w-40 space-y-1">
+            <label htmlFor="extrato-month" className="text-xs text-muted">
+              Mês
             </label>
-            <Button size="sm" aria-label="Próximo mês" onClick={() => setMonth(addMonthsYyyyMm(month, 1))}>
-              <ChevronRight size={14} />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" aria-label="Mês anterior" onClick={() => setMonth(addMonthsYyyyMm(month, -1))}>
+                <ChevronLeft size={14} />
+              </Button>
+              <Input
+                id="extrato-month"
+                type="month"
+                className="min-w-0 flex-1"
+                value={month}
+                onChange={(event) => setMonth(event.target.value)}
+              />
+              <Button size="sm" aria-label="Próximo mês" onClick={() => setMonth(addMonthsYyyyMm(month, 1))}>
+                <ChevronRight size={14} />
+              </Button>
+            </div>
           </div>
 
           <label className="block space-y-1">

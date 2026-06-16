@@ -5,6 +5,7 @@ import {
   MarketingShell,
 } from "@/components/marketing/MarketingShell";
 import { getSiteUrl } from "@/lib/marketing/site";
+import { SOCIAL_LINKS } from "@/lib/marketing/social";
 import { getAllArticles } from "@/lib/marketing/articles";
 import {
   BANKS_FAQ_ANSWER,
@@ -72,6 +73,7 @@ export default function LandingPage() {
         offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" },
         description: JSON_LD_APP_DESCRIPTION,
         url: siteUrl,
+        sameAs: SOCIAL_LINKS.map((link) => link.href),
       },
       {
         "@type": "FAQPage",
