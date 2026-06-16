@@ -7,6 +7,7 @@ import { useAppStore } from "@/lib/store";
 import {
   BackupReminder,
   BudgetAlertWidget,
+  CloudSyncReminder,
   SetupIndicator,
 } from "@/components/HeaderWidgets";
 import { AppFooter } from "@/components/AppFooter";
@@ -46,6 +47,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
           <div className="flex items-center gap-2 shrink-0">
             <SetupIndicator />
             <BudgetAlertWidget />
+            <CloudSyncReminder />
             <BackupReminder />
             {hasAnalysis && (
               <span

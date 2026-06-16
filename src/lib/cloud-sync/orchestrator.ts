@@ -19,6 +19,7 @@ import { saveLastBackupAt } from "../storage";
 import { dropboxProvider } from "./dropbox";
 import { googleDriveProvider } from "./google-drive";
 import { onDataMutated } from "./mutations";
+import { evaluateRemoteProbe } from "./remote-probe";
 import {
   clearProviderTokens,
   getKdfSaltBytes,
@@ -153,7 +154,9 @@ export async function initCloudSync(): Promise<void> {
   });
   window.addEventListener("offline", () => emit({ status: "offline" }));
 
-  void checkRemoteOnBootstrap();
+  if (state.connected && state.sessionUnlocked) {
+    void safeSyncAfterConnect();
+  }
 }
 
 export async function setupCloudPassphrase(
@@ -177,6 +180,9 @@ export async function setupCloudPassphrase(
     rememberDevice,
     status: isOnline() ? "idle" : "offline",
   });
+  if (state.connected) {
+    await safeSyncAfterConnect();
+  }
 }
 
 export async function unlockCloudPassphrase(passphrase: string): Promise<void> {
@@ -194,6 +200,9 @@ export async function unlockCloudPassphrase(passphrase: string): Promise<void> {
         ? "idle"
         : "offline",
   });
+  if (state.connected) {
+    await safeSyncAfterConnect();
+  }
 }
 
 export function lockCloudPassphrase(): void {
@@ -208,6 +217,9 @@ export async function connectCloudProvider(
   await provider.connect();
   await refreshStateFromSettings();
   trackEvent({ name: "cloud_sync_connected", provider: providerId });
+  if (state.sessionUnlocked) {
+    await safeSyncAfterConnect();
+  }
 }
 
 export async function disconnectCloudProvider(): Promise<void> {
@@ -224,7 +236,14 @@ export async function disconnectCloudProvider(): Promise<void> {
 }
 
 function scheduleUpload(): void {
-  if (!state.connected || !state.sessionUnlocked || state.conflict) return;
+  if (
+    !state.connected ||
+    !state.sessionUnlocked ||
+    state.conflict ||
+    state.pendingRestore
+  ) {
+    return;
+  }
   if (!isOnline()) {
     emit({ status: "offline" });
     return;
@@ -245,9 +264,21 @@ export async function syncNow(): Promise<void> {
   await performUpload();
 }
 
+export async function forceSyncNow(): Promise<void> {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  await performUpload(true);
+}
+
 async function performUpload(force = false): Promise<void> {
   if (uploadInFlight) return;
   if (!state.connected || !state.sessionUnlocked) return;
+  if (state.pendingRestore && !force) {
+    emit({ status: "conflict" });
+    return;
+  }
   if (!isOnline()) {
     emit({ status: "offline" });
     return;
@@ -270,14 +301,9 @@ async function performUpload(force = false): Promise<void> {
 
   try {
     const remote = await provider.getRevision(tokens);
-    if (
-      remote &&
-      settings.lastRemoteRevision &&
-      remote.revision !== settings.lastRemoteRevision &&
-      !force
-    ) {
-      await handleConflict(provider, tokens, remote.revision);
-      return;
+    if (remote && !force) {
+      const blocked = await applyRemoteProbe(provider, tokens, remote.revision);
+      if (blocked) return;
     }
 
     const backup = await exportAllData();
@@ -358,36 +384,84 @@ async function handleConflict(
   });
 }
 
-async function checkRemoteOnBootstrap(): Promise<void> {
-  if (!state.connected || !state.sessionUnlocked) return;
-  const settings = await loadCloudSyncSettings();
+export type RemoteProbeResult = "clear" | "blocked";
+
+export async function probeRemoteBackup(): Promise<RemoteProbeResult> {
+  if (!state.connected || !state.sessionUnlocked) return "clear";
+
   const provider = getActiveProvider();
   const tokens = await getTokens();
   const key = getSessionKey();
-  if (!provider || !tokens || !key) return;
+  if (!provider || !tokens || !key) return "clear";
 
   try {
     const remote = await provider.getRevision(tokens);
-    if (!remote) return;
+    if (!remote) return "clear";
 
-    if (
-      settings.lastRemoteRevision &&
-      remote.revision !== settings.lastRemoteRevision
-    ) {
-      const encrypted = await provider.download(tokens);
-      if (!encrypted) return;
-      const { backup } = await decryptBackupWithKey(encrypted, key);
-      const localAt = getLocalExportedAt?.();
-      if (
-        !localAt ||
-        backup.exportedAt > localAt
-      ) {
-        emit({ pendingRestore: backup, status: "conflict" });
-      }
-    }
+    const blocked = await applyRemoteProbe(provider, tokens, remote.revision);
+    return blocked ? "blocked" : "clear";
   } catch {
-    // ignore bootstrap check failures
+    return "clear";
   }
+}
+
+async function safeSyncAfterConnect(): Promise<void> {
+  const probeResult = await probeRemoteBackup();
+  if (probeResult === "clear") {
+    await performUpload(true);
+  }
+}
+
+async function applyRemoteProbe(
+  provider: CloudProvider,
+  tokens: import("./types").OAuthTokens,
+  remoteRevision: string,
+): Promise<boolean> {
+  const settings = await loadCloudSyncSettings();
+  const key = getSessionKey();
+  if (!key) return false;
+
+  if (
+    settings.lastRemoteRevision &&
+    settings.lastRemoteRevision === remoteRevision
+  ) {
+    return false;
+  }
+
+  const encrypted = await provider.download(tokens);
+  if (!encrypted) return false;
+
+  const { backup: remoteBackup } = await decryptBackupWithKey(encrypted, key);
+  const localAt = getLocalExportedAt?.() ?? null;
+  const action = evaluateRemoteProbe({
+    localExportedAt: localAt,
+    remoteExportedAt: remoteBackup.exportedAt,
+    lastRemoteRevision: settings.lastRemoteRevision,
+    remoteRevision,
+  });
+
+  if (action === "clear") {
+    if (
+      !settings.lastRemoteRevision &&
+      localAt &&
+      remoteBackup.exportedAt === localAt
+    ) {
+      await updateCloudSyncSettings({
+        lastRemoteRevision: remoteRevision,
+        lastLocalExportedAt: localAt,
+      });
+    }
+    return false;
+  }
+
+  if (action === "pending_restore") {
+    await updateCloudSyncSettings({ conflictPaused: true });
+    emit({ pendingRestore: remoteBackup, status: "conflict", conflict: null });
+    return true;
+  }
+
+  await handleConflict(provider, tokens, remoteRevision);
+  return true;
 }
 
 export async function resolveConflictUseLocal(): Promise<void> {
@@ -425,10 +499,50 @@ export async function resolveConflictMerge(): Promise<void> {
 export async function restorePendingRemote(): Promise<void> {
   if (!state.pendingRestore || !importBackupFn) return;
   await importBackupFn(state.pendingRestore, "replace");
-  emit({ pendingRestore: null, status: "idle" });
+  const provider = getActiveProvider();
+  const tokens = await getTokens();
+  let remoteRevision: string | null = null;
+  if (provider && tokens) {
+    try {
+      const remote = await provider.getRevision(tokens);
+      remoteRevision = remote?.revision ?? null;
+    } catch {
+      // keep null revision
+    }
+  }
+  await updateCloudSyncSettings({
+    conflictPaused: false,
+    lastRemoteRevision: remoteRevision,
+    lastLocalExportedAt: state.pendingRestore.exportedAt,
+    lastSyncAt: new Date().toISOString(),
+  });
+  emit({
+    pendingRestore: null,
+    status: "idle",
+    lastSyncAt: new Date().toISOString(),
+  });
 }
 
 export async function dismissPendingRestore(): Promise<void> {
+  const provider = getActiveProvider();
+  const tokens = await getTokens();
+  if (provider && tokens) {
+    try {
+      const remote = await provider.getRevision(tokens);
+      if (remote) {
+        await updateCloudSyncSettings({
+          conflictPaused: false,
+          lastRemoteRevision: remote.revision,
+        });
+      } else {
+        await updateCloudSyncSettings({ conflictPaused: false });
+      }
+    } catch {
+      await updateCloudSyncSettings({ conflictPaused: false });
+    }
+  } else {
+    await updateCloudSyncSettings({ conflictPaused: false });
+  }
   emit({ pendingRestore: null, status: "idle" });
 }
 

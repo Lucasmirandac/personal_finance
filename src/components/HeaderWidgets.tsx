@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
 import { getSetupSteps, isProjectionReady } from "@/lib/setupStatus";
 import { projectDailyBalance } from "@/lib/projection";
 import { daysSince } from "@/lib/backup";
+import {
+  getCloudSyncReminder,
+  shouldSuppressBackupReminder,
+} from "@/lib/cloud-sync/display";
+import {
+  getCloudSyncState,
+  subscribeCloudSync,
+} from "@/lib/cloud-sync/orchestrator";
+import type { CloudSyncState } from "@/lib/cloud-sync/types";
 import {
   budgetAlertSummary,
   budgetUsageForMonth,
@@ -52,9 +61,14 @@ export function BudgetAlertWidget() {
 
 export function BackupReminder() {
   const { lastBackupAt, hasAnalysis } = useAppStore();
+  const [syncState, setSyncState] = useState<CloudSyncState>(getCloudSyncState);
+
+  useEffect(() => subscribeCloudSync(setSyncState), []);
+
   const days = daysSince(lastBackupAt);
 
   if (!hasAnalysis) return null;
+  if (shouldSuppressBackupReminder(syncState)) return null;
   if (days === null || days <= 14) return null;
 
   const urgent = days > 30;
@@ -76,9 +90,58 @@ export function BackupReminder() {
   );
 }
 
+export function CloudSyncReminder() {
+  const { hasAnalysis, lastBackupAt } = useAppStore();
+  const [syncState, setSyncState] = useState<CloudSyncState>(getCloudSyncState);
+
+  useEffect(() => subscribeCloudSync(setSyncState), []);
+
+  const manualBackupDays = daysSince(lastBackupAt);
+  const reminder = getCloudSyncReminder(
+    syncState,
+    hasAnalysis,
+    manualBackupDays,
+  );
+
+  if (!reminder) return null;
+
+  return (
+    <Link
+      href={reminder.href}
+      className={clsx(
+        chipLinkBase,
+        "hidden sm:inline-flex gap-1 text-[10px]",
+        reminder.variant === "urgent" || reminder.variant === "locked"
+          ? "text-warning border-[var(--warning)]/40"
+          : reminder.variant === "stale"
+            ? "text-muted"
+            : "text-[var(--success)] border-[var(--success)]/40",
+      )}
+      title="Configurar sincronização criptografada"
+    >
+      {reminder.label}
+    </Link>
+  );
+}
+
 export function SetupIndicator() {
   const { dataset, settings, recurringRules, accounts } = useAppStore();
-  const steps = getSetupSteps(dataset, settings, recurringRules, accounts);
+  const [syncState, setSyncState] = useState<CloudSyncState>(getCloudSyncState);
+
+  useEffect(() => subscribeCloudSync(setSyncState), []);
+
+  const cloudProtected =
+    syncState.connected &&
+    syncState.provider === "google" &&
+    !!syncState.lastSyncAt;
+
+  const steps = getSetupSteps(
+    dataset,
+    settings,
+    recurringRules,
+    accounts,
+    cloudProtected,
+  );
   const allDone = steps.every((s) => s.done);
 
   if (allDone) return null;

@@ -10,17 +10,22 @@ export function hasIncome(recurringRules: RecurringRule[]): boolean {
 }
 
 export type SetupStep = {
-  id: "csv" | "contas" | "recorrentes";
+  id: "csv" | "contas" | "recorrentes" | "nuvem";
   label: string;
   done: boolean;
   href: string;
 };
+
+function isGoogleSyncConfigured(): boolean {
+  return !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+}
 
 export function getSetupSteps(
   dataset: Dataset,
   settings: Settings,
   recurringRules: RecurringRule[],
   accounts: Account[] = [],
+  cloudProtected = false,
 ): SetupStep[] {
   const cardSources = dataset.sources.map((s) => s.fonte);
   const hasCsv = dataset.sources.length > 0;
@@ -30,7 +35,7 @@ export function getSetupSteps(
       : false;
   const hasRecorrentes = recurringRules.some((r) => r.ativo);
 
-  return [
+  const steps: SetupStep[] = [
     {
       id: "csv",
       label: "CSV importado",
@@ -50,6 +55,17 @@ export function getSetupSteps(
       href: "/divisor",
     },
   ];
+
+  if (isGoogleSyncConfigured()) {
+    steps.push({
+      id: "nuvem",
+      label: "Backup na nuvem",
+      done: cloudProtected,
+      href: "/config?tab=sincronizacao",
+    });
+  }
+
+  return steps;
 }
 
 export function isProjectionReady(

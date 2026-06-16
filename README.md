@@ -561,11 +561,25 @@ Dropbox: redirect URI `https://<seu-dominio>/config/oauth/callback`
 
 Implementação: [`src/lib/crypto/e2ee.ts`](src/lib/crypto/e2ee.ts), [`src/lib/cloud-sync/`](src/lib/cloud-sync/), [`src/components/CloudSyncPanel.tsx`](src/components/CloudSyncPanel.tsx).
 
+#### Proteger seus dados (Google Drive — recomendado)
+
+Fluxo guiado em **Config → Sync** quando `NEXT_PUBLIC_GOOGLE_CLIENT_ID` está configurado:
+
+1. **Senha de criptografia** — sem ela, o backup na nuvem não pode ser aberto em outro dispositivo.
+2. **Conectar Google Drive** — OAuth; o arquivo `saldoreal-backup.enc` fica na pasta oculta `appDataFolder`.
+3. **Primeiro backup confirmado** — upload automático logo após conectar; status passa a "Protegido no Google Drive".
+
+Comportamentos de segurança:
+
+- **Dispositivo novo:** se já existir backup na nuvem, o app oferece restaurar antes de enviar dados locais (evita sobrescrever a nuvem com dados vazios).
+- **Chip no header** — "Proteger no Drive", "Sync bloqueada" ou "Resolver sync" quando a proteção precisa de atenção.
+- **Backup manual JSON** (`/config?tab=backup`) continua como rede de segurança; o chip "Backup há Xd" some quando a sync na nuvem está recente (&lt;14 dias).
+
 ---
 
 ## UI e tema
 
-- Header sticky com logo Saldo Real, navegação principal, widgets (setup, orçamento, backup) e chip de contagem de fontes/linhas.
+- Header sticky com logo Saldo Real, navegação principal, widgets (setup, orçamento, sync na nuvem, backup) e chip de contagem de fontes/linhas.
 - **Bottom tab bar** no mobile (`BottomTabBar`) com Hoje, Extrato, Futuro, Quick Add e sheet Mais.
 - `next/image` carrega o logo a partir de `public/logo.png`. Favicon e apple-touch-icon são gerados pelas convenções do App Router (`src/app/icon.png`, `src/app/apple-icon.png`).
 - Open Graph dinâmico em `src/app/opengraph-image.tsx` com logo + wordmark sobre fundo creme.
