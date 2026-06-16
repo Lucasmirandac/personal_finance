@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BACKUP_VERSION, BACKUP_APP, type BackupFile } from "../backup";
 import {
+  decryptBackupWithKey,
+  deriveKeyFromPassphrase,
   decryptBackup,
   encryptBackup,
   E2EEDecryptError,
@@ -63,6 +65,37 @@ describe("e2ee", () => {
     await expect(decryptBackup(encrypted, "wrong")).rejects.toBeInstanceOf(
       E2EEDecryptError,
     );
+  });
+
+  it("decrypts cross-device backups only after adopting the remote salt", async () => {
+    const remoteSalt = new Uint8Array([1, 2, 3, 4]);
+    const localSalt = new Uint8Array([9, 8, 7, 6]);
+    const encrypted = await encryptBackup(sampleBackup, "same-passphrase", {
+      deviceId: "device-a",
+      kdfSalt: remoteSalt,
+      iterations: TEST_ITERATIONS,
+    });
+
+    const wrongLocalKey = await deriveKeyFromPassphrase(
+      "same-passphrase",
+      localSalt,
+      TEST_ITERATIONS,
+    );
+    await expect(
+      decryptBackupWithKey(encrypted, wrongLocalKey),
+    ).rejects.toBeInstanceOf(E2EEDecryptError);
+
+    const adoptedRemoteKey = await deriveKeyFromPassphrase(
+      "same-passphrase",
+      remoteSalt,
+      TEST_ITERATIONS,
+    );
+    await expect(
+      decryptBackupWithKey(encrypted, adoptedRemoteKey),
+    ).resolves.toMatchObject({
+      backup: { exportedAt: sampleBackup.exportedAt },
+      deviceId: "device-a",
+    });
   });
 
   it("rejects tampered ciphertext", async () => {

@@ -1,10 +1,12 @@
 import { exportAllData, type BackupFile } from "../backup";
 import {
+  E2EEDecryptError,
   decryptBackupWithKey,
   encryptBackupWithKey,
   type EncryptedBackupFile,
 } from "../crypto/e2ee";
 import {
+  clearWrappedKey,
   getSessionKey,
   getSessionKdfSalt,
   isSessionUnlocked,
@@ -27,10 +29,15 @@ import {
   setKdfSaltBytes,
   updateCloudSyncSettings,
 } from "./settings";
+import {
+  getKdfSaltFromEncrypted,
+  shouldAdoptRemoteSalt,
+} from "./remote-salt";
 import type {
   CloudConflictState,
   CloudProvider,
   CloudProviderId,
+  OAuthTokens,
   CloudSyncListener,
   CloudSyncState,
 } from "./types";
@@ -66,6 +73,10 @@ type ImportBackupFn = (
   backup: BackupFile,
   mode: "replace" | "merge",
 ) => Promise<void>;
+
+type DecryptedRemoteBackup = Awaited<
+  ReturnType<typeof decryptBackupWithKey>
+>;
 
 let importBackupFn: ImportBackupFn | null = null;
 let getLocalExportedAt: (() => string | null) | null = null;
@@ -115,6 +126,70 @@ async function getTokens() {
   return settings.tokens[settings.provider] ?? null;
 }
 
+async function getRemoteSaltIfAvailable(
+  provider: CloudProvider,
+  tokens: OAuthTokens,
+): Promise<Uint8Array | null> {
+  const encrypted = await provider.download(tokens);
+  if (!encrypted) return null;
+  return getKdfSaltFromEncrypted(encrypted);
+}
+
+async function adoptRemoteSaltIfNeeded(
+  provider: CloudProvider,
+  tokens: OAuthTokens,
+): Promise<boolean> {
+  const remoteSalt = await getRemoteSaltIfAvailable(provider, tokens);
+  if (!remoteSalt) return false;
+
+  const settings = await loadCloudSyncSettings();
+  const localSalt = getKdfSaltBytes(settings);
+  if (!shouldAdoptRemoteSalt(localSalt, remoteSalt)) return false;
+
+  await updateCloudSyncSettings({
+    kdfSalt: setKdfSaltBytes(remoteSalt),
+    conflictPaused: false,
+  });
+  lockSession();
+  await clearWrappedKey();
+  emit({
+    hasPassphrase: true,
+    sessionUnlocked: false,
+    status: "locked",
+    lastError: null,
+  });
+  return true;
+}
+
+async function adoptActiveRemoteSaltIfNeeded(): Promise<boolean> {
+  const provider = getActiveProvider();
+  const tokens = await getTokens();
+  if (!provider || !tokens) return false;
+  return adoptRemoteSaltIfNeeded(provider, tokens);
+}
+
+async function adoptActiveRemoteSaltOnInit(): Promise<void> {
+  if (!state.connected || !isOnline()) return;
+  try {
+    await adoptActiveRemoteSaltIfNeeded();
+  } catch (err) {
+    emit({
+      status: "error",
+      lastError: getErrorMessage(err),
+    });
+  }
+}
+
+async function decryptRemoteBackup(
+  encrypted: EncryptedBackupFile,
+): Promise<DecryptedRemoteBackup> {
+  const key = getSessionKey();
+  if (!key) {
+    throw new Error("Desbloqueie a senha de criptografia primeiro.");
+  }
+  return decryptBackupWithKey(encrypted, key);
+}
+
 export function subscribeCloudSync(listener: CloudSyncListener): () => void {
   listeners.add(listener);
   listener(state);
@@ -137,6 +212,7 @@ export async function initCloudSync(): Promise<void> {
   if (initialized) return;
   initialized = true;
   await refreshStateFromSettings();
+  await adoptActiveRemoteSaltOnInit();
 
   const settings = await loadCloudSyncSettings();
   if (settings.rememberDevice && settings.kdfSalt) {
@@ -164,7 +240,13 @@ export async function setupCloudPassphrase(
   rememberDevice: boolean,
 ): Promise<void> {
   const settings = await loadCloudSyncSettings();
-  const existingSalt = getKdfSaltBytes(settings);
+  let existingSalt = getKdfSaltBytes(settings);
+  const provider = getActiveProvider();
+  const tokens = await getTokens();
+  if (state.connected && isOnline() && provider && tokens) {
+    existingSalt =
+      (await getRemoteSaltIfAvailable(provider, tokens)) ?? existingSalt;
+  }
   const { kdfSalt } = await setupSession(
     passphrase,
     rememberDevice,
@@ -186,6 +268,9 @@ export async function setupCloudPassphrase(
 }
 
 export async function unlockCloudPassphrase(passphrase: string): Promise<void> {
+  if (state.connected && isOnline()) {
+    await adoptActiveRemoteSaltIfNeeded();
+  }
   const settings = await loadCloudSyncSettings();
   const salt = getKdfSaltBytes(settings);
   if (!salt) {
@@ -217,6 +302,9 @@ export async function connectCloudProvider(
   await provider.connect();
   await refreshStateFromSettings();
   trackEvent({ name: "cloud_sync_connected", provider: providerId });
+  if (await adoptActiveRemoteSaltIfNeeded()) {
+    return;
+  }
   if (state.sessionUnlocked) {
     await safeSyncAfterConnect();
   }
@@ -270,6 +358,30 @@ export async function forceSyncNow(): Promise<void> {
     debounceTimer = null;
   }
   await performUpload(true);
+}
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Erro desconhecido";
+}
+
+async function resolveUploadConflictIfNeeded(
+  message: string,
+): Promise<string | null> {
+  if (message !== "CONFLICT") return message;
+
+  const tokensNow = await getTokens();
+  const providerNow = getActiveProvider();
+  if (!providerNow || !tokensNow) return message;
+
+  const remote = await providerNow.getRevision(tokensNow);
+  if (!remote) return message;
+
+  try {
+    await handleConflict(providerNow, tokensNow, remote.revision);
+    return null;
+  } catch (conflictErr) {
+    return getErrorMessage(conflictErr);
+  }
 }
 
 async function performUpload(force = false): Promise<void> {
@@ -333,18 +445,8 @@ async function performUpload(force = false): Promise<void> {
     });
     trackEvent({ name: "cloud_sync_uploaded", provider: provider.id, result: "ok" });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro desconhecido";
-    if (message === "CONFLICT") {
-      const tokensNow = await getTokens();
-      const providerNow = getActiveProvider();
-      if (providerNow && tokensNow) {
-        const remote = await providerNow.getRevision(tokensNow);
-        if (remote) {
-          await handleConflict(providerNow, tokensNow, remote.revision);
-          return;
-        }
-      }
-    }
+    const message = await resolveUploadConflictIfNeeded(getErrorMessage(err));
+    if (!message) return;
     emit({ status: "error", lastError: message });
     trackEvent({
       name: "cloud_sync_uploaded",
@@ -358,16 +460,13 @@ async function performUpload(force = false): Promise<void> {
 
 async function handleConflict(
   provider: CloudProvider,
-  tokens: import("./types").OAuthTokens,
+  tokens: OAuthTokens,
   remoteRevision: string,
 ): Promise<void> {
-  const key = getSessionKey();
-  if (!key) return;
-
   const encrypted = await provider.download(tokens);
   if (!encrypted) return;
 
-  const { backup: remoteBackup } = await decryptBackupWithKey(encrypted, key);
+  const { backup: remoteBackup } = await decryptRemoteBackup(encrypted);
   const localExportedAt = getLocalExportedAt?.() ?? null;
 
   await updateCloudSyncSettings({ conflictPaused: true });
@@ -391,8 +490,7 @@ export async function probeRemoteBackup(): Promise<RemoteProbeResult> {
 
   const provider = getActiveProvider();
   const tokens = await getTokens();
-  const key = getSessionKey();
-  if (!provider || !tokens || !key) return "clear";
+  if (!provider || !tokens || !getSessionKey()) return "clear";
 
   try {
     const remote = await provider.getRevision(tokens);
@@ -400,26 +498,30 @@ export async function probeRemoteBackup(): Promise<RemoteProbeResult> {
 
     const blocked = await applyRemoteProbe(provider, tokens, remote.revision);
     return blocked ? "blocked" : "clear";
-  } catch {
-    return "clear";
+  } catch (err) {
+    const message =
+      err instanceof E2EEDecryptError
+        ? err.message
+        : getErrorMessage(err);
+    emit({ status: "error", lastError: message });
+    return "blocked";
   }
 }
 
 async function safeSyncAfterConnect(): Promise<void> {
   const probeResult = await probeRemoteBackup();
-  if (probeResult === "clear") {
+  if (probeResult === "clear" && state.sessionUnlocked) {
     await performUpload(true);
   }
 }
 
 async function applyRemoteProbe(
   provider: CloudProvider,
-  tokens: import("./types").OAuthTokens,
+  tokens: OAuthTokens,
   remoteRevision: string,
 ): Promise<boolean> {
   const settings = await loadCloudSyncSettings();
-  const key = getSessionKey();
-  if (!key) return false;
+  if (!getSessionKey()) return false;
 
   if (
     settings.lastRemoteRevision &&
@@ -431,7 +533,7 @@ async function applyRemoteProbe(
   const encrypted = await provider.download(tokens);
   if (!encrypted) return false;
 
-  const { backup: remoteBackup } = await decryptBackupWithKey(encrypted, key);
+  const { backup: remoteBackup } = await decryptRemoteBackup(encrypted);
   const localAt = getLocalExportedAt?.() ?? null;
   const action = evaluateRemoteProbe({
     localExportedAt: localAt,

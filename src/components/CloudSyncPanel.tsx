@@ -189,6 +189,17 @@ export function CloudSyncPanel() {
   async function handleConnect(provider: CloudProviderId) {
     await run(async () => {
       await connectCloudProvider(provider);
+      const nextSyncState = getCloudSyncState();
+      if (
+        nextSyncState.connected &&
+        nextSyncState.status === "locked" &&
+        !nextSyncState.lastSyncAt
+      ) {
+        setMessage(
+          "Backup encontrado na nuvem. Desbloqueie a senha de criptografia para continuar.",
+        );
+        return;
+      }
       setMessage(
         provider === "google"
           ? "Google Drive conectado. Enviando primeiro backup…"

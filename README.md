@@ -572,6 +572,7 @@ Fluxo guiado em **Config → Sync** quando `NEXT_PUBLIC_GOOGLE_CLIENT_ID` está 
 Comportamentos de segurança:
 
 - **Dispositivo novo:** se já existir backup na nuvem, o app oferece restaurar antes de enviar dados locais (evita sobrescrever a nuvem com dados vazios).
+- **Multi-dispositivo:** o salt PBKDF2 fica no arquivo `.enc` e é adotado automaticamente ao conectar outro navegador com a mesma senha. Se a descriptografia falhar, o sync fica bloqueado em erro e não dispara upload automático.
 - **Chip no header** — "Proteger no Drive", "Sync bloqueada" ou "Resolver sync" quando a proteção precisa de atenção.
 - **Backup manual JSON** (`/config?tab=backup`) continua como rede de segurança; o chip "Backup há Xd" some quando a sync na nuvem está recente (&lt;14 dias).
 
