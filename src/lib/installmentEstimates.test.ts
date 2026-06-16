@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   collectInstallmentSlotKeys,
+  collectLooseInstallmentSlotKeys,
+  filterDuplicateIncomingRows,
   installmentSlotKey,
   removeStaleEstimatedInstallments,
 } from "./installmentEstimates";
@@ -147,5 +149,167 @@ describe("removeStaleEstimatedInstallments", () => {
     expect(result.dataset.sources[0].raw.map((row) => row.id)).toEqual([
       "keep-me",
     ]);
+  });
+
+  it("removes stale estimates when incoming real row matches on loose slot key only", () => {
+    const strictGroupKey = "inter|03/05/2026|decolar|VIAGEM|245.76|6";
+    const dataset: Dataset = {
+      sources: [
+        {
+          id: "src-old",
+          fileName: "junho.csv",
+          fonte: "inter",
+          importedAt: "2026-06-01T00:00:00.000Z",
+          rowsRaw: 1,
+          raw: [
+            installmentRow({
+              id: "old-estimate",
+              valorOriginal: 245.76,
+              lancamento: "DECOLAR (compra 03/05/2026)",
+              installment: {
+                current: 2,
+                total: 6,
+                purchaseDate: "03/05/2026",
+                groupKey: strictGroupKey,
+                estimated: true,
+              },
+            }),
+          ],
+        },
+      ],
+    };
+
+    const incomingGroupKey = "inter|03/05/2026|decolar|VIAGEM|245.71|6";
+    const incoming: TransactionRaw[] = [
+      installmentRow({
+        id: "real-2",
+        sourceId: "src-new",
+        valorOriginal: 245.71,
+        installment: {
+          current: 2,
+          total: 6,
+          purchaseDate: "03/05/2026",
+          groupKey: incomingGroupKey,
+          estimated: false,
+        },
+      }),
+    ];
+
+    const result = removeStaleEstimatedInstallments(dataset, incoming);
+    expect(result.removedRawIds).toEqual(["old-estimate"]);
+    expect(result.dataset.sources[0].raw).toHaveLength(0);
+    expect(collectLooseInstallmentSlotKeys(incoming)).toEqual(
+      new Set(["inter|03/05/2026|viagem|6|2"]),
+    );
+  });
+
+  it("removes stale estimates when merchant text changes across invoices", () => {
+    const dataset: Dataset = {
+      sources: [
+        {
+          id: "src-old",
+          fileName: "junho.csv",
+          fonte: "inter",
+          importedAt: "2026-06-01T00:00:00.000Z",
+          rowsRaw: 1,
+          raw: [
+            installmentRow({
+              id: "old-estimate",
+              lancamento: "FeV GNV (compra 01/12/2025)",
+              categoria: "SERVICOS",
+              tipo: "Parcela 7/7",
+              installment: {
+                current: 7,
+                total: 7,
+                purchaseDate: "01/12/2025",
+                groupKey: "inter|01/12/2025|fev gnv|SERVICOS|102.72|7",
+                estimated: true,
+              },
+            }),
+          ],
+        },
+      ],
+    };
+
+    const incoming: TransactionRaw[] = [
+      installmentRow({
+        id: "real-7",
+        sourceId: "src-new",
+        lancamento: "PG INFRACOMMERCE (compra 01/12/2025)",
+        categoria: "SERVICOS",
+        tipo: "Parcela 7/7",
+        installment: {
+          current: 7,
+          total: 7,
+          purchaseDate: "01/12/2025",
+          groupKey:
+            "inter|01/12/2025|pg infracommerce|SERVICOS|102.72|7",
+          estimated: false,
+        },
+      }),
+    ];
+
+    const result = removeStaleEstimatedInstallments(dataset, incoming);
+    expect(result.removedRawIds).toEqual(["old-estimate"]);
+  });
+});
+
+describe("filterDuplicateIncomingRows", () => {
+  it("skips installment rows whose loose slot already exists in the dataset", () => {
+    const dataset: Dataset = {
+      sources: [
+        {
+          id: "src-old",
+          fileName: "maio.csv",
+          fonte: "inter",
+          importedAt: "2026-05-01T00:00:00.000Z",
+          rowsRaw: 1,
+          raw: [
+            installmentRow({
+              id: "existing-real",
+              installment: {
+                current: 1,
+                total: 10,
+                purchaseDate: "03/04/2026",
+                groupKey: "inter|03/04/2026|dafiti|VESTUARIO|58.08|10",
+                estimated: false,
+              },
+            }),
+          ],
+        },
+      ],
+    };
+
+    const incoming: TransactionRaw[] = [
+      installmentRow({
+        id: "duplicate-real",
+        sourceId: "src-new",
+        valorOriginal: 58.08,
+        installment: {
+          current: 1,
+          total: 10,
+          purchaseDate: "03/04/2026",
+          groupKey: "inter|03/04/2026|dafiti|VESTUARIO|58.08|10",
+          estimated: false,
+        },
+      }),
+      installmentRow({
+        id: "new-real",
+        sourceId: "src-new",
+        valorOriginal: 57.99,
+        tipo: "Parcela 2/10",
+        installment: {
+          current: 2,
+          total: 10,
+          purchaseDate: "03/04/2026",
+          groupKey: "inter|03/04/2026|dafiti|VESTUARIO|57.99|10",
+          estimated: false,
+        },
+      }),
+    ];
+
+    const result = filterDuplicateIncomingRows(dataset, incoming);
+    expect(result.skippedRawIds).toEqual(["duplicate-real"]);
+    expect(result.raw.map((row) => row.id)).toEqual(["new-real"]);
   });
 });

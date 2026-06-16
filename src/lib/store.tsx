@@ -38,7 +38,10 @@ import {
   pruneEditsForRawIds,
   TransactionEditPatch,
 } from "./edits";
-import { removeStaleEstimatedInstallments } from "./installmentEstimates";
+import {
+  filterDuplicateIncomingRows,
+  removeStaleEstimatedInstallments,
+} from "./installmentEstimates";
 import { compileAliases } from "./aliases";
 import { addDaysIso, todayIso } from "./dates";
 import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
@@ -559,17 +562,30 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
+      const { raw: dedupedRaw, skippedRawIds } = filterDuplicateIncomingRows(
+        { sources: dataset.sources },
+        nextSource.raw,
+      );
+      if (dedupedRaw.length === 0) {
+        return;
+      }
       const { dataset: cleanedDataset, removedRawIds } =
         removeStaleEstimatedInstallments(
           { sources: dataset.sources },
-          nextSource.raw,
+          dedupedRaw,
         );
-      if (removedRawIds.length > 0) {
-        const nextEdits = pruneEditsForRawIds(edits, removedRawIds);
+      const prunedRawIds = [...removedRawIds, ...skippedRawIds];
+      if (prunedRawIds.length > 0) {
+        const nextEdits = pruneEditsForRawIds(edits, prunedRawIds);
         if (nextEdits !== edits) {
           await persistEdits(nextEdits);
         }
       }
+      nextSource = {
+        ...nextSource,
+        raw: dedupedRaw,
+        rowsRaw: dedupedRaw.length,
+      };
       const next: Dataset = {
         sources: [...cleanedDataset.sources, nextSource],
       };

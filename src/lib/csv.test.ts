@@ -4,6 +4,10 @@ import {
   upsertCardAccountCycle,
 } from "./accounts";
 import {
+  filterDuplicateIncomingRows,
+  removeStaleEstimatedInstallments,
+} from "./installmentEstimates";
+import {
   inferInvoiceAnoMes,
   isInterInstallmentTipo,
   parseCsvText,
@@ -11,7 +15,7 @@ import {
   reapplyInterCycleToSource,
   rewriteInstallmentRow,
 } from "./csv";
-import type { Account, Source, TransactionRaw } from "./types";
+import type { Account, Dataset, Source, TransactionRaw } from "./types";
 
 const interCard: Account = {
   id: "inter-card",
@@ -201,6 +205,130 @@ describe("parseCsvText inter installments", () => {
     );
     expect(installment?.data).toBe("26/05/2026");
     expect(installment?.installment).toBeUndefined();
+  });
+
+  const multiRealInstallmentsCsv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","LOJA AVISTA","COMPRAS","Compra à vista","R$ 10,00"
+"08/04/2026","AIRBNB HMQ9F9EXK9","VIAGEM","Parcela 6/6","R$ 365,33"
+"08/04/2026","AIRBNB HMQ9F9EXK9","VIAGEM","Parcela 3/6","R$ 365,33"
+"08/04/2026","AIRBNB HMQ9F9EXK9","VIAGEM","Parcela 2/6","R$ 365,33"
+"08/04/2026","AIRBNB HMQ9F9EXK9","VIAGEM","Parcela 5/6","R$ 365,33"
+"08/04/2026","AIRBNB HMQ9F9EXK9","VIAGEM","Parcela 4/6","R$ 365,33"
+"07/04/2026","AIRBNB HMQ9F9EXK9","VIAGEM","Parcela 1/6","R$ 365,35"
+`;
+
+  it("does not generate estimated installments for real slots already present in the same CSV", () => {
+    const result = parseCsvText(
+      multiRealInstallmentsCsv,
+      "fatura-inter-2026-05.csv",
+      [interCard],
+    );
+    expect(result.ok).toBe(true);
+    const installments = result.source?.raw.filter((row) => row.installment);
+    expect(installments).toHaveLength(6);
+    expect(installments?.every((row) => row.installment?.estimated === false)).toBe(
+      true,
+    );
+    expect(installments?.map((row) => row.tipo).sort()).toEqual([
+      "Parcela 1/6",
+      "Parcela 2/6",
+      "Parcela 3/6",
+      "Parcela 4/6",
+      "Parcela 5/6",
+      "Parcela 6/6",
+    ]);
+  });
+});
+
+function simulateAddSource(dataset: Dataset, source: Source): Dataset {
+  const { raw: dedupedRaw } = filterDuplicateIncomingRows(dataset, source.raw);
+  if (dedupedRaw.length === 0) {
+    return dataset;
+  }
+  const { dataset: cleanedDataset } = removeStaleEstimatedInstallments(
+    dataset,
+    dedupedRaw,
+  );
+  return {
+    sources: [
+      ...cleanedDataset.sources,
+      { ...source, raw: dedupedRaw, rowsRaw: dedupedRaw.length },
+    ],
+  };
+}
+
+function countLooseInstallmentSlots(dataset: Dataset): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const source of dataset.sources) {
+    for (const row of source.raw) {
+      if (!row.installment) continue;
+      const key = `${row.installment.purchaseDate}|${row.installment.current}/${row.installment.total}|${row.installment.estimated ? "est" : "real"}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+describe("sequential Inter invoice imports", () => {
+  const mayCsv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","LOJA AVISTA","COMPRAS","Compra à vista","R$ 10,00"
+"03/04/2026","DAFITI 4604482542","VESTUARIO","Parcela 1/10","R$ 58,08"
+"01/12/2025","FeV GNV","SERVICOS","Parcela 5/7","R$ 102,72"
+`;
+
+  const juneCsv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","LOJA AVISTA","COMPRAS","Compra à vista","R$ 10,00"
+"03/04/2026","DAFITI 4604482542","VESTUARIO","Parcela 2/10","R$ 57,99"
+"01/12/2025","FeV GNV","SERVICOS","Parcela 6/7","R$ 102,72"
+`;
+
+  const julyCsv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","LOJA AVISTA","COMPRAS","Compra à vista","R$ 10,00"
+"03/04/2026","DAFITI 4604482542","VESTUARIO","Parcela 3/10","R$ 57,99"
+"01/12/2025","PG INFRACOMMERCE NEGO","SERVICOS","Parcela 7/7","R$ 102,72"
+`;
+
+  it("does not duplicate installment slots when importing consecutive invoices", () => {
+    let dataset: Dataset = { sources: [] };
+    for (const [text, fileName] of [
+      [mayCsv, "fatura-inter-2026-05.csv"],
+      [juneCsv, "fatura-inter-2026-06.csv"],
+      [julyCsv, "fatura-inter-2026-07.csv"],
+    ] as const) {
+      const parsed = parseCsvText(text, fileName, [interCard]);
+      expect(parsed.source).not.toBeNull();
+      dataset = simulateAddSource(dataset, parsed.source as Source);
+    }
+
+    const slotCounts = countLooseInstallmentSlots(dataset);
+    for (const [, count] of slotCounts) {
+      expect(count).toBe(1);
+    }
+
+    const dafitiReal = [...slotCounts.entries()].filter(
+      ([key]) => key.includes("03/04/2026") && key.includes("real"),
+    );
+    expect(dafitiReal.map(([key]) => key)).toEqual(
+      expect.arrayContaining([
+        "03/04/2026|1/10|real",
+        "03/04/2026|2/10|real",
+        "03/04/2026|3/10|real",
+      ]),
+    );
+    expect(
+      [...slotCounts.keys()].some(
+        (key) => key.includes("01/12/2025") && key.includes("7/7|real"),
+      ),
+    ).toBe(true);
+  });
+
+  it("skips reimporting an invoice whose rows already exist", () => {
+    const parsed = parseCsvText(mayCsv, "fatura-inter-2026-05.csv", [interCard]);
+    let dataset = simulateAddSource({ sources: [] }, parsed.source as Source);
+    const sourcesAfterFirst = dataset.sources.length;
+
+    dataset = simulateAddSource(dataset, parsed.source as Source);
+    expect(dataset.sources).toHaveLength(sourcesAfterFirst);
   });
 });
 

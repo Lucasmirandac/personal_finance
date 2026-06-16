@@ -147,6 +147,18 @@ export function isoToBr(iso: string): string {
 const INTER_INSTALLMENT_TIPO_RE = /^Parcela\s+(\d+)\s*\/\s*(\d+)\s*$/i;
 const COMPRA_SUFFIX_RE = /\s*\(compra\s+\d{2}\/\d{2}\/\d{4}\)\s*$/i;
 
+function normalizeInstallmentLancamento(lancamento: string): string {
+  return lancamento.replace(COMPRA_SUFFIX_RE, "").trim().toLowerCase();
+}
+
+function buildPlanInstallmentSlotKey(
+  raw: Pick<TransactionRaw, "fonte" | "categoria" | "lancamento">,
+  current: number,
+  total: number,
+): string {
+  return `${raw.fonte}|${normalizeInstallmentLancamento(raw.lancamento)}|${raw.categoria.trim().toLowerCase()}|${total}|${current}`;
+}
+
 export function parseInterInstallmentTipo(
   tipo: string,
 ): { current: number; total: number } | null {
@@ -246,6 +258,18 @@ export function rewriteInstallmentRow(
   };
 }
 
+function collectRealInstallmentSlotsFromCsv(raw: TransactionRaw[]): Set<string> {
+  const slots = new Set<string>();
+  for (const row of raw) {
+    const parsed = parseInterInstallmentTipo(row.tipo);
+    if (!parsed) continue;
+    slots.add(
+      buildPlanInstallmentSlotKey(row, parsed.current, parsed.total),
+    );
+  }
+  return slots;
+}
+
 function applyInterInstallmentRewrites(
   raw: TransactionRaw[],
   cardAccount: Account,
@@ -261,6 +285,8 @@ function applyInterInstallmentRewrites(
   );
   if (!invoiceAnoMes) return;
 
+  const realSlotsInCsv = collectRealInstallmentSlotsFromCsv(raw);
+  const addedEstimateSlots = new Set<string>();
   const extras: TransactionRaw[] = [];
 
   for (let i = 0; i < raw.length; i++) {
@@ -280,13 +306,23 @@ function applyInterInstallmentRewrites(
       purchaseDate,
       false,
     );
+  }
 
-    if (parsed.current >= parsed.total) continue;
+  for (let i = 0; i < raw.length; i++) {
+    const parsed = parseInterInstallmentTipo(raw[i].tipo);
+    if (!parsed || parsed.current >= parsed.total) continue;
 
+    const purchaseDate = raw[i].installment?.purchaseDate ?? raw[i].data.trim();
     const currentPayIso = parseBrDate(raw[i].data);
     if (!currentPayIso) continue;
 
     for (let n = parsed.current + 1; n <= parsed.total; n += 1) {
+      const slotKey = buildPlanInstallmentSlotKey(raw[i], n, parsed.total);
+      if (realSlotsInCsv.has(slotKey) || addedEstimateSlots.has(slotKey)) {
+        continue;
+      }
+      addedEstimateSlots.add(slotKey);
+
       const monthsAhead = n - parsed.current;
       const futureIso = addMonthsIso(currentPayIso, monthsAhead);
       extras.push(
