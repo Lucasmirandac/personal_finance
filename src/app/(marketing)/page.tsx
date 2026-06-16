@@ -8,17 +8,24 @@ import { getSiteUrl } from "@/lib/marketing/site";
 import { SOCIAL_LINKS } from "@/lib/marketing/social";
 import { getAllArticles } from "@/lib/marketing/articles";
 import {
-  BANKS_FAQ_ANSWER,
   CSV_OPTIONAL_LINE,
+  HERO_SUBTITLE,
   JSON_LD_APP_DESCRIPTION,
+  LANDING_FAQ,
   PRODUCT_PROMISE,
 } from "@/lib/marketing/copy";
 import {
   ArrowRight,
   BookOpen,
+  CalendarRange,
+  CircleHelp,
+  FileText,
   Landmark,
+  LayoutGrid,
   LineChart,
+  LockKeyhole,
   PiggyBank,
+  Receipt,
   ShieldCheck,
   Upload,
   WalletCards,
@@ -31,33 +38,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Saldo Real — finanças locais e privadas",
     description:
-      "Painel financeiro para qualquer banco. Projete saldo e limite diário — tudo no navegador.",
+      "Hoje, Extrato, Faturas e Futuro — limite diário, orçamentos e sync criptografado opcional. Tudo no navegador.",
     url: "/",
   },
 };
-
-const FAQ = [
-  {
-    q: "Meus dados ficam onde?",
-    a: "No IndexedDB do seu navegador. Nada é enviado para servidores do Saldo Real.",
-  },
-  {
-    q: "Preciso criar conta?",
-    a: "Não. Abra o app, cadastre conta e renda no onboarding e comece a usar.",
-  },
-  {
-    q: "Funciona offline?",
-    a: "Sim, como PWA. Depois de carregar, o painel funciona com seus dados locais.",
-  },
-  {
-    q: "Quais bancos são suportados?",
-    a: BANKS_FAQ_ANSWER,
-  },
-  {
-    q: "Posso reservar parte da renda para poupar?",
-    a: "Sim. Defina um percentual ou valor fixo da renda disponível — a reserva reduz o limite diário e entra na projeção de patrimônio. Tudo fica no navegador.",
-  },
-];
 
 export default function LandingPage() {
   const siteUrl = getSiteUrl();
@@ -77,7 +61,7 @@ export default function LandingPage() {
       },
       {
         "@type": "FAQPage",
-        mainEntity: FAQ.map((item) => ({
+        mainEntity: LANDING_FAQ.map((item) => ({
           "@type": "Question",
           name: item.q,
           acceptedAnswer: { "@type": "Answer", text: item.a },
@@ -96,15 +80,14 @@ export default function LandingPage() {
       <section className="mx-auto max-w-5xl px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-24">
         <div className="max-w-2xl">
           <p className="text-caption font-semibold uppercase tracking-wider text-accent">
-            Local-first · Sem cadastro
+            Local-first · Sem cadastro · PWA offline
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.1]">
             Seu saldo real.
             <span className="block text-muted">Só no seu navegador.</span>
           </h1>
           <p className="mt-5 text-lg text-muted leading-relaxed max-w-xl">
-            Cadastre contas, projete os próximos meses e saiba quanto pode gastar
-            hoje — sem enviar um centavo de dado para a nuvem.
+            {HERO_SUBTITLE}
           </p>
           <p className="mt-3 text-sm text-muted leading-relaxed max-w-xl">
             {CSV_OPTIONAL_LINE}
@@ -120,6 +103,12 @@ export default function LandingPage() {
               Começar grátis
             </MarketingCtaLink>
             <Link
+              href="/ferramentas/posso-comprar"
+              className="inline-flex items-center rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-surface-2"
+            >
+              Posso comprar?
+            </Link>
+            <Link
               href="/ferramentas/limite-diario"
               className="inline-flex items-center rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-surface-2"
             >
@@ -130,70 +119,162 @@ export default function LandingPage() {
       </section>
 
       <section className="border-y border-border/60 bg-surface/60">
-        <div className="mx-auto grid max-w-5xl gap-6 px-4 py-14 sm:grid-cols-3 sm:px-6">
+        <div className="mx-auto grid max-w-5xl gap-6 px-4 py-14 sm:grid-cols-2 lg:grid-cols-4 sm:px-6">
           <Pillar
             icon={<ShieldCheck size={22} />}
             title="100% local"
-            text="Seus extratos e saldos ficam no dispositivo. Backup JSON quando você quiser."
+            text="IndexedDB e backup JSON. Dados financeiros não passam pelo Saldo Real."
           />
           <Pillar
-            icon={<Upload size={22} />}
-            title="Importação CSV (opcional)"
-            text="Nubank e Inter hoje. Sem CSV? Lance gastos manualmente em qualquer conta."
+            icon={<CircleHelp size={22} />}
+            title="Decidir antes"
+            text="Limite diário, Posso comprar? e alertas de orçamento antes de salvar."
           />
           <Pillar
-            icon={<LineChart size={22} />}
-            title="Limite diário"
-            text="Renda − fixos − fatura = quanto pode gastar por dia, sem planilha."
+            icon={<LayoutGrid size={22} />}
+            title="Visão completa"
+            text="Hoje, Extrato com status pago/a pagar, Faturas e Futuro em 90 dias."
+          />
+          <Pillar
+            icon={<LockKeyhole size={22} />}
+            title="Backup opcional"
+            text="Sync criptografado no seu Google Drive ou Dropbox — você guarda a senha."
           />
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
         <h2 className="text-2xl font-semibold tracking-tight">
-          Dois caminhos, mesmo painel
+          Quatro telas, uma visão
         </h2>
         <p className="mt-3 max-w-2xl text-muted leading-relaxed">
-          Escolha como alimentar o Saldo Real — o painel funciona igual nos dois
-          casos.
+          Cada rota responde uma pergunta diferente — do saldo de hoje à projeção
+          dos próximos meses.
         </p>
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          <div className="rounded-2xl border border-accent/30 bg-surface p-6 shadow-[var(--shadow-card)]">
-            <span className="text-accent">
-              <WalletCards size={22} aria-hidden />
-            </span>
-            <p className="mt-3 font-semibold">Qualquer banco</p>
-            <p className="mt-2 text-sm text-muted leading-relaxed">
-              Cadastre contas, renda no Divisor e lance gastos no Quick Add.
-              Ideal para Bradesco, Itaú, C6 e demais.
-            </p>
-            <MarketingCtaLink
-              href="/comecar"
-              pageId="landing"
-              cta="comecar"
-              variant="primary"
-              className="mt-5"
-            >
-              Começar manualmente
-            </MarketingCtaLink>
+          <RouteCard
+            icon={<WalletCards size={22} />}
+            title="Hoje"
+            text="Saldo real, limite diário e alertas do dia — a resposta para quanto posso gastar agora."
+          />
+          <RouteCard
+            icon={<FileText size={22} />}
+            title="Extrato"
+            text="Contas à vista com status de pagamento: pago, a pagar ou vencida."
+          />
+          <RouteCard
+            icon={<Receipt size={22} />}
+            title="Faturas"
+            text="Ciclos de cartão, teto mensal e impacto no fluxo de caixa."
+          />
+          <RouteCard
+            icon={<CalendarRange size={22} />}
+            title="Futuro"
+            text="Projeção de saldo e linha do tempo — veja os próximos 90 dias."
+          />
+        </div>
+      </section>
+
+      <section className="border-y border-border/60 bg-surface/60">
+        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Dois caminhos, mesmo painel
+          </h2>
+          <p className="mt-3 max-w-2xl text-muted leading-relaxed">
+            Escolha como alimentar o Saldo Real — o painel funciona igual nos dois
+            casos.
+          </p>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-accent/30 bg-surface p-6 shadow-[var(--shadow-card)]">
+              <span className="text-accent">
+                <WalletCards size={22} aria-hidden />
+              </span>
+              <p className="mt-3 font-semibold">Qualquer banco</p>
+              <p className="mt-2 text-sm text-muted leading-relaxed">
+                Cadastre contas, renda no Divisor de Águas e lance gastos no Quick
+                Add. Ideal para Bradesco, Itaú, C6 e demais.
+              </p>
+              <MarketingCtaLink
+                href="/comecar"
+                pageId="landing"
+                cta="comecar"
+                variant="primary"
+                className="mt-5"
+              >
+                Começar manualmente
+              </MarketingCtaLink>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)]">
+              <span className="text-accent">
+                <Upload size={22} aria-hidden />
+              </span>
+              <p className="mt-3 font-semibold">Importação rápida</p>
+              <p className="mt-2 text-sm text-muted leading-relaxed">
+                CSV do Nubank ou Inter detectado automaticamente. Classifica
+                gastos e poupa digitação.
+              </p>
+              <Link
+                href="/guias/importar-nubank"
+                className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2"
+              >
+                Ver guias de importação
+                <ArrowRight size={14} aria-hidden />
+              </Link>
+            </div>
           </div>
-          <div className="rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)]">
-            <span className="text-accent">
-              <Upload size={22} aria-hidden />
-            </span>
-            <p className="mt-3 font-semibold">Importação rápida</p>
-            <p className="mt-2 text-sm text-muted leading-relaxed">
-              CSV do Nubank ou Inter detectado automaticamente. Classifica
-              gastos e poupa digitação.
-            </p>
-            <Link
-              href="/guias/importar-nubank"
-              className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-surface-2"
-            >
-              Ver guias de importação
-              <ArrowRight size={14} aria-hidden />
-            </Link>
-          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+        <p className="text-caption font-semibold uppercase tracking-wider text-accent">
+          Antes de gastar
+        </p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+          Decidir antes de gastar.
+        </h2>
+        <p className="mt-4 max-w-2xl text-muted leading-relaxed">
+          O Saldo Real não só mostra números — avisa antes de você esticar o mês
+          ou estourar uma categoria.
+        </p>
+
+        <ol className="mt-10 grid gap-4 sm:grid-cols-3">
+          <FlowStep
+            n={1}
+            icon={<LineChart size={18} />}
+            title="Limite diário"
+            text="Quanto pode gastar hoje, com renda, fixos e faturas já descontados."
+          />
+          <FlowStep
+            n={2}
+            icon={<CircleHelp size={18} />}
+            title="Posso comprar?"
+            text="Simule parcelas e veja o semáforo antes de confirmar a compra."
+          />
+          <FlowStep
+            n={3}
+            icon={<Receipt size={18} />}
+            title="Orçamentos"
+            text="Alerta se a categoria vai estourar no mês — no Quick Add, antes de salvar."
+          />
+        </ol>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <MarketingCtaLink
+            href="/ferramentas/posso-comprar"
+            pageId="landing"
+            cta="ferramenta"
+            variant="primary"
+            className="px-5 py-2.5"
+          >
+            Simular compra
+          </MarketingCtaLink>
+          <Link
+            href="/ferramentas/limite-diario"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-5 py-2.5 text-sm font-medium hover:bg-surface-2"
+          >
+            Calcular limite diário
+            <ArrowRight size={14} aria-hidden />
+          </Link>
         </div>
       </section>
 
@@ -207,8 +288,8 @@ export default function LandingPage() {
           </h2>
           <p className="mt-4 max-w-2xl text-muted leading-relaxed">
             Defina quanto da sua renda disponível guardar todo mês. A reserva
-            sai do limite diário e alimenta a Projeção de Paz Futura — sem
-            planilha, sem nuvem.
+            sai do limite diário e alimenta a Projeção de Paz Futura — tudo no
+            navegador, sem planilha.
           </p>
 
           <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -276,9 +357,9 @@ export default function LandingPage() {
           />
           <Step
             n={3}
-            icon={<LineChart size={18} />}
+            icon={<LayoutGrid size={18} />}
             title="Veja o painel"
-            text="Saldo hoje, faturas, limite diário e projeção 90 dias."
+            text="Navegue entre Hoje, Extrato, Faturas e Futuro — e configure backup ou sync quando quiser."
           />
         </ol>
       </section>
@@ -333,7 +414,7 @@ export default function LandingPage() {
       <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
         <h2 className="text-2xl font-semibold tracking-tight">Perguntas frequentes</h2>
         <dl className="mt-8 space-y-6">
-          {FAQ.map((item) => (
+          {LANDING_FAQ.map((item) => (
             <div key={item.q} className="rounded-2xl border border-border bg-surface p-5">
               <dt className="font-medium">{item.q}</dt>
               <dd className="mt-2 text-sm text-muted leading-relaxed">{item.a}</dd>
@@ -356,6 +437,24 @@ function Pillar({
 }>) {
   return (
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)]">
+      <span className="text-accent">{icon}</span>
+      <p className="mt-3 font-semibold">{title}</p>
+      <p className="mt-2 text-sm text-muted leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+function RouteCard({
+  icon,
+  title,
+  text,
+}: Readonly<{
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}>) {
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-[var(--shadow-card)]">
       <span className="text-accent">{icon}</span>
       <p className="mt-3 font-semibold">{title}</p>
       <p className="mt-2 text-sm text-muted leading-relaxed">{text}</p>

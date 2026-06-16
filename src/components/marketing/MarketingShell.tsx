@@ -78,8 +78,8 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
             <div>
               <p className="font-semibold">Saldo Real</p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                Finanças pessoais locais e privadas. Seus dados ficam no
-                navegador — sem cadastro, sem nuvem.
+                Finanças locais e privadas. Seus dados ficam no navegador —
+                sync criptografado opcional na sua conta.
               </p>
             </div>
             <div>
@@ -171,8 +171,8 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
             </div>
           </div>
           <p className="mt-8 text-caption text-muted">
-            © {new Date().getFullYear()} Saldo Real · Cálculos locais, nada é enviado
-            ao servidor.
+            © {new Date().getFullYear()} Saldo Real · Cálculos locais, sync
+            opcional criptografado.
           </p>
         </div>
       </footer>
