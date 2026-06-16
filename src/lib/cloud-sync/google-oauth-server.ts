@@ -32,9 +32,48 @@ export class GoogleOAuthError extends Error {
   }
 }
 
+/** Normalizes origin URLs from env (trim, strip trailing slash). */
+export function parseOrigins(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const trimmed = part.trim().replace(/\/$/, "");
+    if (!trimmed) continue;
+    try {
+      out.push(new URL(trimmed).origin);
+    } catch {
+      // skip invalid entries
+    }
+  }
+  return out;
+}
+
+/** Adds www / apex pair for a valid https origin (convenience). */
+function withWwwOriginPair(origin: string): string[] {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return [origin];
+    }
+    const host = url.hostname;
+    const results = [url.origin];
+    if (host.startsWith("www.")) {
+      const apex = host.slice(4);
+      if (apex) results.push(`${url.protocol}//${apex}`);
+    } else if (!host.includes("localhost") && !host.startsWith("127.")) {
+      results.push(`${url.protocol}//www.${host}`);
+    }
+    return results;
+  } catch {
+    return [origin];
+  }
+}
+
 export function getAllowedRedirectOrigins(): string[] {
   const origins = new Set<string>([
     getSiteUrl(),
+    ...withWwwOriginPair(getSiteUrl()),
+    ...parseOrigins(process.env.OAUTH_ALLOWED_ORIGINS),
     "http://localhost:3000",
     "http://127.0.0.1:3000",
   ]);

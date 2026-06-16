@@ -532,12 +532,28 @@ Variáveis de ambiente (OAuth):
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | client + server | OAuth Google Drive (`drive.appdata`) |
 | `GOOGLE_CLIENT_SECRET` | **server only** | troca do code/refresh no Google (rota `/api/oauth/google/token`) |
 | `NEXT_PUBLIC_DROPBOX_APP_KEY` | client | OAuth Dropbox App Folder |
-| `NEXT_PUBLIC_SITE_URL` | server (opcional) | validar redirect URI em produção |
+| `NEXT_PUBLIC_SITE_URL` | server (opcional) | origin canônico; também gera par www/apex na allowlist OAuth |
+| `OAUTH_ALLOWED_ORIGINS` | server (opcional) | origens extras, separadas por vírgula (ex.: `.dev.br` + `.app`) |
+
+**Redirect URI:** o browser usa `{origin atual}/config/oauth/callback` (ex.: se o usuário acessa `https://www.saldoreal.dev.br`, o redirect é esse domínio). Três lugares devem coincidir:
+
+1. **Google Cloud Console** → Redirect URIs autorizados
+2. **Allowlist server-side** → `NEXT_PUBLIC_SITE_URL` e/ou `OAUTH_ALLOWED_ORIGINS`
+3. **URL que o usuário abre** no navegador
+
+Erro **"redirect_uri não autorizado."** = validação do Saldo Real (`/api/oauth/google/token`). Erro do Google costuma ser `redirect_uri_mismatch`.
 
 **Google Cloud Console:** credencial OAuth tipo **Web application**. Redirect URIs autorizados:
 
 - `http://localhost:3000/config/oauth/callback` (dev)
-- `https://<seu-dominio>/config/oauth/callback` (prod)
+- `https://<seu-dominio>/config/oauth/callback` (prod — inclua `www` se o site usa `www`)
+
+Exemplo produção (`www.saldoreal.dev.br`):
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://www.saldoreal.dev.br
+OAUTH_ALLOWED_ORIGINS=https://www.saldoreal.dev.br,https://saldoreal.dev.br,https://saldoreal.app
+```
 
 Copie o **Client ID** para `NEXT_PUBLIC_GOOGLE_CLIENT_ID` e o **Client secret** para `GOOGLE_CLIENT_SECRET` (nunca use prefixo `NEXT_PUBLIC_` no secret).
 

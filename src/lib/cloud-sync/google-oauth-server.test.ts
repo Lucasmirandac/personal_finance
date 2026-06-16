@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildGoogleTokenParams,
   exchangeGoogleToken,
+  getAllowedRedirectOrigins,
   GoogleOAuthError,
   isValidRedirectUri,
   parseGoogleTokenRequest,
+  parseOrigins,
 } from "./google-oauth-server";
 
 describe("google-oauth-server", () => {
@@ -42,6 +44,41 @@ describe("google-oauth-server", () => {
       expect(
         isValidRedirectUri("https://evil.example/config/oauth/callback"),
       ).toBe(false);
+    });
+
+    it("accepts origin from OAUTH_ALLOWED_ORIGINS", () => {
+      vi.stubEnv(
+        "OAUTH_ALLOWED_ORIGINS",
+        "https://www.saldoreal.dev.br,https://saldoreal.dev.br",
+      );
+      expect(
+        isValidRedirectUri(
+          "https://www.saldoreal.dev.br/config/oauth/callback",
+        ),
+      ).toBe(true);
+      expect(
+        isValidRedirectUri("https://saldoreal.dev.br/config/oauth/callback"),
+      ).toBe(true);
+    });
+
+    it("adds www pair for NEXT_PUBLIC_SITE_URL", () => {
+      vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://saldoreal.app");
+      expect(getAllowedRedirectOrigins()).toContain("https://www.saldoreal.app");
+      expect(getAllowedRedirectOrigins()).toContain("https://saldoreal.app");
+    });
+  });
+
+  describe("parseOrigins", () => {
+    it("parses comma-separated origins", () => {
+      expect(
+        parseOrigins(
+          "https://www.saldoreal.dev.br/, https://saldoreal.app",
+        ),
+      ).toEqual(["https://www.saldoreal.dev.br", "https://saldoreal.app"]);
+    });
+
+    it("returns empty for blank input", () => {
+      expect(parseOrigins("  ")).toEqual([]);
     });
   });
 
