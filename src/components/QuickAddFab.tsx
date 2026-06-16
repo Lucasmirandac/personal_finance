@@ -76,7 +76,7 @@ export function QuickAddFab({ open: controlledOpen, draft, onOpenChange }: Props
     <>
       <button
         type="button"
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[var(--foreground)] text-[var(--surface)] shadow-lg flex items-center justify-center hover:opacity-90 transition-opacity"
+        className="hidden sm:flex fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[var(--foreground)] text-[var(--surface)] shadow-lg items-center justify-center hover:opacity-90 transition-opacity"
         aria-label="Adicionar transação (n: gasto, r: receita)"
         title="Adicionar transação (n: gasto, r: receita)"
         onClick={() => openModal(null)}

@@ -13,7 +13,7 @@ export function AppFooter() {
 
   return (
     <>
-      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-3 text-caption text-muted border-t border-border">
+      <footer className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 pb-24 sm:py-3 text-caption text-muted border-t border-border">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p>
             Dados financeiros processados apenas no navegador.

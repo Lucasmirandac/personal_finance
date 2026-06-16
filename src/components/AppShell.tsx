@@ -10,7 +10,8 @@ import {
   SetupIndicator,
 } from "@/components/HeaderWidgets";
 import { AppFooter } from "@/components/AppFooter";
-import { DesktopNav, MobileNav } from "@/components/NavBar";
+import { DesktopNav } from "@/components/NavBar";
+import { BottomTabBar } from "@/components/BottomTabBar";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import { AffordTrigger } from "@/components/AffordTrigger";
 import { AchievementToastHost } from "@/components/AchievementToastHost";
@@ -56,8 +57,6 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
             )}
           </div>
         </div>
-
-        <MobileNav />
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-5 sm:py-6">
@@ -67,6 +66,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
       <AppFooter />
       <QuickAddFab />
       <AffordTrigger />
+      <BottomTabBar />
       <AchievementToastHost />
     </div>
   );

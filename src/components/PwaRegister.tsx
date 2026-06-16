@@ -84,7 +84,7 @@ export function PwaRegister() {
   return (
     <div
       className={clsx(
-        "fixed bottom-20 sm:bottom-6 left-4 right-4 z-50 mx-auto max-w-lg",
+        "fixed bottom-28 sm:bottom-6 left-4 right-4 z-50 mx-auto max-w-lg",
         "rounded-2xl border border-border/70 bg-surface/95 backdrop-blur-xl",
         "shadow-[var(--shadow-card-lg)] px-4 py-3 flex items-center justify-between gap-3",
       )}
