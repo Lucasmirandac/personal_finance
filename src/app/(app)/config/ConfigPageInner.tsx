@@ -6,6 +6,7 @@ import { ImportPanel } from "@/components/ImportPanel"
 import { ClassificacaoPanel } from "@/components/ClassificacaoPanel"
 import { AccountsPanel } from "@/components/AccountsPanel"
 import { BackupPanel } from "@/components/BackupPanel"
+import { CloudSyncPanel } from "@/components/CloudSyncPanel"
 import { BudgetsPanel } from "@/components/BudgetsPanel"
 import { AchievementsPanel } from "@/components/AchievementsPanel"
 import { PrivacyPanel } from "@/components/PrivacyPanel"
@@ -22,6 +23,7 @@ const CONFIG_TABS = [
   { id: "orcamentos", label: "Orçamentos" },
   { id: "conquistas", label: "Conquistas" },
   { id: "backup", label: "Backup" },
+  { id: "sincronizacao", label: "Sync" },
   { id: "privacidade", label: "Privacidade" },
 ] as const
 
@@ -36,6 +38,7 @@ const TAB_SUBTITLES: Record<ConfigTab, string> = {
   orcamentos: "Limites mensais por categoria.",
   conquistas: "Marcos de rotina e meses com sobra.",
   backup: "Exporte ou restaure seus dados.",
+  sincronizacao: "Sincronize backup criptografado com Google Drive ou Dropbox.",
   privacidade: "Métricas anônimas de uso e consentimento.",
 }
 
@@ -49,6 +52,7 @@ function parseTab(v: string | null): ConfigTab {
     v === "orcamentos" ||
     v === "conquistas" ||
     v === "backup" ||
+    v === "sincronizacao" ||
     v === "privacidade"
   ) {
     return v
@@ -121,6 +125,8 @@ export default function ConfigPageInner() {
         {tab === "conquistas" && <AchievementsPanel />}
 
         {tab === "backup" && <BackupPanel />}
+
+        {tab === "sincronizacao" && <CloudSyncPanel />}
 
         {tab === "privacidade" && <PrivacyPanel />}
       </div>

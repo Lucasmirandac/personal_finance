@@ -59,6 +59,9 @@ export type OnboardingStep =
   | "budget"
   | "done";
 
+export type CloudSyncProviderId = "google" | "dropbox";
+export type CloudSyncResult = "ok" | "fail";
+
 export type AnalyticsEvent =
   | { name: "onboarding_started" }
   | { name: "onboarding_step_completed"; step: OnboardingStep }
@@ -81,7 +84,12 @@ export type AnalyticsEvent =
   | { name: "consent_revoked" }
   | { name: "marketing_page_viewed"; page: MarketingPageId }
   | { name: "marketing_cta_clicked"; page: MarketingPageId; cta: MarketingCta }
-  | { name: "marketing_tool_calculated"; tool: "limite_diario" | "posso_comprar" | "reserva_poupar" };
+  | { name: "marketing_tool_calculated"; tool: "limite_diario" | "posso_comprar" | "reserva_poupar" }
+  | { name: "cloud_sync_connected"; provider: CloudSyncProviderId }
+  | { name: "cloud_sync_disconnected"; provider: CloudSyncProviderId }
+  | { name: "cloud_sync_uploaded"; provider: CloudSyncProviderId; result: CloudSyncResult }
+  | { name: "cloud_sync_conflict"; provider: CloudSyncProviderId }
+  | { name: "cloud_sync_restored"; provider: CloudSyncProviderId; result: CloudSyncResult };
 
 const ALLOWED_EVENT_NAMES = new Set<AnalyticsEvent["name"]>([
   "onboarding_started",
@@ -102,6 +110,11 @@ const ALLOWED_EVENT_NAMES = new Set<AnalyticsEvent["name"]>([
   "marketing_page_viewed",
   "marketing_cta_clicked",
   "marketing_tool_calculated",
+  "cloud_sync_connected",
+  "cloud_sync_disconnected",
+  "cloud_sync_uploaded",
+  "cloud_sync_conflict",
+  "cloud_sync_restored",
 ]);
 
 const ONBOARDING_STEPS = new Set<OnboardingStep>([
@@ -159,6 +172,10 @@ const MARKETING_PAGES = new Set<MarketingPageId>([
 const MARKETING_CTAS = new Set<MarketingCta>(["comecar", "ferramenta", "guia"]);
 
 const MARKETING_TOOLS = new Set(["limite_diario", "posso_comprar", "reserva_poupar"] as const);
+
+const CLOUD_SYNC_PROVIDERS = new Set<CloudSyncProviderId>(["google", "dropbox"]);
+
+const CLOUD_SYNC_RESULTS = new Set<CloudSyncResult>(["ok", "fail"]);
 
 export function getMeasurementId(): string | undefined {
   const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
@@ -293,6 +310,35 @@ export function validateEventParams(
       )
         return null;
       return { tool };
+    }
+
+    case "cloud_sync_connected":
+    case "cloud_sync_disconnected":
+    case "cloud_sync_conflict": {
+      const provider = params.provider;
+      if (
+        typeof provider !== "string" ||
+        !CLOUD_SYNC_PROVIDERS.has(provider as CloudSyncProviderId)
+      )
+        return null;
+      return { provider };
+    }
+
+    case "cloud_sync_uploaded":
+    case "cloud_sync_restored": {
+      const provider = params.provider;
+      const result = params.result;
+      if (
+        typeof provider !== "string" ||
+        !CLOUD_SYNC_PROVIDERS.has(provider as CloudSyncProviderId)
+      )
+        return null;
+      if (
+        typeof result !== "string" ||
+        !CLOUD_SYNC_RESULTS.has(result as CloudSyncResult)
+      )
+        return null;
+      return { provider, result };
     }
 
     default:

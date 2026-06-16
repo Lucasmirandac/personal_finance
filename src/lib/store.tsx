@@ -121,6 +121,7 @@ import {
   TransactionNormalized,
   TransactionRaw,
 } from "./types";
+import { notifyDataMutated } from "./cloud-sync/mutations";
 
 export type QuickAddDraft = Partial<
   Pick<
@@ -346,6 +347,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistDataset = useCallback(async (next: Dataset) => {
     await saveDataset(next);
     setDatasetState(next);
+    notifyDataMutated();
   }, []);
 
   const persistAccounts = useCallback(
@@ -355,6 +357,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       const synced = syncSettingsFromAccounts(next, prevSettings);
       await saveSettings(synced);
       setSettings(synced);
+      notifyDataMutated();
     },
     [],
   );
@@ -362,17 +365,20 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistManual = useCallback(async (next: ManualTransaction[]) => {
     await saveManualTransactions(next);
     setManualTransactions(next);
+    notifyDataMutated();
   }, []);
 
   const persistEdits = useCallback(async (next: EditsState) => {
     await saveEdits(next);
     setEdits(next);
+    notifyDataMutated();
   }, []);
 
   const persistInstallmentGroupEdits = useCallback(
     async (next: InstallmentGroupEditsState) => {
       await saveInstallmentGroupEdits(next);
       setInstallmentGroupEdits(next);
+      notifyDataMutated();
     },
     [],
   );
@@ -380,28 +386,33 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const persistPaymentStatus = useCallback(async (next: PaymentStatusState) => {
     await savePaymentStatus(next);
     setPaymentStatusState(next);
+    notifyDataMutated();
   }, []);
 
   const persistRecurring = useCallback(async (next: RecurringRule[]) => {
     const normalized = next.map(normalizeRecurringRule);
     await saveRecurring(normalized);
     setRecurringRules(normalized);
+    notifyDataMutated();
   }, []);
 
   const persistBudgets = useCallback(async (next: CategoryBudget[]) => {
     await saveBudgets(next);
     setBudgetsState(next);
+    notifyDataMutated();
   }, []);
 
   const persistSubscriptionDismissals = useCallback(async (next: string[]) => {
     const unique = [...new Set(next)];
     await saveSubscriptionDismissals(unique);
     setSubscriptionDismissals(unique);
+    notifyDataMutated();
   }, []);
 
   const persistAliases = useCallback(async (next: EstablishmentAlias[]) => {
     await saveAliases(next);
     setEstablishmentAliases(next);
+    notifyDataMutated();
   }, []);
 
   const persistStructuralCategories = useCallback(async (next: string[]) => {
@@ -410,6 +421,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     ];
     await saveStructuralCategories(normalized);
     setStructuralCategoriesState(normalized);
+    notifyDataMutated();
   }, []);
 
   const importedRaw = useMemo(
@@ -507,9 +519,10 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       result.snapshot.meta.lastSobraTotal !== prev.meta.lastSobraTotal;
     if (unlockedChanged || metaChanged) {
       achievementsRef.current = result.snapshot;
-      void saveAchievements(result.snapshot).then(() =>
-        setAchievementsState(result.snapshot),
-      );
+      void saveAchievements(result.snapshot).then(() => {
+        setAchievementsState(result.snapshot);
+        notifyDataMutated();
+      });
     }
     if (result.newlyUnlocked.length > 0 && settings.showAchievements !== false) {
       setPendingAchievementToasts((q) => [
@@ -532,6 +545,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const closeMonth = useCallback(async (entry: MonthCloseEntry) => {
     const next = await appendMonthClose(entry, monthCloses);
     setMonthClosesState(next);
+    notifyDataMutated();
   }, [monthCloses]);
 
   const addSource = useCallback(
@@ -776,6 +790,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       achievementsRef.current = resolved.achievements;
       setMonthClosesState(resolved.monthCloses);
       setPaymentStatusState(resolved.paymentStatus);
+      notifyDataMutated();
     },
     [
       accounts,
@@ -799,6 +814,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useCallback(async (next: Settings) => {
     await saveSettings(next);
     setSettings(next);
+    notifyDataMutated();
   }, []);
 
   const addAccount = useCallback(
@@ -993,11 +1009,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const updateRules = useCallback(async (next: Rules) => {
     await saveRules(next);
     setRules(next);
+    notifyDataMutated();
   }, []);
 
   const resetRulesFn = useCallback(async () => {
     const r = await resetRulesStorage();
     setRules(r);
+    notifyDataMutated();
   }, []);
 
   const addAlias = useCallback(

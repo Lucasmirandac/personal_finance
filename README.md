@@ -8,7 +8,7 @@ Tudo roda no navegador — sem backend, sem upload, sem cadastro. Os dados ficam
 
 ## Princípios
 
-- **Local-first.** Nenhuma transação sai do navegador. Não há rotas de API.
+- **Local-first.** Nenhuma transação sai do navegador. Uma rota OAuth (`/api/oauth/google/token`) troca apenas tokens Google Drive — sem dados financeiros.
 - **Sem cadastro.** Abra `/comecar`, cadastre contas e renda e use — importar CSV é opcional.
 - **Português.** UI, mensagens e exportações em pt-BR.
 - **Decisão antes do gasto.** O foco não é só ver onde o dinheiro foi — é responder "dá pra gastar isso agora?".
@@ -510,8 +510,40 @@ No onboarding (passo **Bem-vindo**), o app chama `navigator.storage.persist()` p
 | `pf:monthClose:v1` | Fechamentos de mês |
 | `pf:payment-status:v1` | Status pago/a pagar por transação |
 | `pf:lastBackup:v1` | Timestamp do último backup |
+| `pf:cloudSync:v1` | Configuração de sync na nuvem (provedor, tokens OAuth, revisão remota) |
+| `pf:cloudSyncKeyWrap:v1` | Chave de criptografia wrapped para “lembrar neste dispositivo” |
 
 Para limpar tudo: `/config?tab=importar` → "Limpar dados".
+
+### Sincronização criptografada (E2EE Cloud Sync)
+
+Opcional em **Config → Sync** (`/config?tab=sincronizacao`):
+
+- Backup JSON v9 criptografado com **AES-256-GCM** + **PBKDF2** (600k iterações) antes de sair do browser.
+- Senha definida pelo usuário — o Saldo Real **nunca** recebe nem armazena essa senha em texto claro.
+- Provedores suportados: **Google Drive** (pasta oculta `appDataFolder`) e **Dropbox** (App Folder).
+- Sync automático ~45s após alterações locais; conflitos exigem resolução explícita (sem sobrescrita silenciosa).
+- **iCloud:** sem API web — use backup JSON manual na pasta iCloud Drive no iPhone/Mac.
+
+Variáveis de ambiente (OAuth):
+
+| Variável | Onde | Uso |
+|----------|------|-----|
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | client + server | OAuth Google Drive (`drive.appdata`) |
+| `GOOGLE_CLIENT_SECRET` | **server only** | troca do code/refresh no Google (rota `/api/oauth/google/token`) |
+| `NEXT_PUBLIC_DROPBOX_APP_KEY` | client | OAuth Dropbox App Folder |
+| `NEXT_PUBLIC_SITE_URL` | server (opcional) | validar redirect URI em produção |
+
+**Google Cloud Console:** credencial OAuth tipo **Web application**. Redirect URIs autorizados:
+
+- `http://localhost:3000/config/oauth/callback` (dev)
+- `https://<seu-dominio>/config/oauth/callback` (prod)
+
+Copie o **Client ID** para `NEXT_PUBLIC_GOOGLE_CLIENT_ID` e o **Client secret** para `GOOGLE_CLIENT_SECRET` (nunca use prefixo `NEXT_PUBLIC_` no secret).
+
+Dropbox: redirect URI `https://<seu-dominio>/config/oauth/callback`
+
+Implementação: [`src/lib/crypto/e2ee.ts`](src/lib/crypto/e2ee.ts), [`src/lib/cloud-sync/`](src/lib/cloud-sync/), [`src/components/CloudSyncPanel.tsx`](src/components/CloudSyncPanel.tsx).
 
 ---
 
@@ -529,9 +561,10 @@ Para limpar tudo: `/config?tab=importar` → "Limpar dados".
 
 ## Privacidade
 
-- Não há rotas de API. **Nenhum dado financeiro** (valores, descrições, CSV, backups) é enviado para servidores.
+- Existe uma rota OAuth (`/api/oauth/google/token`) só para trocar tokens do Google Drive com `client_secret` no servidor. **Nenhum dado financeiro em texto claro** (valores, descrições, CSV, backups JSON) é enviado para servidores do app.
 - CSV é lido via `File.text()` no navegador e processado client-side.
 - Backup gera Blob/ObjectURL no próprio navegador.
+- **Sync na nuvem (opcional):** se o usuário conectar Google Drive ou Dropbox, apenas um blob criptografado (`saldoreal-backup.enc`) vai para a conta **dele** — OAuth e upload são client-side; o desenvolvedor não tem a senha de descriptografia.
 - Rede adicional esperada: fonte Geist (`next/font/google`), hospedagem (Vercel Analytics agregado) e, **somente se o usuário aceitar no banner LGPD**, Google Analytics 4 para métricas de uso do produto.
 
 ### Métricas opcionais (GA4)
@@ -539,7 +572,7 @@ Para limpar tudo: `/config?tab=importar` → "Limpar dados".
 - Opt-in explícito na primeira visita; pode ser alterado em **Config → Privacidade** (`/config?tab=privacidade`).
 - Variável de ambiente: `NEXT_PUBLIC_GA_MEASUREMENT_ID` (sem valor = GA4 desligado em todos os ambientes).
 - Modo cookieless (`client_storage: 'none'`, IP anonimizado); sem Google Signals nem ads.
-- Eventos permitidos: onboarding, import CSV (sem conteúdo), backup (versão/resultado), orçamentos, fechamento de mês, conquistas (IDs internos), quick add (tipo), consentimento. Ver [`src/lib/analytics.ts`](src/lib/analytics.ts).
+- Eventos permitidos: onboarding, import CSV (sem conteúdo), backup (versão/resultado), sync na nuvem (provedor/resultado, sem conteúdo), orçamentos, fechamento de mês, conquistas (IDs internos), quick add (tipo), consentimento. Ver [`src/lib/analytics.ts`](src/lib/analytics.ts).
 - O rodapé indica quando métricas anônimas estão ativas, com link para gerenciar.
 
 ---
@@ -578,6 +611,8 @@ src/
     alerts.ts        # alertas do painel Hoje
     analytics.ts     # GA4 (opt-in)
     backup.ts        # export/import V1–V9
+    crypto/          # E2EE (AES-GCM + PBKDF2)
+    cloud-sync/      # OAuth PKCE, Google Drive, Dropbox, orchestrator
     budgets.ts       # orçamentos e alertas
     cardLimits.ts    # teto mensal por cartão
     csv.ts           # parse Inter/Nubank

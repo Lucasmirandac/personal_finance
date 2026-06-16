@@ -16,6 +16,7 @@ const COLLECTED = [
   "Passos do onboarding concluídos",
   "Importação de CSV iniciada ou concluída (sem conteúdo do arquivo)",
   "Backup exportado ou importado (versão e resultado, sem dados)",
+  "Sincronização na nuvem conectada, enviada ou em conflito (provedor e resultado, sem conteúdo)",
   "Orçamento criado ou sugestão aceita (apenas contagem)",
   "Fechamento de mês e conquistas desbloqueadas (IDs internos)",
 ] as const;
@@ -24,6 +25,8 @@ const NOT_COLLECTED = [
   "Valores monetários, saldos ou limites de orçamento",
   "Descrições de lançamentos ou nomes de estabelecimentos",
   "Conteúdo de CSV ou backups",
+  "Conteúdo do blob criptografado na nuvem",
+  "Senha de criptografia da sincronização",
   "Categorias com valores associados",
   "E-mail ou identificação pessoal",
 ] as const;
@@ -56,8 +59,10 @@ export function PrivacyPanel() {
       <div>
         <SectionTitle>Privacidade e métricas</SectionTitle>
         <p className="text-sm text-muted mt-1">
-          Seus dados financeiros continuam apenas no navegador. Métricas de uso
-          são opcionais e ajudam a priorizar melhorias no produto.
+          Seus dados financeiros continuam criptografados no seu dispositivo.
+          Sync na nuvem (opcional) envia apenas um blob opaco para a conta do
+          usuário. Métricas de uso são opcionais e ajudam a priorizar melhorias
+          no produto.
         </p>
       </div>
 
