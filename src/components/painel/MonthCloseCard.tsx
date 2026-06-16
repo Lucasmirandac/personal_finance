@@ -8,13 +8,16 @@ import { Panel } from "@/components/ui/Panel";
 import { g } from "@/lib/glossary";
 import { Button } from "@/components/ui/Button";
 import { Num } from "@/components/ui/Num";
+import { SupportLink } from "@/components/SupportLink";
 import { formatBRL } from "@/lib/format";
+import { trackEvent } from "@/lib/analytics";
 import {
   buildMonthCloseEntry,
   computeMonthCloseSummary,
   getOldestPendingClose,
 } from "@/lib/monthClose";
 import { useAppStore } from "@/lib/store";
+import { MonthCloseCelebrateModal } from "@/components/painel/MonthCloseCelebrateModal";
 
 function formatCloseMonthTitle(anoMes: string): string {
   const [y, m] = anoMes.split("-").map(Number);
@@ -94,9 +97,16 @@ export function MonthCloseCard() {
     budgets,
     monthCloses,
     closeMonth,
+    confirmSupporter,
     settings,
+    achievements,
   } = useAppStore();
   const [busy, setBusy] = useState(false);
+  const [celebrateOpen, setCelebrateOpen] = useState(false);
+  const [lastClosed, setLastClosed] = useState<{
+    monthLabel: string;
+    sobra: number;
+  } | null>(null);
 
   const pendingAnoMes = useMemo(
     () => getOldestPendingClose(normalized, monthCloses),
@@ -124,7 +134,30 @@ export function MonthCloseCard() {
     settings.poupanca,
   ]);
 
-  if (!pendingAnoMes || !summary) return null;
+  const supporterConfirmed =
+    Boolean(settings.supporterConfirmedAt) ||
+    achievements.unlocked.some((a) => a.id === "apoiador-real");
+
+  const handleConfirmSupporter = () => {
+    void confirmSupporter();
+    trackEvent({
+      name: "supporter_confirmed",
+      surface: "month_close_celebrate",
+    });
+  };
+
+  const celebrationModal = (
+    <MonthCloseCelebrateModal
+      open={celebrateOpen && lastClosed !== null}
+      monthLabel={lastClosed?.monthLabel ?? ""}
+      sobra={lastClosed?.sobra ?? 0}
+      supporterConfirmed={supporterConfirmed}
+      onConfirmSupporter={handleConfirmSupporter}
+      onClose={() => setCelebrateOpen(false)}
+    />
+  );
+
+  if (!pendingAnoMes || !summary) return celebrationModal;
 
   const positive = summary.sobra > 0;
   const showSobraEmpty =
@@ -133,13 +166,21 @@ export function MonthCloseCard() {
   const handleClose = async () => {
     setBusy(true);
     try {
+      const shouldCelebrate = summary.sobra > 0;
+      const monthLabel = formatCloseMonthTitle(summary.anoMes);
+      const sobra = summary.sobra;
       await closeMonth(buildMonthCloseEntry(summary));
+      if (shouldCelebrate) {
+        setLastClosed({ monthLabel, sobra });
+        setCelebrateOpen(true);
+      }
     } finally {
       setBusy(false);
     }
   };
 
   return (
+    <>
     <Panel className="rounded-3xl p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-border/60">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -252,6 +293,21 @@ export function MonthCloseCard() {
         )}
       </div>
 
+      {positive && (
+        <div className="mt-5 rounded-2xl border border-success/25 bg-[color-mix(in_oklab,var(--success)_7%,transparent)] px-4 py-3">
+          <p className="text-sm text-foreground">
+            Sobrou dinheiro no mês — ótimo sinal. O Saldo Real é gratuito e
+            financiado por quem usa, de forma voluntária.
+          </p>
+          <SupportLink
+            surface="month_close_card"
+            className="mt-2 inline-flex text-xs font-medium text-accent underline-offset-2 hover:underline"
+          >
+            Apoiar no APOIA.se
+          </SupportLink>
+        </div>
+      )}
+
       <div className="mt-5 flex flex-wrap gap-2">
         <Button
           variant="primary"
@@ -263,5 +319,7 @@ export function MonthCloseCard() {
         </Button>
       </div>
     </Panel>
+    {celebrationModal}
+    </>
   );
 }

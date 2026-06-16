@@ -223,6 +223,7 @@ type Ctx = {
   achievements: AchievementsSnapshot;
   monthCloses: MonthCloseEntry[];
   closeMonth: (entry: MonthCloseEntry) => Promise<void>;
+  confirmSupporter: () => Promise<void>;
   pendingAchievementToasts: AchievementId[];
   dismissAchievementToast: () => void;
 };
@@ -508,6 +509,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       snapshot: prev,
       monthCloses,
       poupanca: settings.poupanca,
+      supporterConfirmedAt: settings.supporterConfirmedAt,
     });
     const prevIds = new Set(prev.unlocked.map((a) => a.id));
     const nextIds = new Set(result.snapshot.unlocked.map((a) => a.id));
@@ -540,6 +542,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     monthCloses,
     settings.showAchievements,
     settings.poupanca,
+    settings.supporterConfirmedAt,
   ]);
 
   const closeMonth = useCallback(async (entry: MonthCloseEntry) => {
@@ -816,6 +819,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     setSettings(next);
     notifyDataMutated();
   }, []);
+
+  const confirmSupporter = useCallback(async () => {
+    if (settings.supporterConfirmedAt) return;
+    await updateSettings({
+      ...settings,
+      supporterConfirmedAt: new Date().toISOString(),
+    });
+  }, [settings, updateSettings]);
 
   const addAccount = useCallback(
     async (account: Account) => {
@@ -1375,6 +1386,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       achievements,
       monthCloses,
       closeMonth,
+      confirmSupporter,
       pendingAchievementToasts,
       dismissAchievementToast,
     }),
@@ -1440,6 +1452,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       achievements,
       monthCloses,
       closeMonth,
+      confirmSupporter,
       pendingAchievementToasts,
       dismissAchievementToast,
     ],

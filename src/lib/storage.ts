@@ -548,6 +548,10 @@ function mergeSettings(v: unknown): Settings {
   const showAchievements =
     typeof o.showAchievements === "boolean" ? o.showAchievements : true;
   const poupanca = mergeSavingsPreference(o.poupanca);
+  const supporterConfirmedAt =
+    typeof o.supporterConfirmedAt === "string" && o.supporterConfirmedAt.length > 0
+      ? o.supporterConfirmedAt
+      : undefined;
   return {
     cards,
     balanceAnchor,
@@ -555,6 +559,7 @@ function mergeSettings(v: unknown): Settings {
     ...(saldoView ? { saldoView } : {}),
     showAchievements,
     poupanca,
+    ...(supporterConfirmedAt ? { supporterConfirmedAt } : {}),
   };
 }
 
@@ -692,7 +697,7 @@ export async function clearStructuralCategories(): Promise<void> {
   await del(KEY_STRUCTURAL_CATEGORIES);
 }
 
-const ACHIEVEMENT_IDS: AchievementId[] = [
+const ACHIEVEMENT_IDS = new Set<AchievementId>([
   "primeiro-passo",
   "semana-viva",
   "mes-fiel",
@@ -701,10 +706,11 @@ const ACHIEVEMENT_IDS: AchievementId[] = [
   "trio-positivo",
   "cofrinho-calmo",
   "mes-revisado",
-];
+  "apoiador-real",
+]);
 
 function isAchievementId(v: unknown): v is AchievementId {
-  return typeof v === "string" && ACHIEVEMENT_IDS.includes(v as AchievementId);
+  return typeof v === "string" && ACHIEVEMENT_IDS.has(v as AchievementId);
 }
 
 function mergeAchievement(v: unknown): Achievement | null {

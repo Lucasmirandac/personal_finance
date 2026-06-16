@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { MarketingPageTracker } from "@/components/marketing/MarketingPageTracker";
 import { SocialLinks } from "@/components/marketing/SocialLinks";
+import { SupportLink } from "@/components/SupportLink";
 import type { MarketingPageId } from "@/lib/marketing/site";
 
 const NAV = [
@@ -163,6 +164,14 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
               <ul className="mt-3 space-y-2">
                 <li>
                   <SocialLinks />
+                </li>
+                <li>
+                  <SupportLink
+                    surface="marketing_footer"
+                    className="inline-flex items-center gap-2 text-sm hover:text-accent"
+                  >
+                    Apoiar no APOIA.se
+                  </SupportLink>
                 </li>
               </ul>
               <p className="mt-3 text-xs text-muted leading-relaxed">

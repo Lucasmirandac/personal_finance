@@ -4,16 +4,19 @@ import {
   MarketingCtaLink,
   MarketingShell,
 } from "@/components/marketing/MarketingShell";
+import { SupportLink } from "@/components/SupportLink";
 import { getSiteUrl } from "@/lib/marketing/site";
 import { SOCIAL_LINKS } from "@/lib/marketing/social";
 import { getAllArticles } from "@/lib/marketing/articles";
 import {
+  APOIA_SE_BODY,
   CSV_OPTIONAL_LINE,
   HERO_SUBTITLE,
   JSON_LD_APP_DESCRIPTION,
   LANDING_FAQ,
   PRODUCT_PROMISE,
 } from "@/lib/marketing/copy";
+import { APOIA_SE_TAGLINE } from "@/lib/marketing/links";
 import {
   ArrowRight,
   BookOpen,
@@ -410,6 +413,26 @@ export default function LandingPage() {
           </div>
         </section>
       )}
+
+      <section className="border-b border-border/60 bg-surface/60">
+        <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
+          <p className="text-caption font-semibold uppercase tracking-wider text-accent">
+            Projeto independente
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+            {APOIA_SE_TAGLINE}
+          </h2>
+          <p className="mt-4 max-w-2xl text-muted leading-relaxed">
+            {APOIA_SE_BODY}
+          </p>
+          <SupportLink
+            surface="landing_section"
+            className="mt-8 inline-flex items-center justify-center rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-surface transition-opacity hover:opacity-90"
+          >
+            Apoiar no APOIA.se
+          </SupportLink>
+        </div>
+      </section>
 
       <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6">
         <h2 className="text-2xl font-semibold tracking-tight">Perguntas frequentes</h2>

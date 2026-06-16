@@ -105,6 +105,24 @@ describe("evaluateAchievements", () => {
     expect(second.newlyUnlocked).toHaveLength(0);
     expect(second.allUnlocked.length).toBe(first.allUnlocked.length);
   });
+
+  it("unlocks Apoiador Real after local supporter confirmation", () => {
+    const today = new Date("2026-06-10T12:00:00.000Z");
+    const result = evaluateAchievements({
+      normalized: [],
+      manualTransactions: [],
+      accounts: [],
+      recurringRules: [],
+      structuralCategories: [],
+      snapshot: EMPTY_ACHIEVEMENTS,
+      supporterConfirmedAt: "2026-06-10T10:00:00.000Z",
+      today,
+    });
+
+    expect(result.newlyUnlocked).toEqual([
+      { id: "apoiador-real", unlockedAt: today.toISOString() },
+    ]);
+  });
 });
 
 describe("mergeAchievementSnapshots", () => {

@@ -46,6 +46,30 @@ describe("validateEventParams", () => {
       }),
     ).toBeNull();
   });
+
+  it("accepts support events with known surfaces", () => {
+    expect(
+      validateEventParams({
+        name: "support_link_clicked",
+        surface: "month_close_celebrate",
+      }),
+    ).toEqual({ surface: "month_close_celebrate" });
+    expect(
+      validateEventParams({
+        name: "supporter_confirmed",
+        surface: "config_privacy",
+      }),
+    ).toEqual({ surface: "config_privacy" });
+  });
+
+  it("rejects support events with unknown surfaces", () => {
+    expect(
+      validateEventParams({
+        name: "support_link_clicked",
+        surface: "saldo",
+      } as never),
+    ).toBeNull();
+  });
 });
 
 describe("trackEvent", () => {
@@ -84,7 +108,6 @@ describe("trackEvent", () => {
     trackEvent({
       name: "csv_import_succeeded",
       rows_bucket: "0-50",
-      // @ts-expect-error intentional bad payload for runtime guard
       amount: 500,
     } as never);
     expect(gtag).not.toHaveBeenCalled();

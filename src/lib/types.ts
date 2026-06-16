@@ -213,6 +213,8 @@ export type Settings = {
   showAchievements?: boolean;
   /** Monthly savings reservation; null = no reservation (legacy behavior). */
   poupanca?: SavingsPreference | null;
+  /** User-confirmed support via APOIA.se; honor-system and local-first. */
+  supporterConfirmedAt?: string;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -231,7 +233,8 @@ export type AchievementId =
   | "mes-positivo"
   | "trio-positivo"
   | "cofrinho-calmo"
-  | "mes-revisado";
+  | "mes-revisado"
+  | "apoiador-real";
 
 export type MonthCloseTopCategory = {
   categoria: string;

@@ -15,7 +15,7 @@ import {
 
 export const COFRINHO_CALMO_THRESHOLD = 500;
 
-export type AchievementGroup = "rotina" | "sobra";
+export type AchievementGroup = "rotina" | "sobra" | "apoio";
 
 export type AchievementDefinition = {
   id: AchievementId;
@@ -73,6 +73,12 @@ export const ACHIEVEMENT_CATALOG: AchievementDefinition[] = [
     description: "Fechou um mês com revisão de orçamento.",
     group: "rotina",
   },
+  {
+    id: "apoiador-real",
+    title: "Apoiador Real",
+    description: "Desbloqueado ao contribuir para a independência do projeto.",
+    group: "apoio",
+  },
 ];
 
 export type ClosedMonthSurplus = {
@@ -89,6 +95,7 @@ export type EvaluateAchievementsInput = {
   snapshot: AchievementsSnapshot;
   monthCloses?: MonthCloseEntry[];
   poupanca?: SavingsPreference | null;
+  supporterConfirmedAt?: string;
   today?: Date;
 };
 
@@ -305,6 +312,7 @@ export function evaluateAchievements(
   if (positiveInYear.length >= 3) candidates.push("trio-positivo");
   if (sobraTotal >= COFRINHO_CALMO_THRESHOLD) candidates.push("cofrinho-calmo");
   if ((input.monthCloses?.length ?? 0) > 0) candidates.push("mes-revisado");
+  if (input.supporterConfirmedAt) candidates.push("apoiador-real");
 
   for (const id of candidates) {
     const result = unlock(snapshot, id, unlockedAt);

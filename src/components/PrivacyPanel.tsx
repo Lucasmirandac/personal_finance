@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SupportLink } from "@/components/SupportLink";
 import { trackEvent, updateGtagConsentDenied } from "@/lib/analytics";
+import { APOIA_SE_TAGLINE } from "@/lib/marketing/links";
+import { useAppStore } from "@/lib/store";
 import {
   markConsentGrantPending,
   setConsent,
@@ -39,7 +42,9 @@ function consentStatusLabel(status: ConsentStatus): string {
 
 export function PrivacyPanel() {
   const status = useConsent();
+  const { settings, confirmSupporter } = useAppStore();
   const [reloadHint, setReloadHint] = useState(false);
+  const supporterConfirmed = Boolean(settings.supporterConfirmedAt);
 
   function enable() {
     markConsentGrantPending();
@@ -134,10 +139,47 @@ export function PrivacyPanel() {
           rel="noopener noreferrer"
           className="underline underline-offset-2 hover:text-foreground"
         >
-          Política de Privacidade do Google
+          Política de Privacidade do Google.
         </a>
-        .
       </p>
+
+      <div className="rounded-2xl ring-1 ring-border/60 p-4 sm:p-5 space-y-3">
+        <div>
+          <p className="text-sm font-medium">Projeto independente</p>
+          <p className="mt-1 text-xs text-muted leading-relaxed">
+            {APOIA_SE_TAGLINE} Este app não monetiza seus dados; o apoio é
+            voluntário e o Saldo Real continua gratuito.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <SupportLink
+            surface="config_privacy"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium hover:bg-surface-2"
+          >
+            Conhecer no APOIA.se
+          </SupportLink>
+          {supporterConfirmed ? (
+            <span className="inline-flex items-center rounded-full bg-surface-2 px-3 py-1.5 text-xs text-muted">
+              Apoio confirmado localmente
+            </span>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full text-xs"
+              onClick={() => {
+                void confirmSupporter();
+                trackEvent({
+                  name: "supporter_confirmed",
+                  surface: "config_privacy",
+                });
+              }}
+            >
+              Confirmo que contribuí no APOIA.se
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

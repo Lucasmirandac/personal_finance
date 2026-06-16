@@ -18,6 +18,9 @@ export const BANKS_FAQ_ANSWER =
 export const JSON_LD_APP_DESCRIPTION =
   "Painel financeiro pessoal local-first com Hoje, Extrato, Faturas e Futuro. Limite diário, orçamentos, simulador Posso comprar? e sync criptografado opcional.";
 
+export const APOIA_SE_BODY =
+  "O Saldo Real é e continua gratuito — sem cadastro, sem anúncios de dados, sem paywall. Se o app te ajuda, você pode apoiar o desenvolvimento com uma contribuição mensal opcional no APOIA.se.";
+
 export const LANDING_FAQ = [
   {
     q: "Meus dados ficam onde?",
@@ -42,6 +45,10 @@ export const LANDING_FAQ = [
   {
     q: "Preciso criar conta?",
     a: "Não. Abra o app, cadastre conta e renda no onboarding e comece a usar.",
+  },
+  {
+    q: "O Saldo Real é gratuito?",
+    a: "Sim. O app continua sem cadastro e sem paywall. Se quiser apoiar o desenvolvimento independente, existe contribuição opcional no APOIA.se — o Saldo Real segue 100% funcional sem isso.",
   },
   {
     q: "Posso reservar parte da renda para poupar?",

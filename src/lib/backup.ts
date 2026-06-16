@@ -181,6 +181,7 @@ const backupDataBaseSchema = z.object({
       })
       .nullable()
       .optional(),
+    supporterConfirmedAt: z.string().optional(),
   }),
   edits: z.record(z.string(), z.record(z.string(), z.unknown())),
   accounts: z.array(z.record(z.string(), z.unknown())),
@@ -217,6 +218,7 @@ const achievementSchema = z.object({
     "trio-positivo",
     "cofrinho-calmo",
     "mes-revisado",
+    "apoiador-real",
   ]),
   unlockedAt: z.string(),
 });
@@ -411,7 +413,11 @@ export function resolveBackupApplication(
     ),
     monthCloses: mergeMonthCloseLists(current.monthCloses, backup.monthCloses),
     rules: backup.rules,
-    settings: backup.settings,
+    settings: {
+      ...backup.settings,
+      supporterConfirmedAt:
+        current.settings.supporterConfirmedAt ?? backup.settings.supporterConfirmedAt,
+    },
     edits: backup.edits,
     installmentGroupEdits: mergeInstallmentGroupEdits(
       current.installmentGroupEdits,

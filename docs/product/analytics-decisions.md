@@ -24,6 +24,13 @@
 
 `amount`, `valor`, `description`, `lancamento`, `estabelecimento`, `account`, `conta`, `categoria`, `balance`, `saldo`, `email`, `name`, `nome`, e qualquer texto livre do usuário.
 
+## Eventos de apoio ao projeto
+
+- `support_link_clicked`: registra apenas a superfície do link Apoia.se (`landing_section`, `marketing_footer`, `app_footer`, `config_privacy`, `month_close_card`, `month_close_celebrate`).
+- `supporter_confirmed`: registra apenas onde o usuário confirmou localmente que apoia o projeto (`config_privacy` ou `month_close_celebrate`).
+
+Esses eventos não incluem valores, identificação do usuário, dados financeiros nem status real de pagamento no Apoia.se.
+
 ## CSP (futuro)
 
 Se Content-Security-Policy for adicionada, permitir:

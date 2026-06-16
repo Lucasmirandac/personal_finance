@@ -52,6 +52,15 @@ export type MarketingPageId =
   | "tool_posso_comprar"
   | "tool_reserva_poupar";
 export type MarketingCta = "comecar" | "ferramenta" | "guia";
+export type SupportLinkSurface =
+  | "landing_section"
+  | "landing_faq"
+  | "marketing_footer"
+  | "app_footer"
+  | "config_privacy"
+  | "month_close_card"
+  | "month_close_celebrate";
+export type SupporterConfirmSurface = "config_privacy" | "month_close_celebrate";
 export type OnboardingStep =
   | "welcome"
   | "import"
@@ -85,6 +94,8 @@ export type AnalyticsEvent =
   | { name: "marketing_page_viewed"; page: MarketingPageId }
   | { name: "marketing_cta_clicked"; page: MarketingPageId; cta: MarketingCta }
   | { name: "marketing_tool_calculated"; tool: "limite_diario" | "posso_comprar" | "reserva_poupar" }
+  | { name: "support_link_clicked"; surface: SupportLinkSurface }
+  | { name: "supporter_confirmed"; surface: SupporterConfirmSurface }
   | { name: "cloud_sync_connected"; provider: CloudSyncProviderId }
   | { name: "cloud_sync_disconnected"; provider: CloudSyncProviderId }
   | { name: "cloud_sync_uploaded"; provider: CloudSyncProviderId; result: CloudSyncResult }
@@ -110,6 +121,8 @@ const ALLOWED_EVENT_NAMES = new Set<AnalyticsEvent["name"]>([
   "marketing_page_viewed",
   "marketing_cta_clicked",
   "marketing_tool_calculated",
+  "support_link_clicked",
+  "supporter_confirmed",
   "cloud_sync_connected",
   "cloud_sync_disconnected",
   "cloud_sync_uploaded",
@@ -172,6 +185,21 @@ const MARKETING_PAGES = new Set<MarketingPageId>([
 const MARKETING_CTAS = new Set<MarketingCta>(["comecar", "ferramenta", "guia"]);
 
 const MARKETING_TOOLS = new Set(["limite_diario", "posso_comprar", "reserva_poupar"] as const);
+
+const SUPPORT_LINK_SURFACES = new Set<SupportLinkSurface>([
+  "landing_section",
+  "landing_faq",
+  "marketing_footer",
+  "app_footer",
+  "config_privacy",
+  "month_close_card",
+  "month_close_celebrate",
+]);
+
+const SUPPORTER_CONFIRM_SURFACES = new Set<SupporterConfirmSurface>([
+  "config_privacy",
+  "month_close_celebrate",
+]);
 
 const CLOUD_SYNC_PROVIDERS = new Set<CloudSyncProviderId>(["google", "dropbox"]);
 
@@ -310,6 +338,26 @@ export function validateEventParams(
       )
         return null;
       return { tool };
+    }
+
+    case "support_link_clicked": {
+      const surface = params.surface;
+      if (
+        typeof surface !== "string" ||
+        !SUPPORT_LINK_SURFACES.has(surface as SupportLinkSurface)
+      )
+        return null;
+      return { surface };
+    }
+
+    case "supporter_confirmed": {
+      const surface = params.surface;
+      if (
+        typeof surface !== "string" ||
+        !SUPPORTER_CONFIRM_SURFACES.has(surface as SupporterConfirmSurface)
+      )
+        return null;
+      return { surface };
     }
 
     case "cloud_sync_connected":
