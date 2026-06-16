@@ -27,6 +27,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import clsx from "clsx";
+import { requestStoragePersistence } from "@/lib/storagePersistence";
 
 const TOTAL_STEPS = 3;
 
@@ -56,7 +57,14 @@ export function Onboarding() {
       <WizardHeader current={current} progress={progress} />
 
       <Panel className="rounded-[1.75rem] p-5 shadow-[var(--shadow-card-lg)] sm:p-6">
-        {currentStep === 0 && <WelcomeStep onStart={goNext} />}
+        {currentStep === 0 && (
+          <WelcomeStep
+            onStart={() => {
+              void requestStoragePersistence();
+              goNext();
+            }}
+          />
+        )}
 
         {currentStep === 1 && (
           <AccountsStep
@@ -145,7 +153,7 @@ function WelcomeStep({
         <Benefit
           icon={<ShieldCheck size={17} />}
           title="Local-first"
-          description="Todos os seus dados ficam no seu navegador"
+          description="Seus dados ficam no navegador; pedimos proteção contra limpezas automáticas do sistema"
         />
         <Benefit
           icon={<UserX size={17} />}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   BackupFile,
   BackupImportMode,
@@ -16,7 +16,12 @@ import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
 import { g } from "@/lib/glossary"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { Textarea } from "@/components/ui/Input"
-import { Download, Upload, AlertTriangle, CheckCircle2, XCircle } from "lucide-react"
+import { Download, Upload, AlertTriangle, CheckCircle2, ShieldCheck, XCircle } from "lucide-react"
+import {
+  getStoragePersistenceStatus,
+  requestStoragePersistence,
+  type StoragePersistenceStatus,
+} from "@/lib/storagePersistence"
 
 export function BackupPanel() {
   const {
@@ -47,6 +52,30 @@ export function BackupPanel() {
   const [busy, setBusy] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
+  const [storageStatus, setStorageStatus] =
+    useState<StoragePersistenceStatus>("unknown")
+  const [storageRetrying, setStorageRetrying] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void getStoragePersistenceStatus().then((status) => {
+      if (alive) setStorageStatus(status)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const handleRequestStorageProtection = useCallback(async () => {
+    setStorageRetrying(true)
+    try {
+      await requestStoragePersistence()
+      const next = await getStoragePersistenceStatus()
+      setStorageStatus(next)
+    } finally {
+      setStorageRetrying(false)
+    }
+  }, [])
 
   const currentSummary = useMemo(
     () =>
@@ -206,6 +235,12 @@ export function BackupPanel() {
 
   return (
     <div className="space-y-4">
+      <StoragePersistenceCard
+        status={storageStatus}
+        retrying={storageRetrying}
+        onRequestProtection={() => void handleRequestStorageProtection()}
+      />
+
       <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
         <div>
           <p className="text-caption uppercase tracking-wider text-muted">Exportar tudo</p>
@@ -381,4 +416,61 @@ export function BackupPanel() {
       )}
     </div>
   )
+}
+
+function StoragePersistenceCard({
+  status,
+  retrying,
+  onRequestProtection,
+}: Readonly<{
+  status: StoragePersistenceStatus
+  retrying: boolean
+  onRequestProtection: () => void
+}>) {
+  const showRetry =
+    status === "best_effort" || status === "unknown"
+
+  return (
+    <div className="rounded-2xl bg-surface ring-1 ring-border/60 shadow-[var(--shadow-card)] p-5 space-y-3">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 text-accent">
+          <ShieldCheck size={18} />
+        </span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-caption uppercase tracking-wider text-muted">
+            Proteção local
+          </p>
+          <p className="text-sm">{storagePersistenceMessage(status)}</p>
+          {status === "unsupported" && (
+            <p className="text-xs text-muted">
+              Exporte backups com frequência como rede de segurança.
+            </p>
+          )}
+        </div>
+      </div>
+      {showRetry && (
+        <Button
+          size="sm"
+          className="rounded-full"
+          disabled={retrying}
+          onClick={onRequestProtection}
+        >
+          {retrying ? "Solicitando…" : "Solicitar proteção"}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function storagePersistenceMessage(status: StoragePersistenceStatus): string {
+  switch (status) {
+    case "persistent":
+      return "Armazenamento persistente ativo neste navegador."
+    case "best_effort":
+      return "O navegador ainda pode apagar dados automaticamente em falta de espaço. Exporte backups com frequência."
+    case "unsupported":
+      return "Este navegador não suporta solicitação de armazenamento persistente."
+    case "unknown":
+      return "Não foi possível verificar a proteção local. Exporte backups com frequência."
+  }
 }
