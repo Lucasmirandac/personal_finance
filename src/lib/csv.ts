@@ -1,6 +1,10 @@
 import Papa from "papaparse";
 import { z } from "zod";
-import { ensureCardAccount } from "./accounts";
+import {
+  ensureCardAccount,
+  findCardAccountByFonte,
+  hasCardCycleConfigured,
+} from "./accounts";
 import { addMonthsIso } from "./dates";
 import { newSourceId, newTransactionId } from "./ids";
 import { Account, Fonte, InstallmentInfo, Source, TransactionRaw } from "./types";
@@ -305,6 +309,49 @@ function applyInterInstallmentRewrites(
   raw.push(...extras);
 }
 
+function stripCompraSuffix(lancamento: string): string {
+  return lancamento.replace(COMPRA_SUFFIX_RE, "").trim();
+}
+
+function purchaseDateForInstallmentRow(row: TransactionRaw): string | null {
+  if (row.installment?.purchaseDate) return row.installment.purchaseDate;
+  const match = row.lancamento.match(/\(compra\s+(\d{2}\/\d{2}\/\d{4})\)/i);
+  return match?.[1] ?? null;
+}
+
+/** Re-run Inter installment date logic after card cycle changes. */
+export function reapplyInterCycleToSource(
+  source: Source,
+  cardAccount: Account,
+): Source {
+  if (source.fonte !== "inter" || !hasCardCycleConfigured(cardAccount)) {
+    return source;
+  }
+
+  const raw: TransactionRaw[] = [];
+  for (const row of source.raw) {
+    if (row.installment?.estimated) continue;
+    if (!isInterInstallmentTipo(row.tipo)) {
+      raw.push(row);
+      continue;
+    }
+    const purchaseDate = purchaseDateForInstallmentRow(row);
+    if (!purchaseDate) {
+      raw.push(row);
+      continue;
+    }
+    raw.push({
+      ...row,
+      data: purchaseDate,
+      lancamento: stripCompraSuffix(row.lancamento),
+      installment: undefined,
+    });
+  }
+
+  applyInterInstallmentRewrites(raw, cardAccount);
+  return { ...source, raw, rowsRaw: raw.length };
+}
+
 function stripBom(text: string): string {
   return text.replace(/^\uFEFF/, "");
 }
@@ -363,7 +410,7 @@ export function parseCsvText(
   const raw: TransactionRaw[] = [];
 
   if (format === "inter") {
-    const interCard = ensureCardAccount(accounts, "inter").account;
+    const interCard = findCardAccountByFonte(accounts, "inter");
 
     result.data.forEach((rowAny, idx) => {
       const lineNumber = idx + 2;
@@ -405,7 +452,9 @@ export function parseCsvText(
       });
     });
 
-    applyInterInstallmentRewrites(raw, interCard);
+    if (interCard && hasCardCycleConfigured(interCard)) {
+      applyInterInstallmentRewrites(raw, interCard);
+    }
   } else {
     result.data.forEach((rowAny, idx) => {
       const lineNumber = idx + 2;
@@ -455,8 +504,9 @@ export function parseCsvText(
 
   let accountId: string | undefined;
   if (format === "inter" || format === "nubank") {
-    const ensured = ensureCardAccount(accounts, format);
-    accountId = ensured.account.id;
+    accountId =
+      findCardAccountByFonte(accounts, format)?.id ??
+      ensureCardAccount(accounts, format).account.id;
     for (let i = 0; i < raw.length; i++) {
       raw[i] = { ...raw[i], accountId };
     }

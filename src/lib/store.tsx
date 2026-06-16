@@ -15,9 +15,12 @@ import {
   countTransactionsForAccount,
   defaultAccount,
   ensureCardAccount,
+  findCardAccountByFonte,
+  hasCardCycleConfigured,
   upsertCardAccountCycle,
   type CardCycle,
 } from "./accounts";
+import { reapplyInterCycleToSource } from "./csv";
 import {
   applyEdits,
   allowsPerMonthRecurringEdit,
@@ -144,7 +147,10 @@ type Ctx = {
   normalized: TransactionNormalized[];
   deletedNormalized: TransactionNormalized[];
   findOriginalRaw: (rawId: string) => TransactionRaw | undefined;
-  addSource: (source: Source) => Promise<void>;
+  addSource: (
+    source: Source,
+    options?: { accounts?: Account[] },
+  ) => Promise<void>;
   removeSource: (id: string) => Promise<void>;
   clearAllSources: () => Promise<void>;
   addRecurring: (rule: RecurringRule) => Promise<void>;
@@ -526,19 +532,31 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   }, [monthCloses]);
 
   const addSource = useCallback(
-    async (source: Source) => {
-      let nextAccounts = accounts;
+    async (source: Source, options?: { accounts?: Account[] }) => {
+      const baseAccounts = options?.accounts ?? accounts;
+      let nextAccounts = baseAccounts;
       let nextSource = source;
       if (source.fonte === "inter" || source.fonte === "nubank") {
-        const ensured = ensureCardAccount(nextAccounts, source.fonte);
-        nextAccounts = ensured.accounts;
-        const accountId = ensured.account.id;
-        nextSource = {
-          ...source,
-          raw: source.raw.map((r) => ({ ...r, accountId })),
-        };
-        if (nextAccounts !== accounts) {
-          await persistAccounts(nextAccounts, settings);
+        const existing = findCardAccountByFonte(baseAccounts, source.fonte);
+        if (existing) {
+          nextSource = {
+            ...source,
+            raw: source.raw.map((r) => ({
+              ...r,
+              accountId: r.accountId ?? existing.id,
+            })),
+          };
+        } else {
+          const ensured = ensureCardAccount(baseAccounts, source.fonte);
+          nextAccounts = ensured.accounts;
+          const accountId = ensured.account.id;
+          nextSource = {
+            ...source,
+            raw: source.raw.map((r) => ({ ...r, accountId })),
+          };
+          if (nextAccounts !== baseAccounts) {
+            await persistAccounts(nextAccounts, settings);
+          }
         }
       }
       const { dataset: cleanedDataset, removedRawIds } =
@@ -786,6 +804,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const updateAccount = useCallback(
     async (account: Account) => {
+      const existing = accounts.find((a) => a.id === account.id);
+      const interCycleChanged =
+        existing?.kind === "cartao" &&
+        account.kind === "cartao" &&
+        account.fonteCsv === "inter" &&
+        hasCardCycleConfigured(account) &&
+        (existing.diaFechamento !== account.diaFechamento ||
+          existing.diaPagamento !== account.diaPagamento);
+
       const next = accounts.map((a) => {
         if (a.id !== account.id) {
           return account.isDefault ? { ...a, isDefault: false } : a;
@@ -793,8 +820,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         return account;
       });
       await persistAccounts(next, settings);
+
+      if (interCycleChanged) {
+        const nextSources = dataset.sources.map((s) =>
+          s.fonte === "inter" ? reapplyInterCycleToSource(s, account) : s,
+        );
+        await persistDataset({ sources: nextSources });
+      }
     },
-    [accounts, persistAccounts, settings],
+    [accounts, dataset.sources, persistAccounts, persistDataset, settings],
   );
 
   const confirmCardAccountCycle = useCallback(

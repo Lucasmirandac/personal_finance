@@ -106,7 +106,7 @@ export function ImportPanel({
       setRowErrors([])
     }
     setLastDetected(result.detectedFormat)
-    await addSource(result.source)
+    await addSource(result.source, { accounts: accountsForParse })
     const target =
       redirectAfterImport ??
       (isProjectionReady(

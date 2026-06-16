@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  findCardAccountByFonte,
+  upsertCardAccountCycle,
+} from "./accounts";
+import {
   inferInvoiceAnoMes,
   isInterInstallmentTipo,
   parseCsvText,
   parseInterInstallmentTipo,
+  reapplyInterCycleToSource,
   rewriteInstallmentRow,
 } from "./csv";
-import type { Account, TransactionRaw } from "./types";
+import type { Account, Source, TransactionRaw } from "./types";
 
 const interCard: Account = {
   id: "inter-card",
@@ -183,5 +188,59 @@ describe("parseCsvText inter installments", () => {
     );
     expect(earlyInstallment?.data).toBe("10/08/2026");
     expect(lateInstallment?.data).toBe("10/07/2026");
+  });
+
+  it("skips installment rewrites when card cycle is not confirmed", () => {
+    const unconfirmed: Account = {
+      ...interCard,
+      cicloConfirmado: false,
+    };
+    const result = parseCsvText(interCsv, "fatura-inter.csv", [unconfirmed]);
+    const installment = result.source?.raw.find(
+      (row) => row.tipo === "Parcela 2/3",
+    );
+    expect(installment?.data).toBe("26/05/2026");
+    expect(installment?.installment).toBeUndefined();
+  });
+});
+
+describe("import cycle preservation", () => {
+  it("accounts snapshot keeps confirmed cycle for addSource lookup", () => {
+    const { accounts: confirmed } = upsertCardAccountCycle([], "inter", {
+      diaFechamento: 30,
+      diaPagamento: 7,
+    });
+    const card = findCardAccountByFonte(confirmed, "inter");
+    expect(card?.diaFechamento).toBe(30);
+    expect(card?.diaPagamento).toBe(7);
+    expect(card?.cicloConfirmado).toBe(true);
+  });
+});
+
+describe("reapplyInterCycleToSource", () => {
+  const csv = `"Data","Lançamento","Categoria","Tipo","Valor"
+"02/06/2026","LOJA AVISTA","COMPRAS","Compra à vista","R$ 10,00"
+"02/06/2026","LOJA","COMPRAS","Parcela 1/2","R$ 100,00"
+`;
+
+  it("updates installment payment dates when closing/payment days change", () => {
+    const earlyClose: Account = {
+      ...interCard,
+      diaFechamento: 1,
+      diaPagamento: 10,
+    };
+    const parsed = parseCsvText(csv, "inter-test.csv", [earlyClose]);
+    const source = parsed.source as Source;
+    const before = source.raw.find((row) => isInterInstallmentTipo(row.tipo));
+    expect(before?.data).toBe("10/08/2026");
+
+    const lateClose: Account = {
+      ...interCard,
+      diaFechamento: 25,
+      diaPagamento: 15,
+    };
+    const reapplied = reapplyInterCycleToSource(source, lateClose);
+    const after = reapplied.raw.find((row) => isInterInstallmentTipo(row.tipo));
+    expect(after?.data).toBe("15/07/2026");
   });
 });
