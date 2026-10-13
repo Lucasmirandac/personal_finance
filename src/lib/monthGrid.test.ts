@@ -330,7 +330,38 @@ describe("buildMonthGridImport", () => {
     );
     expect(result.payments.some((p) => p.status === "pago")).toBe(true);
     expect(result.manuals.some((m) => m.lancamento.includes("Tenis"))).toBe(true);
+    expect(result.manuals.filter((m) => m.lancamento.startsWith("Tenis"))).toHaveLength(4);
     expect(result.manuals.some((m) => m.lancamento === "Açai")).toBe(true);
+  });
+
+  it("creates the following installments and skips ones already launched", () => {
+    const rows = attachAccountsToSheetRows(
+      parseMonthSheetText(
+        "Descrição\tParcelas\tData\tTipo\tCategoria\tValor\nPneus\tParcela 2/5\t13/10\tInter\tCarro\tR$ 152,70",
+        "2026-10",
+        "2026-10-13",
+      ).rows,
+      ACCOUNTS,
+    );
+    const result = buildMonthGridImport({
+      rows,
+      monthIso: "2026-10",
+      rules: [],
+      existing: [
+        {
+          lancamento: "Pneus (3/5)",
+          dataISO: "2026-11-13",
+          valorOriginal: 152.7,
+          accountId: "card-inter",
+        } as TransactionNormalized,
+      ],
+    });
+    expect(result.manuals.map((m) => [m.lancamento, m.data])).toEqual([
+      ["Pneus (2/5)", "13/10/2026"],
+      ["Pneus (4/5)", "13/12/2026"],
+      ["Pneus (5/5)", "13/01/2027"],
+    ]);
+    expect(result.skippedDuplicates).toBe(1);
   });
 
   it("edits an existing matching fixed rule instead of duplicating it", () => {

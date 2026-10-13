@@ -66,7 +66,7 @@ export function useMonthGridPaste(monthIso: string) {
           rows,
           monthIso,
           rules: recurringRules,
-          existing: normalized.filter((tx) => tx.anoMes === monthIso),
+          existing: normalized,
         });
         await importMonthGrid(payload);
         setPasteOpen(false);

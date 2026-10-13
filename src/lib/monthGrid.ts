@@ -3,12 +3,13 @@ import {
   findCardAccountByFonte,
 } from "./accounts";
 import { isoToBr, parseBrDate, parseBrlValue, parseIsoDate } from "./csv";
-import { isoFromParts, todayIso, yyyyMmFromIso } from "./dates";
+import { addMonthsIso, isoFromParts, todayIso, yyyyMmFromIso } from "./dates";
 import {
   isRecurringRaw,
   recurringIncomeRawId,
   type TransactionEditPatch,
 } from "./edits";
+import { MAX_PARCELAS } from "./installments";
 import { isManualQuickRaw } from "./manualTransactions";
 import { newRecurringId } from "./recurring";
 import {
@@ -564,15 +565,41 @@ export function isDuplicateMonthTx(
   existing: TransactionNormalized[],
 ): boolean {
   if (row.valor == null) return false;
-  const desc = stripDiacritics(row.descricao).trim().toLowerCase();
+  const desc = expenseKey(row.descricao);
   return existing.some((tx) => {
     if (tx.dataISO !== row.dataIso) return false;
     if (Math.abs(Math.abs(tx.valorOriginal) - row.valor!) > 0.005) return false;
     if (row.accountId && tx.accountId && tx.accountId !== row.accountId) {
       return false;
     }
-    return stripDiacritics(tx.lancamento).trim().toLowerCase() === desc;
+    return expenseKey(tx.lancamento) === desc;
   });
+}
+
+function expenseKey(s: string): string {
+  return stripDiacritics(s)
+    .replace(/\s*\(\d+\s*\/\s*\d+\)\s*$/, "")
+    .trim()
+    .toLowerCase();
+}
+
+function installmentSlots(
+  row: ParsedSheetRow,
+): Array<{ dataIso: string; parcela: SheetParcela | null }> {
+  const info = row.kind === "parcela" ? row.parcela : null;
+  if (!info || info.total <= 1) {
+    return [{ dataIso: row.dataIso, parcela: info }];
+  }
+  // ponytail: at most MAX_PARCELAS from the current one; same ceiling as quick add
+  const last = Math.min(info.total, info.current + MAX_PARCELAS - 1);
+  const slots: Array<{ dataIso: string; parcela: SheetParcela }> = [];
+  for (let n = info.current; n <= last; n += 1) {
+    slots.push({
+      dataIso: addMonthsIso(row.dataIso, n - info.current),
+      parcela: { current: n, total: info.total },
+    });
+  }
+  return slots;
 }
 
 export function recurringRawIdForMonth(ruleId: string, anoMes: string): string {
@@ -660,19 +687,26 @@ export function buildMonthGridImport(args: {
       continue;
     }
 
-    if (isDuplicateMonthTx(row, args.existing)) {
-      out.skippedDuplicates += 1;
-      continue;
+    for (const slot of installmentSlots(row)) {
+      const lancamento = lancamentoWithParcela(row.descricao, slot.parcela);
+      if (
+        isDuplicateMonthTx(
+          { ...row, descricao: lancamento, dataIso: slot.dataIso },
+          args.existing,
+        )
+      ) {
+        out.skippedDuplicates += 1;
+        continue;
+      }
+      out.manuals.push({
+        data: isoToBr(slot.dataIso),
+        lancamento,
+        categoria: row.categoria.trim(),
+        tipo: "Avulso",
+        valorOriginal: row.valor,
+        accountId: row.accountId,
+      });
     }
-
-    out.manuals.push({
-      data: isoToBr(row.dataIso),
-      lancamento: lancamentoWithParcela(row.descricao, row.parcela),
-      categoria: row.categoria.trim(),
-      tipo: "Avulso",
-      valorOriginal: row.valor,
-      accountId: row.accountId,
-    });
   }
 
   return out;
