@@ -125,7 +125,8 @@ export function CloudSyncReminder() {
 }
 
 export function SetupIndicator() {
-  const { dataset, settings, recurringRules, accounts } = useAppStore();
+  const { dataset, settings, recurringRules, accounts, manualTransactions } =
+    useAppStore();
   const [syncState, setSyncState] = useState<CloudSyncState>(getCloudSyncState);
 
   useEffect(() => subscribeCloudSync(setSyncState), []);
@@ -141,14 +142,16 @@ export function SetupIndicator() {
     recurringRules,
     accounts,
     cloudProtected,
+    manualTransactions,
   );
   const allDone = steps.every((s) => s.done);
+  const nextStep = steps.find((s) => !s.done);
 
   if (allDone) return null;
 
   return (
     <Link
-      href="/config"
+      href={nextStep?.href ?? "/mes"}
       className={clsx(chipLinkBase, "hidden sm:inline-flex gap-1.5")}
       title={steps.map((s) => `${s.label}: ${s.done ? "ok" : "pendente"}`).join("\n")}
     >

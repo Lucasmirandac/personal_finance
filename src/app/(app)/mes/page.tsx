@@ -13,6 +13,7 @@ export default function MesPage() {
       <EmptyState
         title="Cadastre uma conta"
         description="A grade do mês lança em contas e cartões. Cadastre ao menos uma conta para começar."
+        secondaryHref={null}
       />
     );
   }

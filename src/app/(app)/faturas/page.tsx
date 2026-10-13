@@ -12,7 +12,7 @@ export default function FaturasPage() {
     return (
       <EmptyState
         title="Configure seus dados"
-        description="Importe uma fatura ou cadastre compras no cartão para editar faturas."
+        description="Cadastre um cartão e lance as compras na grade do mês."
       />
     )
   }

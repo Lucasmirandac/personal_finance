@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { QuickAddModal } from "@/components/QuickAddModal";
 import { MonthPastePreview } from "@/components/mes/MonthPastePreview";
+import { useMonthGridPaste } from "@/components/mes/useMonthGridPaste";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
@@ -23,16 +24,12 @@ import { recurringRuleIdFromRaw } from "@/lib/edits";
 import { formatBRL, formatMonthLabel } from "@/lib/format";
 import { isManualQuickRaw } from "@/lib/manualTransactions";
 import {
-  attachAccountsToSheetRows,
-  buildMonthGridImport,
   defaultDateForMonth,
   formatInstallmentCell,
   installmentRef,
   monthCategoryRows,
   monthGridSlices,
-  parseMonthSheetText,
   sumSaida,
-  type ParsedSheetRow,
 } from "@/lib/monthGrid";
 import { derivePaymentState } from "@/lib/paymentStatus";
 import { newRecurringId } from "@/lib/recurring";
@@ -136,14 +133,18 @@ export function MonthGridPageContent() {
     editTransaction,
     deleteTransaction,
     setPaymentStatus,
-    importMonthGrid,
   } = useAppStore();
 
   const [month, setMonth] = useState(() => todayIso().slice(0, 7));
-  const [pasteRows, setPasteRows] = useState<ParsedSheetRow[] | null>(null);
-  const [pasteOpen, setPasteOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const {
+    pasteRows,
+    pasteOpen,
+    handlePasteEvent,
+    handlePasteButton,
+    closePaste,
+    confirmPaste,
+  } = useMonthGridPaste(month);
 
   const activeAccounts = useMemo(
     () => accounts.filter((a) => a.ativa),
@@ -201,56 +202,6 @@ export function MonthGridPageContent() {
       .map(([c]) => c);
   }, [normalized, budgets]);
 
-  function openPaste(text: string) {
-    const parsed = attachAccountsToSheetRows(
-      parseMonthSheetText(text, month).rows,
-      accounts,
-    );
-    if (parsed.length === 0) return;
-    setPasteRows(parsed);
-    setPasteOpen(true);
-  }
-
-  async function handlePaste(e: React.ClipboardEvent) {
-    const text = e.clipboardData.getData("text/plain");
-    if (!text.includes("\t") && text.split(/\r?\n/).length < 2) return;
-    e.preventDefault();
-    openPaste(text);
-  }
-
-  async function handlePasteButton() {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text.trim()) {
-        openPaste(text);
-        return;
-      }
-    } catch {
-      /* permission denied — fall through */
-    }
-    const typed = window.prompt(
-      "Cole aqui o bloco copiado da planilha (Ctrl+V) e confirme.",
-    );
-    if (typed?.trim()) openPaste(typed);
-  }
-
-  async function confirmPaste(rows: ParsedSheetRow[]) {
-    setImporting(true);
-    try {
-      const payload = buildMonthGridImport({
-        rows,
-        monthIso: month,
-        rules: recurringRules,
-        existing: normalized.filter((tx) => tx.anoMes === month),
-      });
-      await importMonthGrid(payload);
-      setPasteOpen(false);
-      setPasteRows(null);
-    } finally {
-      setImporting(false);
-    }
-  }
-
   async function saveGastoDraft() {
     const valor = parseMoney(gastoDraft.valorStr);
     if (!gastoDraft.descricao.trim() || valor == null || !gastoDraft.accountId) {
@@ -300,7 +251,7 @@ export function MonthGridPageContent() {
   }
 
   return (
-    <div className="space-y-4" onPaste={handlePaste}>
+    <div className="space-y-4" onPaste={handlePasteEvent}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-muted">Mês</p>
@@ -407,10 +358,7 @@ export function MonthGridPageContent() {
         open={pasteOpen && pasteRows != null}
         initialRows={pasteRows ?? []}
         accounts={accounts}
-        onClose={() => {
-          if (importing) return;
-          setPasteOpen(false);
-        }}
+        onClose={closePaste}
         onConfirm={(rows) => void confirmPaste(rows)}
       />
 

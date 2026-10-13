@@ -9,7 +9,7 @@ Tudo roda no navegador — sem backend, sem upload, sem cadastro. Os dados ficam
 ## Princípios
 
 - **Local-first.** Nenhuma transação sai do navegador. Uma rota OAuth (`/api/oauth/google/token`) troca apenas tokens Google Drive — sem dados financeiros.
-- **Sem cadastro.** Abra `/comecar`, cadastre contas e renda e use — importar CSV é opcional.
+- **Sem cadastro.** Abra `/comecar`, cadastre débito e cartão, cole a aba do mês (ou lance na grade) e use — importar CSV é opcional, em Config.
 - **Português.** UI, mensagens e exportações em pt-BR.
 - **Decisão antes do gasto.** O foco não é só ver onde o dinheiro foi — é responder "dá pra gastar isso agora?".
 - **Reversível.** Edições são lógicas; exclusões podem ser restauradas; backup sempre disponível.
@@ -38,11 +38,11 @@ npm run dev
 
 Abra `http://localhost:3000` (landing de marketing) ou vá direto para `http://localhost:3000/comecar` (app). Na primeira vez, o onboarding em `/comecar` leva você por:
 
-1. Cadastrar contas (conta corrente, poupança, carteira; cartão opcional).
-2. Cadastrar renda (receita recorrente) — necessário para concluir o setup.
-3. (Opcional) Importar CSV (Inter ou Nubank) e/ou configurar o **Divisor de Águas**.
+1. Cadastrar a conta de débito (carteira/corrente) com o saldo atual.
+2. Cadastrar ao menos um cartão (Inter, Nubank ou outro), com fechamento e pagamento.
+3. Colar a aba do mês da planilha — ou pular e lançar na grade em `/mes`.
 
-Depois disso, o app redireciona automaticamente para `/saldo` (Hoje) ou `/dashboard` (Análise), conforme a projeção estiver pronta.
+CSV do Inter/Nubank e o **Divisor de Águas** (renda) ficam em Config e `/divisor`; não travam o primeiro uso. Quem já tem dados e reabre `/comecar` é redirecionado para `/saldo` ou `/dashboard`.
 
 Build de produção:
 
@@ -83,7 +83,8 @@ Se `NEXT_PUBLIC_SUPPORT_EMAIL` não estiver definido, o fallback de desenvolvime
 
 | Rota | O que faz |
 |------|-----------|
-| `/comecar` | Onboarding; redireciona para `/saldo` ou `/dashboard` quando o setup já estava concluído |
+| `/comecar` | Onboarding (débito, cartão, colar o mês); quem já tem dados vai para `/saldo` ou `/dashboard` |
+| `/mes` | Grade do mês — fixos, parcelas e gastos, com colagem da planilha |
 | `/saldo` | **Hoje** — saldo atual, limite diário, alertas, lançamentos do dia, fechamento de mês e conquistas |
 | `/extrato` | Extrato de contas (corrente, poupança, carteira) por mês, com status de pagamento |
 | `/faturas` | Faturas de cartão agrupadas por ciclo de fechamento/pagamento, com teto mensal |
@@ -427,7 +428,7 @@ A modal **Auto-categorizar** (`AutoCategorizeModal`) aplica uma categoria em lot
 
 ## Divisor de Águas
 
-Disponível no onboarding (passo 3) e em `/divisor`. Separa o que é **difícil de mudar** (custos fixos estruturais) do que é **gerenciável** no dia a dia (variáveis no cartão).
+Disponível em `/divisor`. Separa o que é **difícil de mudar** (custos fixos estruturais) do que é **gerenciável** no dia a dia (variáveis no cartão).
 
 - **Renda total**: soma das receitas recorrentes ativas (`RecurringRule kind="receita"`).
 - **Custo fixo**: despesas fixas recorrentes ativas + categorias do CSV que você marcar manualmente como estruturais.

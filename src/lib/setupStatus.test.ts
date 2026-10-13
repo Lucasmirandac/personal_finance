@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { hasCashAccount, hasIncome } from "./setupStatus";
-import type { Account, RecurringRule } from "./types";
+import {
+  getSetupSteps,
+  hasCardAccount,
+  hasCashAccount,
+  hasIncome,
+  hasMonthLaunched,
+} from "./setupStatus";
+import {
+  DEFAULT_SETTINGS,
+  EMPTY_DATASET,
+  type Account,
+  type ManualTransaction,
+  type RecurringRule,
+} from "./types";
 
 function cashAccount(partial?: Partial<Account>): Account {
   return {
@@ -62,6 +74,88 @@ describe("hasCashAccount", () => {
 
   it("returns false when cash account is inactive", () => {
     expect(hasCashAccount([cashAccount({ ativa: false })])).toBe(false);
+  });
+});
+
+describe("hasCardAccount", () => {
+  it("returns false when there are no cards", () => {
+    expect(hasCardAccount([])).toBe(false);
+    expect(hasCardAccount([cashAccount()])).toBe(false);
+  });
+
+  it("returns true when an active card exists", () => {
+    expect(hasCardAccount([cardAccount()])).toBe(true);
+  });
+
+  it("returns false when the card is inactive", () => {
+    expect(hasCardAccount([cardAccount({ ativa: false })])).toBe(false);
+  });
+});
+
+describe("hasMonthLaunched", () => {
+  it("returns false with no manuals, fixos or csv", () => {
+    expect(hasMonthLaunched([])).toBe(false);
+    expect(
+      hasMonthLaunched([recurringRule({ kind: "receita" })]),
+    ).toBe(false);
+  });
+
+  it("returns true with an active fixed expense", () => {
+    expect(
+      hasMonthLaunched([
+        recurringRule({ kind: "despesa_fixa", descricao: "Aluguel" }),
+      ]),
+    ).toBe(true);
+  });
+
+  it("returns true with a manual transaction", () => {
+    const tx = { id: "m1" } as ManualTransaction;
+    expect(hasMonthLaunched([], [tx])).toBe(true);
+  });
+
+  it("returns true when a csv source exists", () => {
+    expect(hasMonthLaunched([], [], 1)).toBe(true);
+  });
+});
+
+describe("getSetupSteps", () => {
+  it("does not include a csv step", () => {
+    const steps = getSetupSteps(
+      EMPTY_DATASET,
+      DEFAULT_SETTINGS,
+      [],
+      [cashAccount(), cardAccount()],
+    );
+    expect(steps.map((s) => s.id)).not.toContain("csv");
+    expect(steps.filter((s) => s.id !== "nuvem").map((s) => s.id)).toEqual([
+      "contas",
+      "mes",
+    ]);
+  });
+
+  it("marks contas done only with cash and a card", () => {
+    const cashOnly = getSetupSteps(EMPTY_DATASET, DEFAULT_SETTINGS, [], [
+      cashAccount(),
+    ]);
+    expect(cashOnly.find((s) => s.id === "contas")?.done).toBe(false);
+
+    const both = getSetupSteps(EMPTY_DATASET, DEFAULT_SETTINGS, [], [
+      cashAccount(),
+      cardAccount(),
+    ]);
+    expect(both.find((s) => s.id === "contas")?.done).toBe(true);
+  });
+
+  it("marks mes launched from a manual row", () => {
+    const steps = getSetupSteps(
+      EMPTY_DATASET,
+      DEFAULT_SETTINGS,
+      [],
+      [cashAccount(), cardAccount()],
+      false,
+      [{ id: "m1" } as ManualTransaction],
+    );
+    expect(steps.find((s) => s.id === "mes")?.done).toBe(true);
   });
 });
 

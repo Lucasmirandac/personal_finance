@@ -12,7 +12,7 @@ export default function FuturoPage() {
     return (
       <EmptyState
         title="Configure seus dados"
-        description="Importe um CSV ou cadastre recorrentes para ver sua linha do tempo financeira."
+        description="Lance o mês na grade. Depois cadastre a renda no Divisor para projetar o futuro."
       />
     )
   }

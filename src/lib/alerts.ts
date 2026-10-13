@@ -5,7 +5,7 @@ import { todayIso } from "./dates"
 import { getSetupSteps } from "./setupStatus"
 import { detectSubscriptions } from "./subscriptions"
 import { CashEvent, ProjectionSummary } from "./projection"
-import { Account, CategoryBudget, Dataset, RecurringRule, Settings, TransactionNormalized } from "./types"
+import { Account, CategoryBudget, Dataset, ManualTransaction, RecurringRule, Settings, TransactionNormalized } from "./types"
 
 export type PainelAlertSeverity = "critical" | "warning" | "info"
 export type PainelAlertAccent =
@@ -31,6 +31,7 @@ type BuildPainelAlertsInput = {
   settings: Settings
   recurringRules: RecurringRule[]
   accounts: Account[]
+  manuals?: ManualTransaction[]
   normalized: TransactionNormalized[]
   budgets: CategoryBudget[]
   summary: ProjectionSummary | null
@@ -55,6 +56,7 @@ export const buildPainelAlerts = ({
   settings,
   recurringRules,
   accounts,
+  manuals = [],
   normalized,
   budgets,
   summary,
@@ -65,9 +67,14 @@ export const buildPainelAlerts = ({
   const alerts: PainelAlert[] = []
   const today = todayIso()
 
-  const setupSteps = getSetupSteps(dataset, settings, recurringRules, accounts).filter(
-    (step) => !step.done,
-  )
+  const setupSteps = getSetupSteps(
+    dataset,
+    settings,
+    recurringRules,
+    accounts,
+    false,
+    manuals,
+  ).filter((step) => !step.done)
   if (setupSteps.length > 0) {
     alerts.push({
       id: "setup-pendente",
@@ -76,7 +83,7 @@ export const buildPainelAlerts = ({
       icon: "wrench",
       title: "Configuração pendente",
       detail: `${setupSteps.length} etapa(s) ainda precisam de atenção`,
-      href: "/config",
+      href: setupSteps[0]?.href ?? "/mes",
     })
   }
 

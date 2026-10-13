@@ -101,6 +101,8 @@ export default function ConfigPageInner() {
               <EmptyState
                 title="Importe dados primeiro"
                 description="É necessário ter CSV importado para editar padrões de classificação."
+                secondaryHref="/config?tab=importar"
+                secondaryLabel="Importar CSV"
               />
             </div>
           ))}

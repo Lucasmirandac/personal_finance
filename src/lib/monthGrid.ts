@@ -420,6 +420,23 @@ export function attachAccountsToSheetRows(
   });
 }
 
+export function looksLikeSheetPaste(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return trimmed.includes("\t") || trimmed.split(/\r?\n/).length >= 2;
+}
+
+export function parsePastedMonthSheet(
+  text: string,
+  monthIso: string,
+  accounts: Account[],
+): ParsedSheetRow[] {
+  return attachAccountsToSheetRows(
+    parseMonthSheetText(text, monthIso).rows,
+    accounts,
+  );
+}
+
 export function isSheetRowReady(row: ParsedSheetRow): boolean {
   return (
     row.descricao.trim().length > 0 &&

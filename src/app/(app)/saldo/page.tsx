@@ -12,7 +12,7 @@ export default function SaldoPage() {
     return (
       <EmptyState
         title="Configure seus dados"
-        description="Importe um CSV ou cadastre recorrentes para ver a projeção de saldo."
+        description="Cadastre contas e lance o mês na grade para ver o saldo de hoje."
       />
     );
   }

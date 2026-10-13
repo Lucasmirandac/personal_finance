@@ -180,8 +180,8 @@ export function DivisorDeAguasStep() {
         </div>
       ) : (
         <p className="text-xs text-muted">
-          Importe o CSV no passo 1 para detectar candidatos a custo fixo no
-          cartão.
+          Lance o mês na grade ou importe a fatura em Config para detectar
+          candidatos a custo fixo no cartão.
         </p>
       )}
     </div>

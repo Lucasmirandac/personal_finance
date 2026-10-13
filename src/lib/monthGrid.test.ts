@@ -6,6 +6,7 @@ import {
   defaultDateForMonth,
   isDuplicateMonthTx,
   isSheetRowReady,
+  looksLikeSheetPaste,
   mapSheetTipoToAccount,
   monthGridSlices,
   parseMonthSheetText,
@@ -137,6 +138,14 @@ describe("mapSheetTipoToAccount", () => {
 
   it("leaves unknown labels unmapped", () => {
     expect(mapSheetTipoToAccount("C6", ACCOUNTS)).toBeUndefined();
+  });
+});
+
+describe("looksLikeSheetPaste", () => {
+  it("accepts tab-separated or multi-line text", () => {
+    expect(looksLikeSheetPaste("a\tb")).toBe(true);
+    expect(looksLikeSheetPaste("uma\nduas")).toBe(true);
+    expect(looksLikeSheetPaste("  ")).toBe(false);
   });
 });
 

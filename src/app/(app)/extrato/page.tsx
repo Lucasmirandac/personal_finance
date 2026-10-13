@@ -12,7 +12,7 @@ export default function ExtratoPage() {
     return (
       <EmptyState
         title="Configure seus dados"
-        description="Importe um CSV ou cadastre lançamentos para editar o extrato."
+        description="Cadastre contas e lance o mês na grade para ver o extrato."
       />
     )
   }

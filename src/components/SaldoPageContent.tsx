@@ -56,6 +56,7 @@ export function SaldoPageContent() {
     lastBackupAt,
     edits,
     paymentStatus,
+    manualTransactions,
   } = useAppStore()
 
   const [configOpen, setConfigOpen] = useState(false)
@@ -98,6 +99,7 @@ export function SaldoPageContent() {
         settings,
         recurringRules,
         accounts,
+        manuals: manualTransactions,
         normalized,
         budgets,
         summary,
@@ -110,6 +112,7 @@ export function SaldoPageContent() {
       settings,
       recurringRules,
       accounts,
+      manualTransactions,
       normalized,
       budgets,
       summary,

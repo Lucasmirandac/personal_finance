@@ -8,10 +8,14 @@ const linkBtnPrimary = `${linkBtnBase} border-foreground bg-foreground text-surf
 
 export function EmptyState({
   title = "Nenhum dado para analisar",
-  description = "Comece importando um CSV ou cadastrando recorrentes.",
+  description = "Cadastre contas e lance o mês na grade — ou cole a aba da planilha.",
+  secondaryHref = "/mes",
+  secondaryLabel = "Lançar o mês",
 }: {
   title?: string;
   description?: string;
+  secondaryHref?: string | null;
+  secondaryLabel?: string;
 }) {
   return (
     <Card className="p-10 text-center max-w-xl mx-auto">
@@ -21,9 +25,11 @@ export function EmptyState({
         <Link href="/comecar" className={linkBtnPrimary}>
           Começar
         </Link>
-        <Link href="/config?tab=importar" className={linkBtnDefault}>
-          Importar CSV
-        </Link>
+        {secondaryHref ? (
+          <Link href={secondaryHref} className={linkBtnDefault}>
+            {secondaryLabel}
+          </Link>
+        ) : null}
       </div>
     </Card>
   );

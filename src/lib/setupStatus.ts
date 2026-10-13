@@ -1,16 +1,36 @@
 import { accountsToBalanceAnchor, hasProjectionSetup } from "./accounts";
-import { Account, Dataset, RecurringRule, Settings } from "./types";
+import {
+  Account,
+  Dataset,
+  ManualTransaction,
+  RecurringRule,
+  Settings,
+} from "./types";
 
 export function hasCashAccount(accounts: Account[]): boolean {
   return accountsToBalanceAnchor(accounts) != null;
+}
+
+export function hasCardAccount(accounts: Account[]): boolean {
+  return accounts.some((a) => a.ativa && a.kind === "cartao");
 }
 
 export function hasIncome(recurringRules: RecurringRule[]): boolean {
   return recurringRules.some((r) => r.kind === "receita" && r.ativo);
 }
 
+export function hasMonthLaunched(
+  recurringRules: RecurringRule[],
+  manuals: ManualTransaction[] = [],
+  csvSourceCount = 0,
+): boolean {
+  if (manuals.length > 0) return true;
+  if (csvSourceCount > 0) return true;
+  return recurringRules.some((r) => r.kind === "despesa_fixa" && r.ativo);
+}
+
 export type SetupStep = {
-  id: "csv" | "contas" | "recorrentes" | "nuvem";
+  id: "contas" | "mes" | "nuvem";
   label: string;
   done: boolean;
   href: string;
@@ -26,22 +46,15 @@ export function getSetupSteps(
   recurringRules: RecurringRule[],
   accounts: Account[] = [],
   cloudProtected = false,
+  manuals: ManualTransaction[] = [],
 ): SetupStep[] {
   const cardSources = dataset.sources.map((s) => s.fonte);
-  const hasCsv = dataset.sources.length > 0;
   const hasContas =
     accounts.length > 0
-      ? hasProjectionSetup(accounts, cardSources)
+      ? hasProjectionSetup(accounts, cardSources) && hasCardAccount(accounts)
       : false;
-  const hasRecorrentes = recurringRules.some((r) => r.ativo);
 
   const steps: SetupStep[] = [
-    {
-      id: "csv",
-      label: "CSV importado",
-      done: hasCsv,
-      href: "/config?tab=importar",
-    },
     {
       id: "contas",
       label: "Contas e saldos",
@@ -49,10 +62,14 @@ export function getSetupSteps(
       href: "/config?tab=contas",
     },
     {
-      id: "recorrentes",
-      label: "Divisor de Águas",
-      done: hasRecorrentes,
-      href: "/divisor",
+      id: "mes",
+      label: "Mês lançado",
+      done: hasMonthLaunched(
+        recurringRules,
+        manuals,
+        dataset.sources.length,
+      ),
+      href: "/mes",
     },
   ];
 
