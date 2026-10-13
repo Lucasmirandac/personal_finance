@@ -135,6 +135,7 @@ export function TodayTransactionsPanel() {
 
       <div className="mt-4 grid gap-2">
         <QuickLink href="/extrato" title="Ver extrato" description="Conta-corrente, carteira e poupança" />
+        <QuickLink href="/mes" title="Lançar o mês" description="Grade no formato da planilha" />
         <QuickLink href="/faturas" title="Ver faturas" description="Compras agrupadas por cartão" />
         <div className="grid grid-cols-3 gap-2">
           <MiniLink href="/futuro" icon={<CalendarDays size={14} />} label="Futuro" />

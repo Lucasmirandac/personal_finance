@@ -10,6 +10,7 @@ import { Panel } from "@/components/ui/Panel";
 export const MAIN_NAV = [
   { href: "/saldo", label: "Hoje" },
   { href: "/extrato", label: "Extrato" },
+  { href: "/mes", label: "Mês" },
   { href: "/faturas", label: "Faturas" },
   { href: "/futuro", label: "Futuro" },
   { href: "/divisor", label: "Divisor" },

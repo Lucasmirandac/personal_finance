@@ -14,6 +14,7 @@ import {
   Scale,
   ChartColumnBig,
   Settings,
+  Table2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -33,12 +34,13 @@ const PINNED_HREFS = new Set(PRIMARY.map((item) => item.href));
 
 const MORE_ICONS: Record<string, LucideIcon> = {
   "/faturas": CreditCard,
+  "/mes": Table2,
   "/divisor": Scale,
   "/dashboard": ChartColumnBig,
 };
 
 // Routes reachable only through the "Mais" sheet — used to highlight that tab.
-const MORE_PREFIXES = ["/faturas", "/divisor", "/dashboard", "/config", "/recorrentes", "/transacoes", "/regras"];
+const MORE_PREFIXES = ["/faturas", "/mes", "/divisor", "/dashboard", "/config", "/recorrentes", "/transacoes", "/regras"];
 
 function isActivePath(path: string, href: string): boolean {
   return path === href || path.startsWith(href + "/");

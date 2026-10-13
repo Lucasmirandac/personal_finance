@@ -45,6 +45,7 @@ import {
 import { compileAliases } from "./aliases";
 import { addDaysIso, todayIso } from "./dates";
 import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
+import type { MonthGridImport } from "./monthGrid";
 import { normalizeTransactions } from "./normalize";
 import { expandRecurringRules } from "./recurring";
 import {
@@ -182,6 +183,7 @@ type Ctx = {
         Partial<Pick<ManualTransaction, "id">>
     >,
   ) => Promise<ManualTransaction[]>;
+  importMonthGrid: (payload: MonthGridImport) => Promise<void>;
   updateManualTransaction: (
     id: string,
     patch: Partial<
@@ -948,6 +950,57 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [accounts, manualTransactions, persistManual],
   );
 
+  const importMonthGrid = useCallback(
+    async (payload: MonthGridImport) => {
+      if (payload.rules.length > 0) {
+        await persistRecurring([...recurringRules, ...payload.rules]);
+      }
+      if (payload.manuals.length > 0) {
+        const def = defaultAccount(accounts);
+        const txs = payload.manuals.map((p) =>
+          newManualTransaction({
+            ...p,
+            accountId: p.accountId ?? def?.id,
+          }),
+        );
+        await persistManual([...manualTransactions, ...txs]);
+      }
+      if (payload.edits.length > 0) {
+        let next = { ...edits };
+        for (const { rawId, patch } of payload.edits) {
+          next = {
+            ...next,
+            [rawId]: buildEditEntry(
+              rawId,
+              next[rawId],
+              pickRecurringMonthlyPatch(patch),
+            ),
+          };
+        }
+        await persistEdits(next);
+      }
+      if (payload.payments.length > 0) {
+        const next = { ...paymentStatus };
+        const updatedAt = new Date().toISOString();
+        for (const { rawId, status } of payload.payments) {
+          next[rawId] = { rawId, status, updatedAt };
+        }
+        await persistPaymentStatus(next);
+      }
+    },
+    [
+      accounts,
+      edits,
+      manualTransactions,
+      paymentStatus,
+      persistEdits,
+      persistManual,
+      persistPaymentStatus,
+      persistRecurring,
+      recurringRules,
+    ],
+  );
+
   const updateManualTransaction = useCallback(
     async (
       id: string,
@@ -1358,6 +1411,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setDefaultAccount,
       addManualTransaction,
       addManualTransactions,
+      importMonthGrid,
       updateManualTransaction,
       removeManualTransaction,
       editTransaction,
@@ -1424,6 +1478,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       setDefaultAccount,
       addManualTransaction,
       addManualTransactions,
+      importMonthGrid,
       updateManualTransaction,
       removeManualTransaction,
       editTransaction,

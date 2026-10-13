@@ -268,6 +268,12 @@ function TodayHero({
 
           <div className="flex flex-wrap gap-2">
             <Link
+              href="/mes"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full border border-foreground bg-foreground px-3 py-1.5 text-xs font-medium text-surface shadow-sm hover:opacity-90"
+            >
+              Lançar o mês
+            </Link>
+            <Link
               href="/recorrentes"
               className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-surface/80 px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-surface-2"
             >
