@@ -23,7 +23,7 @@ import { Num } from "@/components/ui/Num"
 import { Panel } from "@/components/ui/Panel"
 import { SegmentedControl } from "@/components/ui/SegmentedControl"
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts"
-import { addDaysIso, addMonthsYyyyMm, todayIso } from "@/lib/dates"
+import { addMonthsYyyyMm, todayIso } from "@/lib/dates"
 import { isEdited, isRecurringRaw, canRevertTransaction, installmentDeleteConfirmMessage, allowsPerMonthRecurringEdit, recurringMonthlyDeleteConfirmMessage } from "@/lib/edits"
 import { isManualQuickRaw } from "@/lib/manualTransactions"
 import { formatBRL, formatDateBR, formatMonthLabel, formatInt } from "@/lib/format"
@@ -33,7 +33,7 @@ import {
   summarizePaymentMonth,
   type PaymentFilter,
 } from "@/lib/paymentStatus"
-import { isForecastTransaction } from "@/lib/recurring"
+import { isForecastTransaction, recurringStatementEndIso } from "@/lib/recurring"
 import { CashEvent, faturaCashEventsForMonth } from "@/lib/projection"
 import { useAppStore } from "@/lib/store"
 import {
@@ -48,7 +48,6 @@ export function ExtratoPageContent() {
   const {
     normalized,
     accounts,
-    settings,
     edits,
     installmentGroupEdits,
     paymentStatus,
@@ -135,11 +134,8 @@ export function ExtratoPageContent() {
     [monthTransactions, paymentStatus],
   )
 
-  const projectionHorizonEnd = useMemo(
-    () => addDaysIso(todayIso(), settings.projectionHorizonDays),
-    [settings.projectionHorizonDays],
-  )
-  const beyondProjectionHorizon = month > projectionHorizonEnd.slice(0, 7)
+  const statementEnd = useMemo(() => recurringStatementEndIso(), [])
+  const beyondStatementHorizon = month > statementEnd.slice(0, 7)
 
   const { original: editOriginal, current: editCurrent } = resolveEditCurrent(
     editRow,
@@ -368,8 +364,8 @@ export function ExtratoPageContent() {
           {mergedGroups.length === 0 && (
             <div className="px-4 py-10 text-center text-sm text-muted">
               {paymentFilter === "all"
-                ? beyondProjectionHorizon
-                  ? `Nenhum movimento previsto em ${formatMonthLabel(month)}. A projeção vai até ${formatDateBR(projectionHorizonEnd)} (horizonte em Config).`
+                ? beyondStatementHorizon
+                  ? `Nenhum movimento previsto em ${formatMonthLabel(month)}. Lançamentos recorrentes vão até ${formatDateBR(statementEnd)}.`
                   : `Nenhum movimento de conta em ${formatMonthLabel(month)}.`
                 : paymentFilter === "pending"
                   ? `Nenhuma conta a pagar em ${formatMonthLabel(month)}.`

@@ -43,11 +43,10 @@ import {
   removeStaleEstimatedInstallments,
 } from "./installmentEstimates";
 import { compileAliases } from "./aliases";
-import { addDaysIso, todayIso } from "./dates";
 import { isManualQuickRaw, MANUAL_SOURCE_ID, newManualTransaction } from "./manualTransactions";
 import type { MonthGridImport } from "./monthGrid";
 import { normalizeTransactions } from "./normalize";
-import { expandRecurringRules } from "./recurring";
+import { expandRecurringRules, recurringStatementEndIso } from "./recurring";
 import {
   BackupFile,
   BackupImportMode,
@@ -432,19 +431,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     [dataset.sources],
   );
 
-  const recurringExpansionEnd = useMemo(
-    () => addDaysIso(todayIso(), settings.projectionHorizonDays),
-    [settings.projectionHorizonDays],
-  );
-
   const recurringRaw = useMemo(
     () =>
       expandRecurringRules(
         recurringRules.filter((r) => r.ativo),
         new Date(),
-        recurringExpansionEnd,
+        recurringStatementEndIso(),
       ),
-    [recurringRules, recurringExpansionEnd],
+    [recurringRules],
   );
 
   const allRaw = useMemo(

@@ -1,6 +1,7 @@
 import { isoToBr } from "./csv";
-import { isoFromParts } from "./dates";
+import { addMonthsIso, isoFromParts } from "./dates";
 import { isRecurringRaw } from "./edits";
+import { MAX_PARCELAS } from "./installments";
 import { RecurringRule, TransactionNormalized, TransactionRaw } from "./types";
 
 export function newRecurringId(): string {
@@ -48,6 +49,13 @@ export function endOfCurrentMonthIso(today: Date = new Date()): string {
   const month = today.getUTCMonth() + 1;
   const lastDay = daysInMonth(year, month);
   return isoFromParts(year, month, lastDay);
+}
+
+/** Last day of the month 24 months ahead — same ceiling as installments. */
+export function recurringStatementEndIso(today: Date = new Date()): string {
+  const horizon = addMonthsIso(todayIsoFromDate(today), MAX_PARCELAS);
+  const [year, month] = horizon.split("-").map(Number);
+  return isoFromParts(year, month, daysInMonth(year, month));
 }
 
 function endIsoForRule(rule: RecurringRule, expansionEndIso: string): string {

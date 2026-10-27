@@ -6,6 +6,7 @@ import {
   expandRecurringRules,
   isForecastTransaction,
   isFutureRecurringRaw,
+  recurringStatementEndIso,
 } from "./recurring";
 import { RecurringRule, TransactionNormalized } from "./types";
 
@@ -36,6 +37,17 @@ describe("endOfCurrentMonthIso", () => {
     expect(endOfCurrentMonthIso(new Date("2026-01-10T12:00:00.000Z"))).toBe(
       "2026-01-31",
     );
+  });
+});
+
+describe("recurringStatementEndIso", () => {
+  it("is the last day of the month 24 months ahead", () => {
+    expect(
+      recurringStatementEndIso(new Date("2026-10-27T12:00:00.000Z")),
+    ).toBe("2028-10-31");
+    expect(
+      recurringStatementEndIso(new Date("2026-02-10T12:00:00.000Z")),
+    ).toBe("2028-02-29");
   });
 });
 
@@ -82,6 +94,18 @@ describe("expandRecurringRules", () => {
     expect(raws.some((r) => r.id === "manual:salario:2026-07")).toBe(true);
     expect(raws.some((r) => r.id === "manual:salario:2026-08")).toBe(true);
     expect(raws.some((r) => r.id === "manual:salario:2026-10")).toBe(false);
+  });
+
+  it("keeps salary past 90 days when expanded to the statement horizon", () => {
+    const today = new Date("2026-10-27T12:00:00.000Z");
+    const raws = expandRecurringRules(
+      [salaryRule()],
+      today,
+      recurringStatementEndIso(today),
+    );
+    expect(raws.some((r) => r.id === "manual:salario:2027-01")).toBe(true);
+    expect(raws.some((r) => r.id === "manual:salario:2028-10")).toBe(true);
+    expect(raws.some((r) => r.id === "manual:salario:2028-11")).toBe(false);
   });
 
   it("includes occurrences when rule inicio is after today but within horizon", () => {
