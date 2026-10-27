@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CardAccountStep } from "@/components/onboarding/CardAccountStep";
 import { DebitAccountStep } from "@/components/onboarding/DebitAccountStep";
@@ -25,9 +25,22 @@ export function Onboarding() {
   const current = currentStep + 1;
   const progress = (current / TOTAL_STEPS) * 100;
 
-  const goBack = () => setCurrentStep((step) => Math.max(0, step - 1));
+  const stepLock = useRef(false);
+  function withStepLock(fn: () => void) {
+    if (stepLock.current) return;
+    stepLock.current = true;
+    fn();
+    window.setTimeout(() => {
+      stepLock.current = false;
+    }, 500);
+  }
+
+  const goBack = () =>
+    withStepLock(() => setCurrentStep((step) => Math.max(0, step - 1)));
   const goNext = () =>
-    setCurrentStep((step) => Math.min(TOTAL_STEPS - 1, step + 1));
+    withStepLock(() =>
+      setCurrentStep((step) => Math.min(TOTAL_STEPS - 1, step + 1)),
+    );
   const goToMonth = () => router.push("/mes");
 
   return (
@@ -102,24 +115,24 @@ function WelcomeStep({
         icon={<Table2 size={24} />}
         iconClassName="bg-accent/12 text-accent"
         title="Bem-vindo ao Saldo Real"
-        subtitle="Traga a aba do mês. Sem cadastro, sem enviar dados."
+        subtitle="Cadastre uma conta e um cartão. Sem login, sem enviar extrato."
       />
 
       <div className="space-y-4">
         <Benefit
           icon={<ShieldCheck size={17} />}
-          title="Local-first"
-          description="Seus dados ficam no navegador; pedimos proteção contra limpezas automáticas do sistema"
+          title="Fica no navegador"
+          description="Saldos e gastos ficam neste aparelho. Nada vai para um servidor do Saldo Real."
         />
         <Benefit
           icon={<UserX size={17} />}
           title="Sem cadastro"
-          description="Conta de débito, cartão e a grade do mês — CSV do banco fica em Config, se quiser"
+          description="Conta de débito, cartão e o mês. Importar arquivo do banco é opcional, depois, em Config."
         />
         <Benefit
           icon={<LineChart size={17} />}
           title="Saldo de hoje"
-          description="O que você lança na grade alimenta Hoje, extrato e faturas"
+          description="O que você lança no mês aparece em Hoje, extrato e faturas."
         />
       </div>
 

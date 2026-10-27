@@ -83,7 +83,7 @@ export default function LandingPage() {
       <section className="mx-auto max-w-5xl px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-24">
         <div className="max-w-2xl">
           <p className="text-caption font-semibold uppercase tracking-wider text-accent">
-            Local-first · Sem cadastro · PWA offline
+            Sem cadastro · Dados no navegador · Funciona offline
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.1]">
             Seu saldo real.
@@ -101,7 +101,7 @@ export default function LandingPage() {
               pageId="landing"
               cta="comecar"
               variant="primary"
-              className="px-6 py-2.5 text-base"
+              className="min-h-11 px-6 py-2.5 text-base"
             >
               Começar grátis
             </MarketingCtaLink>
@@ -126,7 +126,7 @@ export default function LandingPage() {
           <Pillar
             icon={<ShieldCheck size={22} />}
             title="100% local"
-            text="IndexedDB e backup JSON. Dados financeiros não passam pelo Saldo Real."
+            text="Fica neste aparelho. Backup em arquivo. Dados financeiros não passam pelo Saldo Real."
           />
           <Pillar
             icon={<CircleHelp size={22} />}
@@ -194,8 +194,8 @@ export default function LandingPage() {
               </span>
               <p className="mt-3 font-semibold">Qualquer banco</p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                Cadastre contas, renda no Divisor de Águas e lance gastos no Quick
-                Add. Ideal para Bradesco, Itaú, C6 e demais.
+                Cadastre contas, renda e gastos. Ideal para Bradesco, Itaú, C6 e
+                demais.
               </p>
               <MarketingCtaLink
                 href="/comecar"

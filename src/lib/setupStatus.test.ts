@@ -3,6 +3,7 @@ import {
   getSetupSteps,
   hasCardAccount,
   hasCashAccount,
+  hasFinishedAccountSetup,
   hasIncome,
   hasMonthLaunched,
 } from "./setupStatus";
@@ -89,6 +90,15 @@ describe("hasCardAccount", () => {
 
   it("returns false when the card is inactive", () => {
     expect(hasCardAccount([cardAccount({ ativa: false })])).toBe(false);
+  });
+});
+
+describe("hasFinishedAccountSetup", () => {
+  it("needs cash and a card", () => {
+    expect(hasFinishedAccountSetup([])).toBe(false);
+    expect(hasFinishedAccountSetup([cashAccount()])).toBe(false);
+    expect(hasFinishedAccountSetup([cardAccount()])).toBe(false);
+    expect(hasFinishedAccountSetup([cashAccount(), cardAccount()])).toBe(true);
   });
 });
 

@@ -20,6 +20,7 @@ export function PasteMonthStep({ onBack, onFinish }: Props) {
   const {
     pasteRows,
     pasteOpen,
+    pasteError,
     handlePasteEvent,
     handlePasteButton,
     closePaste,
@@ -32,13 +33,12 @@ export function PasteMonthStep({ onBack, onFinish }: Props) {
         icon={<ClipboardPaste size={24} />}
         iconClassName="bg-accent/12 text-accent"
         title="Trazer o mês"
-        subtitle={`Cole a aba de ${formatMonthLabel(monthIso)} — ou pule e lance na grade`}
+        subtitle={`Opcional: cole a planilha de ${formatMonthLabel(monthIso)}. Sem planilha, pule.`}
       />
 
       <p className="text-sm leading-relaxed text-muted">
-        Copie as três tabelas da planilha (fixos, parcelas e gastos). Totais e
-        orçado × realizado ficam de fora. CSV do banco continua em Config, se
-        quiser atualizar a fatura depois.
+        Se você tiver a aba do mês no computador, cole aqui. Se não tiver,
+        pule — dá para lançar gastos depois, no mês.
       </p>
 
       <Button
@@ -49,10 +49,15 @@ export function PasteMonthStep({ onBack, onFinish }: Props) {
         <ClipboardPaste size={16} />
         Colar da planilha
       </Button>
+      {pasteError ? (
+        <p className="text-xs text-danger" role="alert">
+          {pasteError}
+        </p>
+      ) : null}
 
       <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
         <Button className="h-10 rounded-xl" onClick={onFinish}>
-          Pular e lançar na grade
+          Pular por agora
         </Button>
         <Button className="h-10 rounded-xl px-5" onClick={onBack}>
           <ArrowLeft size={14} />

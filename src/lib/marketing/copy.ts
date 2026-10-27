@@ -13,7 +13,7 @@ export const TOOL_UPSELL_LINE =
   "Cadastre contas e lance gastos — ou importe CSV do Nubank/Inter para automatizar.";
 
 export const BANKS_FAQ_ANSWER =
-  "Qualquer banco via cadastro manual e Quick Add. Importação automática de CSV disponível para Nubank e Inter.";
+  "Qualquer banco via cadastro manual. Importação de arquivo do Nubank e do Inter é opcional.";
 
 export const JSON_LD_APP_DESCRIPTION =
   "Painel financeiro pessoal local-first com Hoje, Extrato, Faturas e Futuro. Limite diário, orçamentos, simulador Posso comprar? e sync criptografado opcional.";
@@ -24,7 +24,7 @@ export const APOIA_SE_BODY =
 export const LANDING_FAQ = [
   {
     q: "Meus dados ficam onde?",
-    a: "No IndexedDB do seu navegador. Transações e saldos não passam pelos servidores do Saldo Real.",
+    a: "Neste navegador, neste aparelho. Transações e saldos não passam pelos servidores do Saldo Real.",
   },
   {
     q: "Funciona em mais de um dispositivo?",
@@ -36,7 +36,7 @@ export const LANDING_FAQ = [
   },
   {
     q: "Funciona offline?",
-    a: "Sim, como PWA. Depois de carregar, o painel funciona com seus dados locais.",
+    a: "Sim. Depois de abrir uma vez, o painel funciona com os dados deste aparelho, mesmo sem rede.",
   },
   {
     q: "Quais bancos são suportados?",

@@ -15,6 +15,10 @@ export function hasCardAccount(accounts: Account[]): boolean {
   return accounts.some((a) => a.ativa && a.kind === "cartao");
 }
 
+export function hasFinishedAccountSetup(accounts: Account[]): boolean {
+  return hasCashAccount(accounts) && hasCardAccount(accounts);
+}
+
 export function hasIncome(recurringRules: RecurringRule[]): boolean {
   return recurringRules.some((r) => r.kind === "receita" && r.ativo);
 }

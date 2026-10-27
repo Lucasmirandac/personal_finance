@@ -11,6 +11,8 @@ import { getArticlePaths } from "./articles";
 export const MARKETING_ROUTES = [
   "/",
   "/comecar",
+  "/privacidade",
+  "/termos",
   "/artigos",
   "/guias/importar-nubank",
   "/guias/importar-inter",

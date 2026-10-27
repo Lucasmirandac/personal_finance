@@ -8,7 +8,7 @@ const linkBtnPrimary = `${linkBtnBase} border-foreground bg-foreground text-surf
 
 export function EmptyState({
   title = "Nenhum dado para analisar",
-  description = "Cadastre contas e lance o mês na grade — ou cole a aba da planilha.",
+  description = "Cadastre contas e lance o mês — ou cole a planilha, se tiver.",
   secondaryHref = "/mes",
   secondaryLabel = "Lançar o mês",
 }: {
@@ -22,7 +22,7 @@ export function EmptyState({
       <h2 className="text-lg font-semibold">{title}</h2>
       <p className="text-muted mt-1">{description}</p>
       <div className="flex flex-wrap gap-2 justify-center mt-4">
-        <Link href="/comecar" className={linkBtnPrimary}>
+        <Link href="/comecar" className={`${linkBtnPrimary} min-h-11`}>
           Começar
         </Link>
         {secondaryHref ? (

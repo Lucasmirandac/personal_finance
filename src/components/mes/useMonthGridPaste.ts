@@ -15,11 +15,16 @@ export function useMonthGridPaste(monthIso: string) {
   const [pasteRows, setPasteRows] = useState<ParsedSheetRow[] | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [pasteError, setPasteError] = useState<string | null>(null);
 
   const openPaste = useCallback(
     (text: string) => {
       const parsed = parsePastedMonthSheet(text, monthIso, accounts);
-      if (parsed.length === 0) return false;
+      if (parsed.length === 0) {
+        setPasteError("Não reconheci uma tabela nisso. Cole as linhas da planilha ou pule.");
+        return false;
+      }
+      setPasteError(null);
       setPasteRows(parsed);
       setPasteOpen(true);
       return true;
@@ -38,6 +43,7 @@ export function useMonthGridPaste(monthIso: string) {
   );
 
   const handlePasteButton = useCallback(async () => {
+    setPasteError(null);
     try {
       const text = await navigator.clipboard.readText();
       if (text.trim()) {
@@ -50,7 +56,13 @@ export function useMonthGridPaste(monthIso: string) {
     const typed = window.prompt(
       "Cole aqui o bloco copiado da planilha (Ctrl+V) e confirme.",
     );
-    if (typed?.trim()) openPaste(typed);
+    if (typed?.trim()) {
+      openPaste(typed);
+      return;
+    }
+    setPasteError(
+      "Não consegui ler a área de transferência. Cole com Ctrl+V nesta página ou pule por agora.",
+    );
   }, [openPaste]);
 
   const closePaste = useCallback(() => {
@@ -82,6 +94,7 @@ export function useMonthGridPaste(monthIso: string) {
   return {
     pasteRows,
     pasteOpen,
+    pasteError,
     importing,
     openPaste,
     handlePasteEvent,

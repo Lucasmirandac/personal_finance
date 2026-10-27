@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
@@ -42,9 +42,11 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
   const [teto, setTeto] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [showForm, setShowForm] = useState(() => cards.length === 0);
 
   async function save() {
+    if (savingRef.current) return;
     if (!nome.trim()) {
       setError("Dê um nome ao cartão.");
       return;
@@ -78,6 +80,7 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
       limiteMensal = n;
     }
 
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     const firstCard = cards.length === 0;
@@ -103,6 +106,7 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -113,12 +117,12 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
         icon={<CreditCard size={24} />}
         iconClassName="bg-[color-mix(in_oklab,var(--cat-4)_14%,transparent)] text-cat-4"
         title="Cartão de crédito"
-        subtitle="A planilha lança Inter e Nubank na fatura — cadastre o cartão agora"
+        subtitle="Fecha e paga em que dia? Assim a fatura entra no saldo certo"
       />
 
       <p className="text-sm leading-relaxed text-muted">
-        Fechamento e pagamento dizem quando a fatura sai do saldo. Inter e
-        Nubank batem com a coluna Tipo da aba do mês.
+        Inter e Nubank são atalhos se você for colar a planilha depois. Outro
+        cartão também vale.
       </p>
 
       {cards.length > 0 && (
@@ -138,8 +142,7 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
 
       {!canContinue && (
         <RequiredNote>
-          Cadastre ao menos um cartão para continuar. Sem ele, as linhas Inter
-          e Nubank da planilha não têm para onde ir.
+          Cadastre ao menos um cartão para continuar — Inter, Nubank ou outro.
         </RequiredNote>
       )}
 

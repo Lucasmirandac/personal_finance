@@ -13,7 +13,7 @@ export const MAIN_NAV = [
   { href: "/mes", label: "Mês" },
   { href: "/faturas", label: "Faturas" },
   { href: "/futuro", label: "Futuro" },
-  { href: "/divisor", label: "Divisor" },
+  { href: "/divisor", label: "Renda" },
   { href: "/dashboard", label: "Análise" },
 ] as const;
 

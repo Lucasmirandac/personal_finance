@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 
 const MIN_SPLASH_MS = 450;
+const MAX_SPLASH_MS = 4000;
 
 export function LaunchSplash() {
   const { loaded } = useAppStore();
@@ -12,18 +13,20 @@ export function LaunchSplash() {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    if (!loaded) return;
-
-    const fadeTimer = window.setTimeout(() => setFadeOut(true), MIN_SPLASH_MS);
-    const hideTimer = window.setTimeout(
-      () => setVisible(false),
-      MIN_SPLASH_MS + 280,
-    );
-
-    return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(hideTimer);
+    const hide = (delay: number) => {
+      const fadeTimer = window.setTimeout(() => setFadeOut(true), delay);
+      const hideTimer = window.setTimeout(
+        () => setVisible(false),
+        delay + 280,
+      );
+      return () => {
+        window.clearTimeout(fadeTimer);
+        window.clearTimeout(hideTimer);
+      };
     };
+
+    if (loaded) return hide(MIN_SPLASH_MS);
+    return hide(MAX_SPLASH_MS);
   }, [loaded]);
 
   if (!visible) return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -35,30 +35,44 @@ export function DebitAccountStep({ onBack, onContinue }: Props) {
   const [dataRef, setDataRef] = useState(() => todayIso());
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   async function save(thenContinue: boolean) {
-    const valor = parseSaldo(saldo);
-    if (valor == null) {
-      setError("Saldo inválido.");
-      return;
-    }
-    if (!nome.trim()) {
+    if (savingRef.current) return;
+    const trimmedNome = nome.trim();
+    if (!trimmedNome) {
       setError("Dê um nome à conta.");
       return;
     }
+    if (
+      cash.some(
+        (a) => a.nome.trim().toLowerCase() === trimmedNome.toLowerCase(),
+      )
+    ) {
+      setError("Já existe uma conta com esse nome.");
+      return;
+    }
+    const valor = parseSaldo(saldo);
+    if (valor == null) {
+      setError("Saldo inválido. Use só números, como 1500 ou 1.500,00.");
+      return;
+    }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
-      const acc = createDefaultAccount("carteira", nome.trim(), {
-        saldoInicial: valor,
-        dataReferencia: dataRef || todayIso(),
-        isDefault: cash.length === 0,
-      });
+        const acc = createDefaultAccount("carteira", trimmedNome, {
+          saldoInicial: valor,
+          dataReferencia: dataRef || todayIso(),
+          isDefault: cash.length === 0,
+        });
       await addAccount(acc);
       if (thenContinue) onContinue();
+      else setNome("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -69,7 +83,7 @@ export function DebitAccountStep({ onBack, onContinue }: Props) {
         icon={<Wallet size={24} />}
         iconClassName="bg-info/12 text-info"
         title="Conta de débito"
-        subtitle="O saldo de hoje começa nesta conta — é o Débito da planilha"
+        subtitle="O saldo de hoje começa aqui: carteira, corrente ou poupança"
       />
 
       <p className="text-sm leading-relaxed text-muted">
@@ -112,8 +126,13 @@ export function DebitAccountStep({ onBack, onContinue }: Props) {
           <Input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            required
           />
+          {error &&
+            (error.includes("nome") || error.includes("Já existe")) && (
+              <p className="text-xs text-danger" role="alert">
+                {error}
+              </p>
+            )}
         </label>
         <div className="grid grid-cols-2 gap-2">
           <label className="block space-y-1">
@@ -123,6 +142,11 @@ export function DebitAccountStep({ onBack, onContinue }: Props) {
               onChange={setSaldo}
               placeholder="0,00"
             />
+            {error && error.includes("Saldo") && (
+              <p className="text-xs text-danger" role="alert">
+                {error}
+              </p>
+            )}
           </label>
           <label className="block space-y-1">
             <span className="text-xs text-muted">Nesta data</span>
@@ -133,11 +157,14 @@ export function DebitAccountStep({ onBack, onContinue }: Props) {
             />
           </label>
         </div>
-        {error && (
-          <p className="text-xs text-danger" role="alert">
-            {error}
-          </p>
-        )}
+        {error &&
+          !error.includes("nome") &&
+          !error.includes("Já existe") &&
+          !error.includes("Saldo") && (
+            <p className="text-xs text-danger" role="alert">
+              {error}
+            </p>
+          )}
         {!canContinue ? (
           <Button
             type="submit"

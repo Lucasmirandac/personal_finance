@@ -59,14 +59,30 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
               </Link>
             ))}
           </nav>
+          <details className="relative md:hidden">
+            <summary className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-full px-3 text-sm font-medium text-muted marker:content-none [&::-webkit-details-marker]:hidden">
+              Menu
+            </summary>
+            <div className="absolute right-0 z-30 mt-2 w-56 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-card-lg)]">
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-xl px-3 py-2.5 text-sm hover:bg-surface-2"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </details>
           <MarketingCtaLink
             href="/comecar"
             pageId={pageId ?? "landing"}
             cta="comecar"
             variant="primary"
-            className="shrink-0"
+            className="min-h-11 shrink-0"
           >
-            Abrir app
+            Começar
           </MarketingCtaLink>
         </div>
       </header>
@@ -177,11 +193,29 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
               <p className="mt-3 text-xs text-muted leading-relaxed">
                 Dicas e novidades do Saldo Real.
               </p>
+              <ul className="mt-3 space-y-2 text-sm">
+                <li>
+                  <Link href="/privacidade" className="hover:text-accent">
+                    Privacidade
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/termos" className="hover:text-accent">
+                    Termos de uso
+                  </Link>
+                </li>
+              </ul>
             </div>
           </div>
           <p className="mt-8 text-caption text-muted">
-            © {new Date().getFullYear()} Saldo Real · Cálculos locais, sync
-            opcional criptografado.
+            © {new Date().getFullYear()} Saldo Real · Gratuito ·{" "}
+            <Link href="/privacidade" className="hover:text-accent">
+              Privacidade
+            </Link>
+            {" · "}
+            <Link href="/termos" className="hover:text-accent">
+              Termos
+            </Link>
           </p>
         </div>
       </footer>

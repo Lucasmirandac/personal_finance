@@ -165,7 +165,7 @@ export function SetupIndicator() {
           aria-hidden
         />
       ))}
-      <span className="text-[10px] text-muted">Setup</span>
+      <span className="text-[10px] text-muted">Início</span>
     </Link>
   );
 }
