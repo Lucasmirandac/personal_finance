@@ -10,7 +10,6 @@ import { useFocusTrap } from "@/lib/hooks/useFocusTrap";
 import { ACCOUNT_KIND_LABELS } from "@/lib/accounts";
 import { formatBRL, formatDateBR } from "@/lib/format";
 import {
-  attachAccountsToSheetRows,
   formatInstallmentCell,
   isSheetRowReady,
   type ParsedSheetRow,
@@ -222,9 +221,7 @@ export function MonthPastePreview({
               <Button
                 variant="primary"
                 disabled={readyCount === 0}
-                onClick={() =>
-                  onConfirm(attachAccountsToSheetRows(rows, accounts))
-                }
+                onClick={() => onConfirm(rows)}
               >
                 Lançar {readyCount}
               </Button>

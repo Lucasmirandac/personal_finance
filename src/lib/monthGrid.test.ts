@@ -397,4 +397,40 @@ describe("buildMonthGridImport", () => {
     expect(result.edits[0]?.rawId).toBe("manual:luz-1:2026-11");
     expect(result.edits[0]?.patch.valorOriginal).toBe(200);
   });
+
+  it("keeps an account chosen after parse, even when Tipo maps to cash", () => {
+    const parsed = attachAccountsToSheetRows(
+      parseMonthSheetText(
+        [
+          "Nome\tPago\tData\tTipo\tCategoria\tValor",
+          "Aluguel\t\t09/11\tDébito\tCasa\tR$ 792,00",
+          "Descrição\tParcelas\tData\tTipo\tCategoria\tValor",
+          "Tenis\tParcela 6/9\t13/11\tDébito\tCompras Pessoais\tR$ 50,97",
+        ].join("\n"),
+        "2026-11",
+        "2026-11-13",
+      ).rows,
+      ACCOUNTS,
+    );
+    expect(parsed.every((row) => row.accountId === "cash-1")).toBe(true);
+
+    const overridden = parsed.map((row) => ({
+      ...row,
+      accountId: "card-inter",
+      issues: row.issues.filter((issue) => issue !== "unmapped_account"),
+    }));
+    const result = buildMonthGridImport({
+      rows: overridden,
+      monthIso: "2026-11",
+      rules: [],
+      existing: [],
+    });
+
+    expect(result.rules[0]?.accountId).toBe("card-inter");
+    expect(
+      result.manuals
+        .filter((m) => m.lancamento.startsWith("Tenis"))
+        .every((m) => m.accountId === "card-inter"),
+    ).toBe(true);
+  });
 });
