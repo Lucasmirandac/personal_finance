@@ -142,7 +142,7 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
         </div>
         <div>
           <label className="text-xs text-muted" htmlFor="recurring-inicio">
-            Início
+            {initial ? "Válido a partir de" : "Início"}
           </label>
           <Input
             id="recurring-inicio"
@@ -151,6 +151,12 @@ export function RecurringForm({ kind, initial, onSubmit, onCancel }: Props) {
             value={inicio}
             onChange={(e) => setInicio(e.target.value)}
           />
+          {initial ? (
+            <p className="mt-1 text-caption text-muted">
+              Se o valor mudou e esta data for um mês depois, os meses
+              anteriores ficam com o valor antigo.
+            </p>
+          ) : null}
         </div>
         <div>
           <label className="text-xs text-muted" htmlFor="recurring-fim">

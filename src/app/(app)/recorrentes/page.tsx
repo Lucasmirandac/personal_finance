@@ -4,7 +4,7 @@ import { useState } from "react"
 import clsx from "clsx"
 import { useAppStore } from "@/lib/store"
 import { formatBRL, formatDateBR } from "@/lib/format"
-import { newRecurringId } from "@/lib/recurring"
+import { newRecurringId, planRecurringRuleSave } from "@/lib/recurring"
 import { RecurringForm, RecurringFormValues } from "@/components/RecurringForm"
 import { SubscriptionsPanel } from "@/components/SubscriptionsPanel"
 import { Badge } from "@/components/ui/Badge"
@@ -45,7 +45,7 @@ export default function RecorrentesPage() {
 
   async function handleSubmit(values: RecurringFormValues) {
     if (editing) {
-      await updateRecurring({
+      const plan = planRecurringRuleSave(editing, {
         ...editing,
         kind: values.kind,
         descricao: values.descricao,
@@ -55,6 +55,8 @@ export default function RecorrentesPage() {
         inicio: values.inicio,
         fim: values.fim?.trim() || null,
       })
+      await updateRecurring(plan.previous)
+      if (plan.created) await addRecurring(plan.created)
       setEditing(null)
       return
     }
@@ -198,6 +200,7 @@ function RuleSection({
             {editing ? "Editar" : "Nova"} {KIND_LABELS[kind].toLowerCase()}
           </div>
           <RecurringForm
+            key={editing?.id ?? `new-${kind}`}
             kind={kind}
             initial={editing}
             onSubmit={onSubmit}

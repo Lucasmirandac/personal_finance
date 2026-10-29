@@ -13,10 +13,10 @@ import {
   computeLeverageRatio,
   rankCategoryCsvCandidates,
 } from "@/lib/leverage";
-import { newRecurringId } from "@/lib/recurring";
+import { newRecurringId, planRecurringRuleSave } from "@/lib/recurring";
 import { useAppStore } from "@/lib/store";
 import { RecurringKind, RecurringRule } from "@/lib/types";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2, Pencil, Plus } from "lucide-react";
 
 const KIND_LABELS: Record<RecurringKind, string> = {
   receita: "Receita",
@@ -31,9 +31,11 @@ export function DivisorDeAguasStep() {
     structuralCategories,
     toggleStructuralCategory,
     addRecurring,
+    updateRecurring,
   } = useAppStore();
 
   const [creating, setCreating] = useState<RecurringKind | null>(null);
+  const [editing, setEditing] = useState<RecurringRule | null>(null);
   const [lastAdded, setLastAdded] = useState<RecurringKind | null>(null);
 
   const ratio = useMemo(
@@ -67,8 +69,7 @@ export function DivisorDeAguasStep() {
   const hasCsv = dataset.sources.length > 0;
 
   async function handleSubmit(values: RecurringFormValues) {
-    await addRecurring({
-      id: newRecurringId(),
+    const mapped = {
       kind: values.kind,
       descricao: values.descricao,
       categoria: values.categoria,
@@ -76,11 +77,40 @@ export function DivisorDeAguasStep() {
       diaMes: values.diaMes,
       inicio: values.inicio,
       fim: values.fim?.trim() || null,
+    };
+    if (editing) {
+      const plan = planRecurringRuleSave(editing, { ...editing, ...mapped });
+      await updateRecurring(plan.previous);
+      if (plan.created) await addRecurring(plan.created);
+      setEditing(null);
+      setCreating(null);
+      return;
+    }
+    await addRecurring({
+      id: newRecurringId(),
+      ...mapped,
       ativo: true,
       criadoEm: new Date().toISOString(),
     });
     setLastAdded(values.kind);
     setCreating(null);
+  }
+
+  function startCreate(kind: RecurringKind) {
+    setLastAdded(null);
+    setEditing(null);
+    setCreating(kind);
+  }
+
+  function startEdit(rule: RecurringRule) {
+    setLastAdded(null);
+    setCreating(null);
+    setEditing(rule);
+  }
+
+  function cancelForm() {
+    setCreating(null);
+    setEditing(null);
   }
 
   return (
@@ -94,12 +124,11 @@ export function DivisorDeAguasStep() {
           rules={receitas}
           kind="receita"
           creating={creating === "receita"}
-          justAdded={lastAdded === "receita" && creating !== "receita"}
-          onAdd={() => {
-            setLastAdded(null);
-            setCreating("receita");
-          }}
-          onCancel={() => setCreating(null)}
+          editing={editing?.kind === "receita" ? editing : null}
+          justAdded={lastAdded === "receita" && creating !== "receita" && !editing}
+          onAdd={() => startCreate("receita")}
+          onEdit={startEdit}
+          onCancel={cancelForm}
           onSubmit={handleSubmit}
         />
         <RecurringSummaryCard
@@ -108,12 +137,13 @@ export function DivisorDeAguasStep() {
           rules={despesas}
           kind="despesa_fixa"
           creating={creating === "despesa_fixa"}
-          justAdded={lastAdded === "despesa_fixa" && creating !== "despesa_fixa"}
-          onAdd={() => {
-            setLastAdded(null);
-            setCreating("despesa_fixa");
-          }}
-          onCancel={() => setCreating(null)}
+          editing={editing?.kind === "despesa_fixa" ? editing : null}
+          justAdded={
+            lastAdded === "despesa_fixa" && creating !== "despesa_fixa" && !editing
+          }
+          onAdd={() => startCreate("despesa_fixa")}
+          onEdit={startEdit}
+          onCancel={cancelForm}
           onSubmit={handleSubmit}
         />
       </div>
@@ -194,8 +224,10 @@ type RecurringSummaryCardProps = {
   rules: RecurringRule[];
   kind: RecurringKind;
   creating: boolean;
+  editing: RecurringRule | null;
   justAdded: boolean;
   onAdd: () => void;
+  onEdit: (rule: RecurringRule) => void;
   onCancel: () => void;
   onSubmit: (values: RecurringFormValues) => void;
 };
@@ -206,13 +238,16 @@ function RecurringSummaryCard({
   rules,
   kind,
   creating,
+  editing,
   justAdded,
   onAdd,
+  onEdit,
   onCancel,
   onSubmit,
 }: Readonly<RecurringSummaryCardProps>) {
   const total = rules.reduce((acc, r) => acc + Math.abs(r.valor), 0);
   const count = rules.length;
+  const showForm = creating || editing != null;
   const addLabel =
     count === 0 ? `+ ${KIND_LABELS[kind]}` : `Adicionar outra ${KIND_LABELS[kind].toLowerCase()}`;
 
@@ -233,7 +268,7 @@ function RecurringSummaryCard({
             {formatBRL(total)}/mês
           </p>
         </div>
-        {!creating && (
+        {!showForm && (
           <Button size="sm" variant="primary" className="rounded-full" onClick={onAdd}>
             <Plus size={12} />
             {count === 0 ? KIND_LABELS[kind] : "Adicionar mais"}
@@ -241,16 +276,25 @@ function RecurringSummaryCard({
         )}
       </div>
 
-      {justAdded && !creating && (
+      {justAdded && !showForm && (
         <div className="flex items-center gap-2 rounded-md bg-success/10 px-2 py-1.5 text-caption text-success">
           <CheckCircle2 size={13} />
           Cadastrada. Adicione outra ou siga para o painel.
         </div>
       )}
 
-      {creating && (
+      {showForm && (
         <div className="border-t border-border/60 pt-3">
-          <RecurringForm kind={kind} onSubmit={onSubmit} onCancel={onCancel} />
+          <p className="mb-2 text-xs font-medium">
+            {editing ? "Editar" : "Nova"} {KIND_LABELS[kind].toLowerCase()}
+          </p>
+          <RecurringForm
+            key={editing?.id ?? `new-${kind}`}
+            kind={kind}
+            initial={editing}
+            onSubmit={onSubmit}
+            onCancel={onCancel}
+          />
         </div>
       )}
 
@@ -264,7 +308,19 @@ function RecurringSummaryCard({
                   dia {rule.diaMes}
                 </Badge>
               </div>
-              <Num className="shrink-0">{formatBRL(rule.valor)}</Num>
+              <div className="flex shrink-0 items-center gap-1">
+                <Num>{formatBRL(rule.valor)}</Num>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full"
+                  aria-label={`Editar ${rule.descricao}`}
+                  onClick={() => onEdit(rule)}
+                >
+                  <Pencil size={12} />
+                  Editar
+                </Button>
+              </div>
             </li>
           ))}
           {rules.length > 3 && (
@@ -275,7 +331,7 @@ function RecurringSummaryCard({
         </ul>
       )}
 
-      {!creating && count > 0 && (
+      {!showForm && count > 0 && (
         <button
           type="button"
           className="text-caption text-muted underline underline-offset-4 hover:text-foreground"

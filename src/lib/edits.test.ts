@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyEdits,
+  clearValorOverridesForRule,
   isEdited,
   mergeRawWithAllEdits,
 } from "./edits";
@@ -127,6 +128,32 @@ describe("applyEdits with recurring income", () => {
         raw,
       ),
     ).toBe(true);
+  });
+
+  it("clears monthly value overrides for a recurring rule", () => {
+    const edits = {
+      "manual:salario:2026-06": {
+        rawId: "manual:salario:2026-06",
+        editedAt: "2026-06-01T00:00:00.000Z",
+        valorOriginal: -4200,
+      },
+      "manual:salario:2026-07": {
+        rawId: "manual:salario:2026-07",
+        editedAt: "2026-07-01T00:00:00.000Z",
+        data: "07/07/2026",
+        valorOriginal: -4300,
+      },
+      "manual:aluguel:2026-06": {
+        rawId: "manual:aluguel:2026-06",
+        editedAt: "2026-06-01T00:00:00.000Z",
+        valorOriginal: 1500,
+      },
+    };
+    const next = clearValorOverridesForRule(edits, "salario");
+    expect(next["manual:salario:2026-06"]).toBeUndefined();
+    expect(next["manual:salario:2026-07"]?.valorOriginal).toBeUndefined();
+    expect(next["manual:salario:2026-07"]?.data).toBe("07/07/2026");
+    expect(next["manual:aluguel:2026-06"]?.valorOriginal).toBe(1500);
   });
 });
 

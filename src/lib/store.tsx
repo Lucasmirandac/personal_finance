@@ -25,6 +25,7 @@ import {
   applyEdits,
   allowsPerMonthRecurringEdit,
   buildEditEntry,
+  clearValorOverridesForRule,
   buildGroupEditEntry,
   countDeleted,
   EMPTY_EDITS,
@@ -1039,11 +1040,18 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
 
   const updateRecurring = useCallback(
     async (rule: RecurringRule) => {
+      const previous = recurringRules.find((r) => r.id === rule.id);
       await persistRecurring(
         recurringRules.map((r) => (r.id === rule.id ? rule : r)),
       );
+      if (previous && previous.valor !== rule.valor) {
+        const nextEdits = clearValorOverridesForRule(edits, rule.id);
+        if (nextEdits !== edits) {
+          await persistEdits(nextEdits);
+        }
+      }
     },
-    [recurringRules, persistRecurring],
+    [edits, persistEdits, persistRecurring, recurringRules],
   );
 
   const removeRecurring = useCallback(

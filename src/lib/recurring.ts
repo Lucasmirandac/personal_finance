@@ -149,6 +149,56 @@ export function isForecastTransaction(
   return false;
 }
 
+function lastIsoOfPreviousMonth(iso: string): string {
+  const prev = addMonthsIso(`${iso.slice(0, 7)}-01`, -1);
+  const [year, month] = prev.split("-").map(Number);
+  return isoFromParts(year, month, daysInMonth(year, month));
+}
+
+export type RecurringSavePlan = {
+  previous: RecurringRule;
+  created: RecurringRule | null;
+};
+
+/** In-place update, or split the series when value and start month both move forward (a raise). */
+export function planRecurringRuleSave(
+  existing: RecurringRule,
+  next: RecurringRule,
+  newId: () => string = newRecurringId,
+): RecurringSavePlan {
+  const startedLater = next.inicio.slice(0, 7) > existing.inicio.slice(0, 7);
+  const valorChanged = existing.valor !== next.valor;
+  if (valorChanged && startedLater) {
+    const closedAt = lastIsoOfPreviousMonth(next.inicio);
+    if (closedAt >= existing.inicio) {
+      return {
+        previous: { ...existing, fim: closedAt },
+        created: {
+          ...next,
+          id: newId(),
+          criadoEm: new Date().toISOString(),
+          accountId: existing.accountId,
+          ativo: existing.ativo,
+        },
+      };
+    }
+  }
+  return {
+    previous: {
+      ...existing,
+      kind: next.kind,
+      descricao: next.descricao,
+      categoria: next.categoria,
+      valor: next.valor,
+      diaMes: next.diaMes,
+      inicio: next.inicio,
+      fim: next.fim,
+      ativo: next.ativo,
+    },
+    created: null,
+  };
+}
+
 export function previewRecurringRule(
   rule: Omit<RecurringRule, "id" | "criadoEm" | "ativo"> & {
     ativo?: boolean;

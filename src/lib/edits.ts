@@ -235,6 +235,26 @@ export function countDeleted(
   return applyEdits(raws, edits, groupEdits).deletedIds.size;
 }
 
+export function clearValorOverridesForRule(
+  edits: EditsState,
+  ruleId: string,
+): EditsState {
+  const prefix = `manual:${ruleId}:`;
+  let changed = false;
+  const next: EditsState = { ...edits };
+  for (const [id, edit] of Object.entries(edits)) {
+    if (!id.startsWith(prefix) || edit.valorOriginal === undefined) continue;
+    changed = true;
+    const { valorOriginal: _ignored, ...rest } = edit;
+    if (!hasFieldEdits(rest) && !rest.deleted) {
+      delete next[id];
+    } else {
+      next[id] = rest;
+    }
+  }
+  return changed ? next : edits;
+}
+
 export function pruneEditsForRawIds(
   edits: EditsState,
   rawIds: string[],

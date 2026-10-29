@@ -6,6 +6,7 @@ import {
   expandRecurringRules,
   isForecastTransaction,
   isFutureRecurringRaw,
+  planRecurringRuleSave,
   recurringStatementEndIso,
 } from "./recurring";
 import { RecurringRule, TransactionNormalized } from "./types";
@@ -254,5 +255,51 @@ describe("isForecastTransaction", () => {
         today,
       ),
     ).toBe(false);
+  });
+});
+
+describe("planRecurringRuleSave", () => {
+  it("updates the same rule when only the value changes", () => {
+    const existing = salaryRule();
+    const plan = planRecurringRuleSave(existing, salaryRule({ valor: 6500 }));
+    expect(plan.created).toBeNull();
+    expect(plan.previous.id).toBe("salario");
+    expect(plan.previous.valor).toBe(6500);
+    expect(plan.previous.inicio).toBe("2026-01-01");
+    expect(plan.previous.fim).toBeNull();
+  });
+
+  it("splits the series when a raise starts in a later month", () => {
+    const existing = salaryRule();
+    const plan = planRecurringRuleSave(
+      existing,
+      salaryRule({ valor: 6500, inicio: "2026-10-05" }),
+      () => "salario-aumento",
+    );
+    expect(plan.previous).toMatchObject({
+      id: "salario",
+      valor: 5000,
+      inicio: "2026-01-01",
+      fim: "2026-09-30",
+    });
+    expect(plan.created).toMatchObject({
+      id: "salario-aumento",
+      valor: 6500,
+      inicio: "2026-10-05",
+      fim: null,
+      ativo: true,
+    });
+  });
+
+  it("moves the start in place when the value stays the same", () => {
+    const existing = salaryRule();
+    const plan = planRecurringRuleSave(
+      existing,
+      salaryRule({ inicio: "2026-10-01" }),
+    );
+    expect(plan.created).toBeNull();
+    expect(plan.previous.inicio).toBe("2026-10-01");
+    expect(plan.previous.valor).toBe(5000);
+    expect(plan.previous.fim).toBeNull();
   });
 });
