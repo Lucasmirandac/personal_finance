@@ -64,7 +64,8 @@ import {
 } from "@/lib/budgets";
 import { BudgetProgressCard } from "@/components/BudgetProgressCard";
 import { BudgetsEmptyState } from "@/components/BudgetsEmptyState";
-import { FileDown, FileSpreadsheet, List } from "lucide-react";
+import { AiExpenseExportModal } from "@/components/dashboard/AiExpenseExportModal";
+import { FileDown, FileSpreadsheet, FileText, List } from "lucide-react";
 
 const DASH_TABS = [
   { id: "geral", label: "Visão geral" },
@@ -111,6 +112,7 @@ function DashboardPageInner() {
   const router = useRouter();
   const tabParam = searchParams.get("tab");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [aiExportOpen, setAiExportOpen] = useState(false);
   const tab = parseDashTab(tabParam);
   const [estView, setEstView] = useState<"top" | "recurring">("top");
   const [dayType, setDayType] = useState<DayType>("all");
@@ -260,8 +262,28 @@ function DashboardPageInner() {
             <FileSpreadsheet size={13} />
             Excel
           </Button>
+          <Button
+            size="sm"
+            className="rounded-full"
+            onClick={() => setAiExportOpen(true)}
+          >
+            <FileText size={13} />
+            Para IA
+          </Button>
         </div>
       </div>
+
+      <AiExpenseExportModal
+        open={aiExportOpen}
+        onClose={() => setAiExportOpen(false)}
+        transactions={filtered}
+        budgets={budgets}
+        accounts={accounts}
+        filtersActive={activeCount > 0}
+        dateFrom={filters.dateFrom}
+        dateTo={filters.dateTo}
+        windowCaption={windowCaption}
+      />
 
       <FiltersDrawer
         open={drawerOpen}
