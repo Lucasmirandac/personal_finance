@@ -8,7 +8,7 @@ const linkBtnPrimary = `${linkBtnBase} border-foreground bg-foreground text-surf
 
 export function EmptyState({
   title = "Nenhum dado para analisar",
-  description = "Cadastre contas e lance o mês — ou cole a planilha, se tiver.",
+  description = "Cadastre uma conta e lance os gastos. Trazer fatura ou planilha é opcional.",
   secondaryHref = "/mes",
   secondaryLabel = "Lançar o mês",
 }: {

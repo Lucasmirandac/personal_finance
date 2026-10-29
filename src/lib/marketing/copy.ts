@@ -1,4 +1,4 @@
-/** Shared marketing copy — universal-first, CSV as optional accelerator. */
+/** Shared marketing copy — universal-first, bank invoice as optional accelerator. */
 
 export const PRODUCT_PROMISE =
   "Controle financeiro local para qualquer banco. Veja saldo hoje, faturas e projeção — sem cadastro e sem enviar dados ao Saldo Real.";
@@ -7,10 +7,10 @@ export const HERO_SUBTITLE =
   "Cadastre contas, veja saldo hoje, faturas e projeção — tudo no dispositivo. Nada vai para servidores do Saldo Real.";
 
 export const CSV_OPTIONAL_LINE =
-  "Funciona com qualquer banco. Cadastre contas e lance gastos manualmente — ou importe CSV do Nubank e Inter para poupar digitação.";
+  "Funciona com qualquer banco. Cadastre contas e lance gastos manualmente — ou importe a fatura do Nubank e Inter para poupar digitação.";
 
 export const TOOL_UPSELL_LINE =
-  "Cadastre contas e lance gastos — ou importe CSV do Nubank/Inter para automatizar.";
+  "Cadastre contas e lance gastos — ou importe a fatura do Nubank ou Inter para automatizar.";
 
 export const BANKS_FAQ_ANSWER =
   "Qualquer banco via cadastro manual. Importação de arquivo do Nubank e do Inter é opcional.";

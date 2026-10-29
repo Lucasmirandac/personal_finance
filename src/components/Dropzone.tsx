@@ -63,10 +63,10 @@ export function Dropzone({ onFile, disabled }: Props) {
       <div className="flex flex-col items-center gap-2">
         <UploadCloud size={22} className="text-muted" strokeWidth={1.75} />
         <div className="text-sm font-medium">
-          Arraste um CSV ou clique para selecionar
+          Arraste o arquivo da fatura ou clique para selecionar
         </div>
         <div className="text-caption text-muted">
-          Formatos suportados: Inter · Nubank
+          O banco exporta em .csv — Nubank ou Inter
         </div>
       </div>
     </div>

@@ -121,8 +121,8 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
       />
 
       <p className="text-sm leading-relaxed text-muted">
-        Inter e Nubank são atalhos se você for colar a planilha depois. Outro
-        cartão também vale.
+        Inter e Nubank: o app lê a fatura que você exportar desses bancos.
+        Outro cartão também vale — aí os gastos entram na mão.
       </p>
 
       {cards.length > 0 && (
@@ -133,7 +133,9 @@ export function CardAccountStep({ onBack, onContinue }: Props) {
               <span className="ml-2 text-xs text-muted">
                 fecha dia {a.diaFechamento ?? "—"} · paga dia{" "}
                 {a.diaPagamento ?? "—"}
-                {a.fonteCsv ? ` · ${a.fonteCsv}` : ""}
+                {a.fonteCsv
+                  ? ` · fatura do ${FONTE_NOME[a.fonteCsv]}`
+                  : ""}
               </span>
             </li>
           ))}

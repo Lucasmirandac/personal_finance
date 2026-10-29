@@ -136,8 +136,8 @@ export function MonthPastePreview({
           </div>
 
           <p className="mt-3 rounded-lg bg-[var(--bg-warning-soft)] px-3 py-2 text-xs text-warning">
-            Se o mesmo gasto também vier no CSV do Inter ou Nubank, entra duas
-            vezes. Linhas iguais às que já estão neste mês são ignoradas.
+            Se o mesmo gasto também vier da fatura do Inter ou Nubank, entra
+            duas vezes. Linhas iguais às que já estão neste mês são ignoradas.
             Parcelas seguintes entram nos meses à frente.
           </p>
 

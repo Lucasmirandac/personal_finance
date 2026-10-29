@@ -16,7 +16,7 @@ export default function GuiaPouparPage() {
       <GuideLayout
         pageId="guide_poupar"
         title="Como reservar para poupar"
-        description="Defina quanto da sua renda disponível guardar todo mês. A reserva reduz o limite diário e alimenta a Projeção de Paz Futura — sem planilha e sem enviar dados."
+        description="Defina quanto da sua renda disponível guardar todo mês. A reserva reduz o limite diário e alimenta a Projeção de Paz Futura — sem enviar dados."
         updatedAt="junho de 2026"
         ctaTitle="Pronto para definir sua reserva?"
         ctaDescription="Abra o Saldo Real, cadastre receitas e custos fixos e configure a reserva no painel de saldo."
@@ -31,9 +31,8 @@ export default function GuiaPouparPage() {
             intenção e limite diário.
           </p>
           <p>
-            No Saldo Real, a reserva não fica escondida em outra planilha: ela
-            entra direto no painel de saldo e na projeção de patrimônio a 12
-            meses.
+            No Saldo Real, a reserva entra direto no painel de saldo e na
+            projeção de patrimônio a 12 meses.
           </p>
         </section>
 

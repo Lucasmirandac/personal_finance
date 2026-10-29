@@ -144,7 +144,7 @@ export function LeverageGauge({ ratio, className }: Readonly<Props>) {
                   <span className="truncate">
                     {line.descricao}{" "}
                     <span className="text-[10px] uppercase">
-                      ({line.origem === "regra" ? "regra" : "CSV"})
+                      ({line.origem === "regra" ? "regra" : "fatura"})
                     </span>
                   </span>
                   <span className="shrink-0 tabular-nums">

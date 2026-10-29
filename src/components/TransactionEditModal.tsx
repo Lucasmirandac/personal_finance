@@ -163,7 +163,7 @@ export function TransactionEditModal({
             <p className="text-xs text-muted mt-0.5">
               {isRecurringIncome
                 ? "Ajuste vale só para este mês. A regra em Recorrentes continua como padrão."
-                : "Alterações não modificam o CSV original."}
+                : "Alterações não modificam o arquivo original."}
             </p>
           </div>
           <Button

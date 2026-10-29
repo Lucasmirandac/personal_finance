@@ -96,7 +96,7 @@ export function ImportPanel({
       return false
     }
     if (!result.source || result.source.raw.length === 0) {
-      setErrorMsg("Nenhuma linha válida encontrada no CSV.")
+      setErrorMsg("Nenhuma linha válida encontrada no arquivo.")
       setRowErrors(result.errors)
       return false
     }
@@ -207,7 +207,7 @@ export function ImportPanel({
           <>
             <p className="text-caption uppercase tracking-wider text-muted">Importar fatura</p>
             <p className="text-xs text-muted mt-0.5 max-w-xl">
-              CSV Inter ou Nubank. Processamento 100% local.
+              Arquivo da fatura do Inter ou Nubank, lido neste aparelho.
             </p>
           </>
         )}

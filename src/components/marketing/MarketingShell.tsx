@@ -148,17 +148,17 @@ export function MarketingShell({ pageId, children }: Readonly<Props>) {
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
                   <Link href="/guias/usar-sem-importar" className="hover:text-accent">
-                    Usar sem importar CSV
+                    Usar sem importar fatura
                   </Link>
                 </li>
                 <li>
                   <Link href="/guias/importar-nubank" className="hover:text-accent">
-                    Importar Nubank (CSV)
+                    Importar fatura Nubank
                   </Link>
                 </li>
                 <li>
                   <Link href="/guias/importar-inter" className="hover:text-accent">
-                    Importar Inter (CSV)
+                    Importar fatura Inter
                   </Link>
                 </li>
                 <li>

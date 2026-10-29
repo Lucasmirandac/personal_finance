@@ -12,7 +12,7 @@ import { hasCardAccount, hasCashAccount } from "@/lib/setupStatus";
 import { requestStoragePersistence } from "@/lib/storagePersistence";
 import { useAppStore } from "@/lib/store";
 import type { Account } from "@/lib/types";
-import { LineChart, ShieldCheck, Table2, UserX } from "lucide-react";
+import { LineChart, ShieldCheck, UserX, WalletCards } from "lucide-react";
 
 const TOTAL_STEPS = 4;
 
@@ -41,6 +41,7 @@ export function Onboarding() {
     withStepLock(() =>
       setCurrentStep((step) => Math.min(TOTAL_STEPS - 1, step + 1)),
     );
+  const goToSaldo = () => router.push("/saldo");
   const goToMonth = () => router.push("/mes");
 
   return (
@@ -63,7 +64,11 @@ export function Onboarding() {
           <CardAccountStep onBack={goBack} onContinue={goNext} />
         )}
         {currentStep === 3 && (
-          <PasteMonthStep onBack={goBack} onFinish={goToMonth} />
+          <PasteMonthStep
+            onBack={goBack}
+            onSeeBalance={goToSaldo}
+            onPasted={goToMonth}
+          />
         )}
       </Panel>
     </div>
@@ -112,7 +117,7 @@ function WelcomeStep({
   return (
     <div className="space-y-6">
       <StepIntro
-        icon={<Table2 size={24} />}
+        icon={<WalletCards size={24} />}
         iconClassName="bg-accent/12 text-accent"
         title="Bem-vindo ao Saldo Real"
         subtitle="Cadastre uma conta e um cartão. Sem login, sem enviar extrato."
@@ -127,12 +132,12 @@ function WelcomeStep({
         <Benefit
           icon={<UserX size={17} />}
           title="Sem cadastro"
-          description="Conta de débito, cartão e o mês. Importar arquivo do banco é opcional, depois, em Config."
+          description="Conta de débito e cartão. Trazer a fatura do banco é opcional, depois."
         />
         <Benefit
           icon={<LineChart size={17} />}
           title="Saldo de hoje"
-          description="O que você lança no mês aparece em Hoje, extrato e faturas."
+          description="O que você lança aparece em Hoje, extrato e faturas."
         />
       </div>
 

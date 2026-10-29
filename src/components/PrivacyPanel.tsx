@@ -17,7 +17,7 @@ import {
 const COLLECTED = [
   "Telas visitadas (sem filtros sensíveis na URL)",
   "Passos do onboarding concluídos",
-  "Importação de CSV iniciada ou concluída (sem conteúdo do arquivo)",
+  "Importação de fatura iniciada ou concluída (sem conteúdo do arquivo)",
   "Backup exportado ou importado (versão e resultado, sem dados)",
   "Sincronização na nuvem conectada, enviada ou em conflito (provedor e resultado, sem conteúdo)",
   "Orçamento criado ou sugestão aceita (apenas contagem)",
@@ -27,7 +27,7 @@ const COLLECTED = [
 const NOT_COLLECTED = [
   "Valores monetários, saldos ou limites de orçamento",
   "Descrições de lançamentos ou nomes de estabelecimentos",
-  "Conteúdo de CSV ou backups",
+  "Conteúdo de fatura, planilha pessoal ou backups",
   "Conteúdo do blob criptografado na nuvem",
   "Senha de criptografia da sincronização",
   "Categorias com valores associados",

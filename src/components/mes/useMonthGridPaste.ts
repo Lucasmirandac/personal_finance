@@ -21,7 +21,9 @@ export function useMonthGridPaste(monthIso: string) {
     (text: string) => {
       const parsed = parsePastedMonthSheet(text, monthIso, accounts);
       if (parsed.length === 0) {
-        setPasteError("Não reconheci uma tabela nisso. Cole as linhas da planilha ou pule.");
+        setPasteError(
+          "Não reconheci uma tabela nisso. Cole as linhas da sua planilha (Google Sheets ou Excel) ou pule.",
+        );
         return false;
       }
       setPasteError(null);
@@ -54,7 +56,7 @@ export function useMonthGridPaste(monthIso: string) {
       /* permission denied — fall through */
     }
     const typed = window.prompt(
-      "Cole aqui o bloco copiado da planilha (Ctrl+V) e confirme.",
+      "Cole aqui o bloco copiado do Google Sheets ou Excel (Ctrl+V) e confirme.",
     );
     if (typed?.trim()) {
       openPaste(typed);

@@ -5,9 +5,9 @@ import { GuideLayout } from "@/components/marketing/MarketingLayouts";
 import { CSV_OPTIONAL_LINE } from "@/lib/marketing/copy";
 
 export const metadata: Metadata = {
-  title: "Como usar o Saldo Real sem importar CSV — qualquer banco",
+  title: "Como usar o Saldo Real sem importar fatura — qualquer banco",
   description:
-    "Use o Saldo Real com Bradesco, Itaú, C6 ou qualquer banco: cadastre contas, renda no Divisor e lance gastos manualmente. Importação CSV é opcional.",
+    "Use o Saldo Real com Bradesco, Itaú, C6 ou qualquer banco: cadastre contas, renda no Divisor e lance gastos manualmente. Importar a fatura do cartão é opcional.",
   alternates: { canonical: "/guias/usar-sem-importar" },
 };
 
@@ -16,9 +16,9 @@ export default function GuiaSemImportarPage() {
     <MarketingShell pageId="guide_sem_importar">
       <GuideLayout
         pageId="guide_sem_importar"
-        title="Como usar o Saldo Real sem importar CSV"
+        title="Como usar o Saldo Real sem importar fatura"
         description={`${CSV_OPTIONAL_LINE} Este guia mostra o caminho manual — ideal para qualquer banco.`}
-        updatedAt="junho de 2026"
+        updatedAt="outubro de 2026"
         ctaTitle="Pronto para começar manualmente?"
         ctaDescription="Abra o Saldo Real, cadastre suas contas e renda no Divisor de Águas — leva poucos minutos."
         ctaLabel="Começar no app"
@@ -28,7 +28,7 @@ export default function GuiaSemImportarPage() {
           <p>
             Este guia é para você que usa qualquer banco ou cartão — Bradesco,
             Itaú, C6, caixas digitais, cooperativas — e não tem (ou não quer)
-            exportar CSV do Nubank ou Inter.
+            baixar a fatura do Nubank ou Inter.
           </p>
           <p>
             O Saldo Real funciona por cadastro manual: contas, renda, custos
@@ -41,12 +41,12 @@ export default function GuiaSemImportarPage() {
           <h2>Passo a passo</h2>
           <ol>
             <li>
-              Abra <Link href="/comecar">/comecar</Link> e conclua o onboarding.
+              Abra <Link href="/comecar">Começar</Link> e cadastre uma conta
+              com o saldo de hoje e um cartão, se tiver.
             </li>
             <li>
-              <strong>Contas:</strong> cadastre ao menos uma conta de saldo
-              (corrente, poupança ou carteira) com o saldo atual. Adicione
-              cartões se quiser projetar faturas manualmente.
+              No último passo, escolha <strong>Ver saldo de hoje</strong>. Trazer
+              fatura ou planilha é opcional — você pode pular.
             </li>
             <li>
               <strong>Divisor de Águas:</strong> em{" "}
@@ -59,19 +59,14 @@ export default function GuiaSemImportarPage() {
               na projeção.
             </li>
             <li>
-              Acesse <Link href="/saldo">Saldo</Link> para ver limite diário,
+              Acesse <Link href="/saldo">Hoje</Link> para ver limite diário,
               faturas e projeção dos próximos meses.
             </li>
           </ol>
-          <p>
-            A importação de CSV no passo final do onboarding é{" "}
-            <strong>opcional</strong> — você pode ir direto ao painel depois de
-            cadastrar a renda.
-          </p>
         </section>
 
         <section>
-          <h2>O que você ganha (sem CSV)</h2>
+          <h2>O que você ganha (sem importar fatura)</h2>
           <ul>
             <li>Saldo projetado com base em contas e recorrentes</li>
             <li>Limite diário seguro até o fim do mês</li>
@@ -82,17 +77,17 @@ export default function GuiaSemImportarPage() {
         </section>
 
         <section>
-          <h2>Quando importar CSV depois</h2>
+          <h2>Quando importar a fatura depois</h2>
           <p>
-            Se você passar a usar Nubank ou Inter, ou conseguir exportar
-            extrato em CSV, a importação classifica gastos automaticamente e
-            poupa digitação. Você pode importar a qualquer momento em{" "}
-            <Link href="/config?tab=importar">Config → Importar</Link>.
+            Se você usa Nubank ou Inter, pode baixar a fatura no app do banco
+            (o arquivo vem como .csv) e importar a qualquer momento em{" "}
+            <Link href="/config?tab=importar">Config → Importar</Link>. A
+            importação classifica gastos automaticamente e poupa digitação.
           </p>
           <p>
             Guias específicos:{" "}
-            <Link href="/guias/importar-nubank">importar Nubank</Link>,{" "}
-            <Link href="/guias/importar-inter">importar Inter</Link>.
+            <Link href="/guias/importar-nubank">importar fatura Nubank</Link>,{" "}
+            <Link href="/guias/importar-inter">importar fatura Inter</Link>.
           </p>
         </section>
 

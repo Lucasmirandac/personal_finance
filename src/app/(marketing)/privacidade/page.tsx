@@ -35,8 +35,8 @@ export default function PrivacidadePage() {
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">O que não enviamos</h2>
           <p>
-            Valores, descrições, nomes de estabelecimento, conteúdo de planilha
-            ou de arquivo do banco, e a senha de um backup na nuvem, se você
+            Valores, descrições, nomes de estabelecimento, conteúdo de fatura
+            ou de planilha pessoal, e a senha de um backup na nuvem, se você
             ativar.
           </p>
         </section>

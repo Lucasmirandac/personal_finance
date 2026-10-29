@@ -259,9 +259,8 @@ export function MonthGridPageContent() {
             Lançar o mês
           </h1>
           <p className="mt-1 max-w-xl text-sm text-muted">
-            Grade no formato da planilha: fixos, parcelas e gastos do dia.
-            Enter grava a linha. Cole um bloco copiado do Google Sheets para
-            importar.
+            Fixos, parcelas e gastos do dia. Enter grava a linha. Se você já
+            anota o mês no Google Sheets ou Excel, cole as linhas aqui.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -290,7 +289,7 @@ export function MonthGridPageContent() {
           </div>
           <Button size="sm" onClick={() => void handlePasteButton()}>
             <ClipboardPaste size={14} />
-            Colar da planilha
+            Colar do Sheets ou Excel
           </Button>
         </div>
       </header>

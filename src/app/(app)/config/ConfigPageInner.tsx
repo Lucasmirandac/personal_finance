@@ -30,7 +30,7 @@ const CONFIG_TABS = [
 type ConfigTab = (typeof CONFIG_TABS)[number]["id"]
 
 const TAB_SUBTITLES: Record<ConfigTab, string> = {
-  importar: "Importe CSVs e gerencie suas fontes de dados.",
+  importar: "Importe a fatura do Nubank ou do Inter (arquivo .csv) e gerencie as fontes.",
   classificacao: "Padrões de classificação de lançamentos.",
   apelidos: "Agrupe variantes de estabelecimentos.",
   contas: "Conta corrente, poupança e carteira.",
@@ -100,9 +100,9 @@ export default function ConfigPageInner() {
             <div className="rounded-2xl ring-1 ring-border/60 p-6">
               <EmptyState
                 title="Importe dados primeiro"
-                description="É necessário ter CSV importado para editar padrões de classificação."
+                description="É necessário ter uma fatura importada para editar padrões de classificação."
                 secondaryHref="/config?tab=importar"
-                secondaryLabel="Importar CSV"
+                secondaryLabel="Importar fatura"
               />
             </div>
           ))}

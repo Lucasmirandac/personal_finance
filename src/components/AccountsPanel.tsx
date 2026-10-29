@@ -44,7 +44,7 @@ const SCOPE_COPY: Record<
 > = {
   all: {
     title: "Contas",
-    subtitle: "Contas correntes, poupança, carteira e cartões vinculados ao CSV.",
+    subtitle: "Contas correntes, poupança, carteira e cartões vinculados à fatura importada.",
     addLabel: "Nova conta",
     emptyList: "Nenhuma conta cadastrada. Crie a Conta Principal com seu saldo atual.",
     formNew: "Nova conta",
@@ -66,7 +66,7 @@ const SCOPE_COPY: Record<
     title: "Cartões",
     subtitle: "Cartões de crédito, fatura, datas de fechamento e teto mensal de gastos.",
     addLabel: "Novo cartão",
-    emptyList: "Nenhum cartão cadastrado. Cadastre manualmente ou vincule após importar CSV (Nubank/Inter).",
+    emptyList: "Nenhum cartão cadastrado. Cadastre manualmente ou vincule após importar a fatura do Nubank ou Inter.",
     formNew: "Novo cartão",
     formEdit: "Editar cartão",
     nameRequired: "Informe o nome do cartão.",
@@ -370,7 +370,9 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
                 <Num className="block text-xs text-muted mt-0.5 pl-[18px] num-display font-mono">
                   Saldo {a.saldoInicial.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}{" "}
                   · ref. {a.dataReferencia.split("-").reverse().join("/")}
-                  {a.kind === "cartao" && a.fonteCsv && ` · ${a.fonteCsv}`}
+                  {a.kind === "cartao" &&
+                    a.fonteCsv &&
+                    ` · fatura do ${a.fonteCsv === "nubank" ? "Nubank" : "Inter"}`}
                   {a.kind === "cartao" &&
                     a.limiteMensal != null &&
                     a.limiteMensal > 0 &&
@@ -478,7 +480,7 @@ export function AccountsPanel({ onClose, scope = "all" }: Readonly<Props>) {
               {isCardForm && (
                 <>
                   <label className="block space-y-1">
-                    <span className="text-xs text-muted">Vincular ao CSV</span>
+                    <span className="text-xs text-muted">Ler fatura deste banco</span>
                     <Select
                       value={form.fonteCsv}
                       onChange={(e) =>

@@ -33,7 +33,7 @@ export default function Home() {
       return;
     }
     if (hasFinishedAccountSetup(accounts)) {
-      router.replace("/mes");
+      router.replace("/saldo");
     }
   }, [loaded, hasAnalysis, wasReadyOnLoad, dataset, settings, accounts, router]);
 

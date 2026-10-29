@@ -36,7 +36,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Saldo Real — seu saldo real, só no seu navegador",
-  description: `${PRODUCT_PROMISE} Importação CSV opcional para Nubank e Inter.`,
+  description: `${PRODUCT_PROMISE} Importação opcional da fatura do Nubank e Inter.`,
   alternates: { canonical: "/" },
   openGraph: {
     title: "Saldo Real — finanças locais e privadas",
@@ -213,8 +213,8 @@ export default function LandingPage() {
               </span>
               <p className="mt-3 font-semibold">Importação rápida</p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                CSV do Nubank ou Inter detectado automaticamente. Classifica
-                gastos e poupa digitação.
+                Arquivo da fatura do Nubank ou Inter, reconhecido automaticamente.
+                Classifica gastos e poupa digitação.
               </p>
               <Link
                 href="/guias/importar-nubank"
@@ -292,7 +292,7 @@ export default function LandingPage() {
           <p className="mt-4 max-w-2xl text-muted leading-relaxed">
             Defina quanto da sua renda disponível guardar todo mês. A reserva
             sai do limite diário e alimenta a Projeção de Paz Futura — tudo no
-            navegador, sem planilha.
+            navegador.
           </p>
 
           <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -356,7 +356,7 @@ export default function LandingPage() {
             n={2}
             icon={<Upload size={18} />}
             title="Importe ou lance"
-            text="CSV do cartão ou gastos manuais no Quick Add."
+            text="Arquivo da fatura do Nubank ou Inter, ou gastos manuais."
           />
           <Step
             n={3}

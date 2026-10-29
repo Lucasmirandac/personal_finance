@@ -65,7 +65,7 @@ export function GuideLayout({
   description,
   updatedAt,
   ctaTitle = "Pronto para importar?",
-  ctaDescription = "Abra o Saldo Real, importe seu CSV e configure o ciclo da fatura em poucos minutos.",
+  ctaDescription = "Abra o Saldo Real, importe a fatura do cartão e configure o ciclo em poucos minutos.",
   ctaLabel = "Começar agora",
   children,
 }: Readonly<GuideProps>) {

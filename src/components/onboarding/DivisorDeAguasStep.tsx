@@ -121,7 +121,7 @@ export function DivisorDeAguasStep() {
       {hasCsv ? (
         <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
           <div>
-            <p className="text-xs font-medium">Categorias estruturais do CSV</p>
+            <p className="text-xs font-medium">Categorias estruturais da fatura importada</p>
             <p className="text-caption text-muted mt-0.5">
               Marque categorias do cartão que representam custos fixos. Usamos a
               mediana dos últimos 3 meses fechados.
@@ -129,7 +129,7 @@ export function DivisorDeAguasStep() {
           </div>
           {csvCandidates.length === 0 ? (
             <p className="text-xs text-muted">
-              Nenhuma categoria com gasto recorrente detectada no CSV ainda.
+              Nenhuma categoria com gasto recorrente detectada na fatura ainda.
             </p>
           ) : (
             <ul className="space-y-2">
