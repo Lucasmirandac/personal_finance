@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { AlertTriangle, Calendar, CircleDollarSign, PiggyBank, Repeat, Wrench } from "lucide-react"
+import { AlertTriangle, Calendar, CircleDollarSign, Cloud, PiggyBank, Repeat, Wrench } from "lucide-react"
 import clsx from "clsx"
 import { PainelAlert } from "@/lib/alerts"
 
@@ -18,6 +18,7 @@ const iconMap = {
   piggybank: PiggyBank,
   income: CircleDollarSign,
   repeat: Repeat,
+  cloud: Cloud,
 }
 
 const accentClassMap = {

@@ -4,12 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
 import { useAppStore } from "@/lib/store";
-import {
-  BackupReminder,
-  BudgetAlertWidget,
-  CloudSyncReminder,
-  SetupIndicator,
-} from "@/components/HeaderWidgets";
+import { NotificationBell } from "@/components/NotificationBell";
 import { AppFooter } from "@/components/AppFooter";
 import { DesktopNav } from "@/components/NavBar";
 import { BottomTabBar } from "@/components/BottomTabBar";
@@ -45,10 +40,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
           <DesktopNav />
 
           <div className="flex items-center gap-2 shrink-0">
-            <SetupIndicator />
-            <BudgetAlertWidget />
-            <CloudSyncReminder />
-            <BackupReminder />
+            <NotificationBell />
             {hasAnalysis && (
               <span
                 className={clsx(chipBase, "hidden lg:inline-flex gap-1")}

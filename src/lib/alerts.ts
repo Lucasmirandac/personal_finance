@@ -23,7 +23,7 @@ export type PainelAlert = {
   title: string
   detail: string
   href?: string
-  icon: "alert" | "calendar" | "wallet" | "wrench" | "piggybank" | "income" | "repeat"
+  icon: "alert" | "calendar" | "wallet" | "wrench" | "piggybank" | "income" | "repeat" | "cloud"
 }
 
 type BuildPainelAlertsInput = {

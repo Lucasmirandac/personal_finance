@@ -5,7 +5,6 @@ import Link from "next/link"
 import clsx from "clsx"
 import { AccountsPanel } from "@/components/AccountsPanel"
 import { AdjustBalanceModal } from "@/components/AdjustBalanceModal"
-import { AlertsBar } from "@/components/painel/AlertsBar"
 import { AchievementsCard } from "@/components/AchievementsCard"
 import { DailyAllowancePanel } from "@/components/painel/DailyAllowancePanel"
 import { MonthCloseCard } from "@/components/painel/MonthCloseCard"
@@ -18,7 +17,6 @@ import { Num } from "@/components/ui/Num"
 import { LabelWithInfo } from "@/components/ui/LabelWithInfo"
 import { formatBRL, formatDateBR, formatLongDate, formatRelativeDays, formatInt } from "@/lib/format"
 import { g } from "@/lib/glossary"
-import { buildPainelAlerts, PainelAlert } from "@/lib/alerts"
 import { useAppStore } from "@/lib/store"
 import {
   ACCOUNT_KIND_LABELS,
@@ -92,35 +90,6 @@ export function SaldoPageContent() {
     return events.sort((a, b) => (a.date < b.date ? -1 : 1))
   }, [series, today])
 
-  const alerts = useMemo(
-    () =>
-      buildPainelAlerts({
-        dataset,
-        settings,
-        recurringRules,
-        accounts,
-        manuals: manualTransactions,
-        normalized,
-        budgets,
-        summary,
-        upcomingEvents: upcoming,
-        subscriptionDismissals,
-        lastBackupAt,
-      }),
-    [
-      dataset,
-      settings,
-      recurringRules,
-      accounts,
-      manualTransactions,
-      normalized,
-      budgets,
-      summary,
-      upcoming,
-      subscriptionDismissals,
-      lastBackupAt,
-    ],
-  )
 
   const snapshot7 = summary ? projectionSnapshot(series, summary.saldoInicial, 7) : null
   const snapshot30 = summary ? projectionSnapshot(series, summary.saldoInicial, 30) : null
@@ -171,7 +140,6 @@ export function SaldoPageContent() {
           />
           <ActionSummary
             className="order-3 lg:order-none"
-            alerts={alerts}
             snapshot7={snapshot7}
             upcomingIncome={upcomingIncome}
             upcomingOutcome={upcomingOutcome}
@@ -349,7 +317,6 @@ function TodayHero({
 
 function ActionSummary({
   className,
-  alerts,
   snapshot7,
   upcomingIncome,
   upcomingOutcome,
@@ -357,7 +324,6 @@ function ActionSummary({
   paymentSummary,
 }: Readonly<{
   className?: string
-  alerts: PainelAlert[]
   snapshot7: ProjectionSnapshot
   upcomingIncome: number
   upcomingOutcome: number
@@ -366,31 +332,17 @@ function ActionSummary({
 }>) {
   return (
     <div className={clsx("space-y-4", className)}>
-      <div>
-        <div className="mb-2 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-muted">Plano de ação</p>
-            <h2 className="text-xl font-semibold tracking-tight">O que merece sua atenção</h2>
-          </div>
-          {alerts.length > 0 && (
-            <span className="rounded-full bg-surface/80 px-3 py-1 text-xs text-muted ring-1 ring-border/70">
-              {alerts.length} alerta{alerts.length === 1 ? "" : "s"}
-            </span>
-          )}
-        </div>
-        <AlertsBar alerts={alerts} />
-        {paymentSummary.pendingCount > 0 && (
-          <Link
-            href="/extrato"
-            className="mt-3 flex items-center justify-between rounded-2xl border border-border/70 bg-surface-2/60 px-4 py-3 text-sm transition-colors hover:bg-surface-2"
-          >
-            <span className="text-muted">Contas a pagar do mês</span>
-            <span className="font-medium">
-              {formatInt(paymentSummary.pendingCount)} · {formatBRL(paymentSummary.pendingTotal)}
-            </span>
-          </Link>
-        )}
-      </div>
+      {paymentSummary.pendingCount > 0 && (
+        <Link
+          href="/extrato"
+          className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface-2/60 px-4 py-3 text-sm transition-colors hover:bg-surface-2"
+        >
+          <span className="text-muted">Contas a pagar do mês</span>
+          <span className="font-medium">
+            {formatInt(paymentSummary.pendingCount)} · {formatBRL(paymentSummary.pendingTotal)}
+          </span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} info={g("saldo7d")} />
