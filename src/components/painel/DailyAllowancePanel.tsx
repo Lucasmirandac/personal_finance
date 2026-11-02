@@ -92,7 +92,7 @@ export function DailyAllowancePanel({ className }: Readonly<{ className?: string
 
   if (!result.temRendaCadastrada) {
     return (
-      <Panel className={clsx("rounded-3xl p-5 shadow-[var(--shadow-card)] ring-1 ring-border/60", className)}>
+      <Panel className={clsx("rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-border/60", className)}>
         <LabelWithInfo
           labelClassName="text-caption uppercase tracking-wider text-muted"
           info={g("saldoDiario")}
@@ -118,7 +118,7 @@ export function DailyAllowancePanel({ className }: Readonly<{ className?: string
     <>
       <Panel
         className={clsx(
-          "rounded-3xl bg-gradient-to-br p-5 shadow-[var(--shadow-card)] ring-1 ring-black/5",
+          "rounded-[2rem] bg-gradient-to-br p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-black/5",
           styles.panel,
           className,
         )}

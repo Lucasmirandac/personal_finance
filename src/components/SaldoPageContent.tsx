@@ -123,23 +123,31 @@ export function SaldoPageContent() {
   }
 
   return (
-    <div className="space-y-5 lg:space-y-6">
+    <div className="space-y-6">
       <MonthCloseCard />
-      <section className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start">
-        <div className="contents lg:flex lg:flex-col lg:gap-4 lg:col-span-8">
-          <TodayHero
-            className="order-1"
-            summary={summary}
-            snapshot30={snapshot30}
-            nextBill={nextBill}
-            outlookTone={outlookTone}
-            todayBalance={todayBalance}
-            anchorDate={anchor.data}
-            anchorValue={anchor.valor}
-            onAdjustBalance={() => setAdjustOpen(true)}
-          />
+
+      {/* 1. Cockpit do Dia (Top Level Hero Pair) */}
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-stretch">
+        <TodayHero
+          className="lg:col-span-7 flex flex-col justify-between"
+          summary={summary}
+          snapshot30={snapshot30}
+          nextBill={nextBill}
+          outlookTone={outlookTone}
+          todayBalance={todayBalance}
+          anchorDate={anchor.data}
+          anchorValue={anchor.valor}
+          onAdjustBalance={() => setAdjustOpen(true)}
+        />
+        <DailyAllowancePanel className="lg:col-span-5 flex flex-col justify-between" />
+      </section>
+
+      {/* 2. Conteúdo Principal & Painel Lateral */}
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
+        {/* Coluna Principal: Transações do dia + Projeção e Contas a pagar */}
+        <div className="flex flex-col gap-5 lg:col-span-7">
+          <TodayTransactionsPanel />
           <ActionSummary
-            className="order-3 lg:order-none"
             snapshot7={snapshot7}
             upcomingIncome={upcomingIncome}
             upcomingOutcome={upcomingOutcome}
@@ -148,20 +156,17 @@ export function SaldoPageContent() {
           />
         </div>
 
-        <aside className="contents lg:flex lg:flex-col lg:gap-4 lg:col-span-4">
-          <DailyAllowancePanel className="order-2 lg:order-none" />
-          <div className="order-4 flex flex-col gap-4 lg:order-none">
-            <TodayTransactionsPanel />
-            <AchievementsCard />
-            <AccountsSummary
-              anchor={anchor}
-              activeAccounts={activeAccounts}
-              cardAccountsCount={cardAccounts.length}
-              totalAccounts={totalAccounts}
-              mixedReferenceDates={mixedReferenceDates}
-              onManage={() => setConfigOpen(true)}
-            />
-          </div>
+        {/* Coluna Lateral de Apoio: Minhas Contas & Conquistas */}
+        <aside className="flex flex-col gap-5 lg:col-span-5">
+          <AccountsSummary
+            anchor={anchor}
+            activeAccounts={activeAccounts}
+            cardAccountsCount={cardAccounts.length}
+            totalAccounts={totalAccounts}
+            mixedReferenceDates={mixedReferenceDates}
+            onManage={() => setConfigOpen(true)}
+          />
+          <AchievementsCard />
         </aside>
       </section>
 
@@ -331,18 +336,18 @@ function ActionSummary({
   paymentSummary: PaymentMonthSummary
 }>) {
   return (
-    <div className={clsx("space-y-4", className)}>
-      {paymentSummary.pendingCount > 0 && (
-        <Link
-          href="/extrato"
-          className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface-2/60 px-4 py-3 text-sm transition-colors hover:bg-surface-2"
-        >
-          <span className="text-muted">Contas a pagar do mês</span>
-          <span className="font-medium">
-            {formatInt(paymentSummary.pendingCount)} · {formatBRL(paymentSummary.pendingTotal)}
-          </span>
-        </Link>
-      )}
+    <div className={clsx("space-y-3", className)}>
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.22em] text-muted font-medium">Fluxo de curto prazo</p>
+        {paymentSummary.pendingCount > 0 && (
+          <Link
+            href="/extrato"
+            className="text-xs text-muted hover:text-foreground hover:underline transition-colors"
+          >
+            {formatInt(paymentSummary.pendingCount)} conta(s) a pagar · {formatBRL(paymentSummary.pendingTotal)}
+          </Link>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile label="Em 7d" value={formatBRL(snapshot7?.balance)} info={g("saldo7d")} />
@@ -376,18 +381,18 @@ function AccountsSummary({
   onManage: () => void
 }>) {
   return (
-    <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
+    <Panel className="rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <LabelWithInfo
-            labelClassName="text-xs uppercase tracking-[0.22em] text-muted"
+            labelClassName="text-xs uppercase tracking-[0.22em] text-muted font-medium"
             info={g("contasResumo")}
             ariaTopic="Contas"
           >
-            Contas
+            Minhas Contas
           </LabelWithInfo>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight">{formatBRL(totalAccounts)}</h2>
-          <p className="text-xs text-muted">
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">{formatBRL(totalAccounts)}</h2>
+          <p className="text-xs text-muted mt-0.5">
             Referência {formatDateBR(anchor.data)} · {cardAccountsCount} cartão{cardAccountsCount === 1 ? "" : "ões"}
           </p>
         </div>
@@ -403,13 +408,13 @@ function AccountsSummary({
         </p>
       )}
       <div className="mt-4 space-y-2">
-        {activeAccounts.slice(0, 3).map((account) => (
-          <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2/70 px-3 py-2">
+        {activeAccounts.slice(0, 4).map((account) => (
+          <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface-2/70 px-3.5 py-2.5 transition-colors hover:bg-surface-2">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{account.nome}</p>
               <p className="text-xs text-muted">{ACCOUNT_KIND_LABELS[account.kind]}</p>
             </div>
-            <Num className="shrink-0 font-mono text-sm tabular-nums">
+            <Num className="shrink-0 font-mono text-sm tabular-nums font-semibold">
               {formatBRL(account.saldoInicial)}
             </Num>
           </div>

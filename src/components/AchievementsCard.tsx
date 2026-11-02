@@ -21,7 +21,7 @@ export function AchievementsCard() {
 
   if (unlocked.length === 0) {
     return (
-      <Panel className="rounded-2xl p-4 shadow-[var(--shadow-card)] ring-1 ring-border/60">
+      <Panel className="rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-border/60">
         <p className="text-caption uppercase tracking-wider text-muted">
           Conquistas
         </p>
@@ -40,7 +40,7 @@ export function AchievementsCard() {
   }
 
   return (
-    <Panel className="rounded-2xl p-4 shadow-[var(--shadow-card)] ring-1 ring-border/60">
+    <Panel className="rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)] ring-1 ring-border/60">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-caption uppercase tracking-wider text-muted">
           Conquistas

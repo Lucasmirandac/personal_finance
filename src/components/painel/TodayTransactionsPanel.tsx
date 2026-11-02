@@ -60,11 +60,11 @@ export function TodayTransactionsPanel() {
   )
 
   return (
-    <Panel className="rounded-3xl p-4 shadow-[var(--shadow-card)]">
+    <Panel className="rounded-[2rem] p-5 shadow-[var(--shadow-card-lg)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted">Lançamentos</p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight">Edite sem procurar</h2>
+          <p className="text-xs uppercase tracking-[0.22em] text-muted font-medium">Lançamentos</p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight">Lançamentos recentes</h2>
           <p className="mt-1 text-xs text-muted">Hoje primeiro; se vazio, últimos 7 dias.</p>
         </div>
         <Button size="sm" variant="primary" className="rounded-full" onClick={() => setQuickAddOpen(true)}>
